@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
-import { X, MapPin, Clock, Users, ChevronRight, Sparkles, Send, User, Check, ChevronUp } from 'lucide-react';
+import { X, MapPin, Clock, Users, ChevronRight, Sparkles, Send, User, Check, ChevronUp, ArrowUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { groups, users, currentUser } from '@/data/seed';
 import { CATEGORY_CONFIG, LobCategory } from '@/data/types';
@@ -213,10 +213,37 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
             className="fixed bottom-0 left-0 right-0 z-[70] max-w-lg mx-auto"
           >
             <div className="bg-card rounded-t-3xl border border-border/50 shadow-card overflow-hidden max-h-[85vh]">
+              {/* Lob arrow indicator */}
+              {showConfirm && !lobLaunched && (
+                <motion.div
+                  style={{ opacity: confirmHintOp }}
+                  className="flex justify-center pt-4 pb-1"
+                >
+                  <motion.div
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ repeat: Infinity, duration: 1.2, ease: 'easeInOut' }}
+                  >
+                    <ArrowUp className="w-6 h-6 text-primary" strokeWidth={2.5} />
+                  </motion.div>
+                </motion.div>
+              )}
+              {showConfirm && lobLaunched && (
+                <div className="flex justify-center pt-4 pb-1">
+                  <motion.div
+                    initial={{ y: 0, opacity: 1 }}
+                    animate={{ y: -80, opacity: 0 }}
+                    transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+                  >
+                    <ArrowUp className="w-6 h-6 text-primary" strokeWidth={2.5} />
+                  </motion.div>
+                </div>
+              )}
               {/* Handle */}
-              <div className="flex justify-center pt-3 pb-1">
-                <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
-              </div>
+              {!showConfirm && (
+                <div className="flex justify-center pt-3 pb-1">
+                  <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+                </div>
+              )}
 
               <div className="px-5 pb-6 overflow-y-auto max-h-[80vh]">
                 {/* Header */}
