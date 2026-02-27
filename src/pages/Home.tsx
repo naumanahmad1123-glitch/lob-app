@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Bell } from 'lucide-react';
+import { Sparkles, Bell, ChevronUp } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LobCard } from '@/components/lob/LobCard';
 import { lobs, suggestedLobs } from '@/data/seed';
@@ -73,6 +72,22 @@ const Home = () => {
             ))}
           </div>
         </section>
+
+        {/* Swipe-up hint */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1, duration: 0.5 }}
+          className="flex flex-col items-center pb-4 text-muted-foreground"
+        >
+          <motion.div
+            animate={{ y: [0, -6, 0] }}
+            transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
+          >
+            <ChevronUp className="w-5 h-5" />
+          </motion.div>
+          <span className="text-xs font-medium">Swipe up to Lob it</span>
+        </motion.div>
       </div>
     </AppLayout>
   );
