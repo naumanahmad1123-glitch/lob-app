@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
-import { X, MapPin, Clock, Users, ChevronRight, Sparkles, Send } from 'lucide-react';
+import { X, MapPin, Clock, Users, ChevronRight, Sparkles, Send, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { groups } from '@/data/seed';
+import { groups, users, currentUser } from '@/data/seed';
 import { CATEGORY_CONFIG, LobCategory } from '@/data/types';
 
-type ComposerStep = 'quick' | 'group' | 'category' | 'time' | 'location' | 'review';
+type ComposerStep = 'quick' | 'recipients' | 'category' | 'time' | 'location' | 'review';
+type RecipientType = 'group' | 'individuals';
 
 interface ParsedLob {
   title: string;
@@ -13,6 +14,8 @@ interface ParsedLob {
   time: string;
   location: string;
   groupId: string;
+  recipientType: RecipientType;
+  selectedUserIds: string[];
 }
 
 const TEMPLATES = [
@@ -47,7 +50,7 @@ function parseLobText(text: string): ParsedLob {
   // Use first group as default
   const groupId = groups[0]?.id || '';
 
-  return { title: text, category, time, location: '', groupId };
+  return { title: text, category, time, location: '', groupId, recipientType: 'group' as RecipientType, selectedUserIds: [] };
 }
 
 interface LobComposerProps {
@@ -61,7 +64,7 @@ export function LobComposer({ open, onClose, onLobSent }: LobComposerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<ComposerStep>('quick');
   const [quickText, setQuickText] = useState('');
-  const [parsed, setParsed] = useState<ParsedLob>({ title: '', category: '', time: '', location: '', groupId: groups[0]?.id || '' });
+  const [parsed, setParsed] = useState<ParsedLob>({ title: '', category: '', time: '', location: '', groupId: groups[0]?.id || '', recipientType: 'group', selectedUserIds: [] });
   const [showConfirm, setShowConfirm] = useState(false);
 
   // Drag to dismiss
@@ -72,7 +75,7 @@ export function LobComposer({ open, onClose, onLobSent }: LobComposerProps) {
     if (open) {
       setStep('quick');
       setQuickText('');
-      setParsed({ title: '', category: '', time: '', location: '', groupId: groups[0]?.id || '' });
+      setParsed({ title: '', category: '', time: '', location: '', groupId: groups[0]?.id || '', recipientType: 'group', selectedUserIds: [] });
       setShowConfirm(false);
       setTimeout(() => inputRef.current?.focus(), 300);
     }
@@ -98,7 +101,12 @@ export function LobComposer({ open, onClose, onLobSent }: LobComposerProps) {
     if (info.offset.y > 100) onClose();
   };
 
-  const selectedGroup = groups.find(g => g.id === parsed.groupId);
+  const selectedGroup = parsed.recipientType === 'group' ? groups.find(g => g.id === parsed.groupId) : null;
+  const otherUsers = users.filter(u => u.id !== currentUser.id);
+  const selectedIndividuals = otherUsers.filter(u => parsed.selectedUserIds.includes(u.id));
+  const recipientLabel = parsed.recipientType === 'group'
+    ? selectedGroup?.name || 'a group'
+    : selectedIndividuals.map(u => u.name).join(', ') || 'friends';
   const catConfig = parsed.category ? CATEGORY_CONFIG[parsed.category] : null;
 
   return (
@@ -139,7 +147,7 @@ export function LobComposer({ open, onClose, onLobSent }: LobComposerProps) {
                   <h2 className="text-lg font-extrabold text-foreground">
                     {step === 'quick' && !showConfirm && '🏐 Lob an idea'}
                     {showConfirm && '🎯 Looks good?'}
-                    {step === 'group' && 'Who\'s in?'}
+                    {step === 'recipients' && 'Who\'s in?'}
                     {step === 'category' && 'What\'s the plan?'}
                     {step === 'time' && 'When?'}
                     {step === 'location' && 'Where?'}
@@ -194,30 +202,74 @@ export function LobComposer({ open, onClose, onLobSent }: LobComposerProps) {
                         </div>
                       </div>
 
-                      {/* Group selector */}
+                      {/* Recipient selector */}
                       <div className="mb-3">
                         <p className="text-xs font-semibold text-muted-foreground mb-2">Send to</p>
+                        {/* Toggle */}
+                        <div className="flex gap-2 mb-2">
+                          <button
+                            onClick={() => setParsed(p => ({ ...p, recipientType: 'group', selectedUserIds: [] }))}
+                            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                              parsed.recipientType === 'group' ? 'gradient-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'
+                            }`}
+                          >
+                            <Users className="w-3 h-3" />Group
+                          </button>
+                          <button
+                            onClick={() => setParsed(p => ({ ...p, recipientType: 'individuals', groupId: '' }))}
+                            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                              parsed.recipientType === 'individuals' ? 'gradient-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'
+                            }`}
+                          >
+                            <User className="w-3 h-3" />People
+                          </button>
+                        </div>
                         <div className="flex gap-2 overflow-x-auto pb-1">
-                          {groups.map(g => (
-                            <button
-                              key={g.id}
-                              onClick={() => setParsed(p => ({ ...p, groupId: g.id }))}
-                              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium whitespace-nowrap transition-all ${
-                                parsed.groupId === g.id
-                                  ? 'border-primary bg-primary/10 text-foreground'
-                                  : 'border-border bg-secondary/50 text-muted-foreground'
-                              }`}
-                            >
-                              <span>{g.emoji}</span>
-                              {g.name}
-                            </button>
-                          ))}
+                          {parsed.recipientType === 'group' ? (
+                            groups.map(g => (
+                              <button
+                                key={g.id}
+                                onClick={() => setParsed(p => ({ ...p, groupId: g.id }))}
+                                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium whitespace-nowrap transition-all ${
+                                  parsed.groupId === g.id
+                                    ? 'border-primary bg-primary/10 text-foreground'
+                                    : 'border-border bg-secondary/50 text-muted-foreground'
+                                }`}
+                              >
+                                <span>{g.emoji}</span>
+                                {g.name}
+                              </button>
+                            ))
+                          ) : (
+                            otherUsers.map(u => {
+                              const sel = parsed.selectedUserIds.includes(u.id);
+                              return (
+                                <button
+                                  key={u.id}
+                                  onClick={() => setParsed(p => ({
+                                    ...p,
+                                    selectedUserIds: sel
+                                      ? p.selectedUserIds.filter(id => id !== u.id)
+                                      : [...p.selectedUserIds, u.id]
+                                  }))}
+                                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium whitespace-nowrap transition-all ${
+                                    sel
+                                      ? 'border-primary bg-primary/10 text-foreground'
+                                      : 'border-border bg-secondary/50 text-muted-foreground'
+                                  }`}
+                                >
+                                  <span>{u.avatar}</span>
+                                  {u.name}
+                                </button>
+                              );
+                            })
+                          )}
                         </div>
                       </div>
 
                       {/* Or use assisted flow */}
                       <button
-                        onClick={() => setStep('group')}
+                        onClick={() => setStep('recipients')}
                         className="w-full flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border/50 text-sm text-muted-foreground mt-2"
                       >
                         <span>Build step by step instead</span>
@@ -234,7 +286,7 @@ export function LobComposer({ open, onClose, onLobSent }: LobComposerProps) {
                           <span className="text-3xl">{catConfig?.emoji || '📌'}</span>
                           <div>
                             <h3 className="font-bold text-foreground text-lg">{parsed.title}</h3>
-                            <p className="text-sm text-muted-foreground">{selectedGroup?.name}</p>
+                         <p className="text-sm text-muted-foreground">{recipientLabel}</p>
                           </div>
                         </div>
                         {parsed.time && (
@@ -267,28 +319,8 @@ export function LobComposer({ open, onClose, onLobSent }: LobComposerProps) {
                     </motion.div>
                   )}
 
-                  {/* ASSISTED: Group select */}
-                  {step === 'group' && (
-                    <motion.div key="group" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                      <div className="space-y-2">
-                        {groups.map(g => (
-                          <button
-                            key={g.id}
-                            onClick={() => { setParsed(p => ({ ...p, groupId: g.id })); setStep('category'); }}
-                            className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all ${
-                              parsed.groupId === g.id ? 'border-primary bg-primary/10' : 'border-border bg-secondary/50 hover:border-primary/50'
-                            }`}
-                          >
-                            <span className="text-2xl">{g.emoji}</span>
-                            <div className="text-left">
-                              <p className="font-semibold text-foreground text-sm">{g.name}</p>
-                              <p className="text-xs text-muted-foreground">{g.members.length} members</p>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
+
+
 
                   {/* ASSISTED: Category */}
                   {step === 'category' && (
