@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion';
 import { Sparkles, Bell, ChevronUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LobCard } from '@/components/lob/LobCard';
 import { lobs, suggestedLobs } from '@/data/seed';
 
 const Home = () => {
+  const navigate = useNavigate();
   const activeLobs = lobs.filter(l => l.status === 'voting');
   const confirmedLobs = lobs.filter(l => l.status === 'confirmed');
 
@@ -17,7 +19,10 @@ const Home = () => {
             <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Lob</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Make plans, not excuses</p>
           </div>
-          <button className="relative w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+          <button
+            onClick={() => navigate('/notifications')}
+            className="relative w-10 h-10 rounded-full bg-secondary flex items-center justify-center"
+          >
             <Bell className="w-5 h-5 text-foreground" />
             <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
               3
