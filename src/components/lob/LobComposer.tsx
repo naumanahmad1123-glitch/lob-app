@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
-import { X, MapPin, Clock, Users, ChevronRight, Sparkles, Send, User, Check } from 'lucide-react';
-import { SwipeToLob } from './SwipeToLob';
+import { X, MapPin, Clock, Users, ChevronRight, Sparkles, Send, User, Check, ChevronUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { groups, users, currentUser } from '@/data/seed';
 import { CATEGORY_CONFIG, LobCategory } from '@/data/types';
@@ -52,6 +51,65 @@ function parseLobText(text: string): ParsedLob {
   const groupId = groups[0]?.id || '';
 
   return { title: text, category, time, location: '', groupId, recipientType: 'group' as RecipientType, selectedUserIds: [] };
+}
+
+function SwipeableCard({ onLob, card }: { onLob: () => void; card: React.ReactNode }) {
+  const cardY = useMotionValue(0);
+  const cardOpacity = useTransform(cardY, [0, -120], [1, 0.3]);
+  const cardScale = useTransform(cardY, [0, -120], [1, 0.92]);
+  const hintOp = useTransform(cardY, [0, -30], [1, 0]);
+  const [launched, setLaunched] = useState(false);
+
+  const onDragEnd = useCallback((_: any, info: PanInfo) => {
+    if (info.offset.y < -60 || info.velocity.y < -300) {
+      setLaunched(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (launched) {
+      const t = setTimeout(() => { onLob(); setLaunched(false); }, 500);
+      return () => clearTimeout(t);
+    }
+  }, [launched, onLob]);
+
+  if (launched) {
+    return (
+      <div className="relative h-36 flex items-center justify-center overflow-hidden">
+        <motion.div
+          initial={{ y: 0, opacity: 1, scale: 1 }}
+          animate={{ y: -300, opacity: 0, scale: 0.7 }}
+          transition={{ duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
+          className="gradient-card rounded-2xl p-5 border border-border/50 w-full"
+        >
+          {card}
+        </motion.div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative select-none">
+      <motion.div
+        drag="y"
+        dragConstraints={{ top: -150, bottom: 0 }}
+        dragElastic={0.15}
+        dragMomentum={false}
+        onDragEnd={onDragEnd}
+        style={{ y: cardY, opacity: cardOpacity, scale: cardScale }}
+        whileTap={{ cursor: 'grabbing' }}
+        className="gradient-card rounded-2xl p-5 border border-border/50 cursor-grab"
+      >
+        {card}
+      </motion.div>
+      <motion.p
+        style={{ opacity: hintOp }}
+        className="text-center text-[11px] font-semibold text-muted-foreground mt-2 flex items-center justify-center gap-1"
+      >
+        <ChevronUp className="w-3.5 h-3.5" /> Swipe card up to lob it
+      </motion.p>
+    </div>
+  );
 }
 
 interface LobComposerProps {
@@ -285,27 +343,32 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
                   {/* CONFIRMATION (after quick parse) */}
                   {showConfirm && (
                     <motion.div key="confirm" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
-                      <div className="gradient-card rounded-2xl p-5 border border-border/50 mb-4 space-y-3">
-                        <div className="flex items-center gap-3">
-                          <span className="text-3xl">{catConfig?.emoji || '📌'}</span>
-                          <div>
-                            <h3 className="font-bold text-foreground text-lg">{parsed.title}</h3>
-                         <p className="text-sm text-muted-foreground">{recipientLabel}</p>
+                      <SwipeableCard
+                        onLob={handleLobIt}
+                        card={
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                              <span className="text-3xl">{catConfig?.emoji || '📌'}</span>
+                              <div>
+                                <h3 className="font-bold text-foreground text-lg">{parsed.title}</h3>
+                                <p className="text-sm text-muted-foreground">{recipientLabel}</p>
+                              </div>
+                            </div>
+                            {parsed.time && (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Clock className="w-4 h-4" />
+                                <span>{parsed.time}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Users className="w-4 h-4" />
+                              <span>Quorum: {catConfig?.defaultQuorum || 2} needed</span>
+                            </div>
                           </div>
-                        </div>
-                        {parsed.time && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Clock className="w-4 h-4" />
-                            <span>{parsed.time}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Users className="w-4 h-4" />
-                          <span>Quorum: {catConfig?.defaultQuorum || 2} needed</span>
-                        </div>
-                      </div>
+                        }
+                      />
 
-                      <div className="flex gap-2 mb-2">
+                      <div className="flex gap-2 mt-3">
                         <button
                           onClick={() => { setShowConfirm(false); setStep('category'); }}
                           className="flex-1 py-3 rounded-xl bg-secondary text-foreground font-semibold text-sm"
@@ -313,11 +376,8 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
                           Edit
                         </button>
                       </div>
-                      <SwipeToLob onLob={handleLobIt} />
                     </motion.div>
                   )}
-
-
 
 
                   {/* ASSISTED: Category */}
@@ -399,7 +459,18 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
                           className="w-full p-3 pl-9 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
-                      <SwipeToLob onLob={handleLobIt} />
+                      <SwipeableCard
+                        onLob={handleLobIt}
+                        card={
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{catConfig?.emoji || '📌'}</span>
+                            <div>
+                              <p className="font-bold text-foreground">{parsed.title}</p>
+                              <p className="text-xs text-muted-foreground">{recipientLabel}</p>
+                            </div>
+                          </div>
+                        }
+                      />
                     </motion.div>
                   )}
 
