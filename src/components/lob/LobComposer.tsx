@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { groups, users, currentUser } from '@/data/seed';
 import { CATEGORY_CONFIG, LobCategory } from '@/data/types';
 
-type ComposerStep = 'quick' | 'recipients' | 'category' | 'time' | 'location' | 'review' | 'relob';
+type ComposerStep = 'quick' | 'recipients' | 'category' | 'time' | 'location' | 'review';
 type RecipientType = 'group' | 'individuals';
 
 interface ParsedLob {
@@ -67,8 +67,6 @@ export function LobComposer({ open, onClose, onLobSent }: LobComposerProps) {
   const [quickText, setQuickText] = useState('');
   const [parsed, setParsed] = useState<ParsedLob>({ title: '', category: '', time: '', location: '', groupId: groups[0]?.id || '', recipientType: 'group', selectedUserIds: [] });
   const [showConfirm, setShowConfirm] = useState(false);
-  const [sentGroups, setSentGroups] = useState<string[]>([]);
-  const [relobGroupId, setRelobGroupId] = useState('');
 
   // Drag to dismiss
   const y = useMotionValue(0);
@@ -80,8 +78,6 @@ export function LobComposer({ open, onClose, onLobSent }: LobComposerProps) {
       setQuickText('');
       setParsed({ title: '', category: '', time: '', location: '', groupId: groups[0]?.id || '', recipientType: 'group', selectedUserIds: [] });
       setShowConfirm(false);
-      setSentGroups([]);
-      setRelobGroupId('');
       setTimeout(() => inputRef.current?.focus(), 300);
     }
   }, [open]);
@@ -98,23 +94,9 @@ export function LobComposer({ open, onClose, onLobSent }: LobComposerProps) {
   }, [quickText]);
 
   const handleLobIt = useCallback(() => {
-    const sentTo = parsed.recipientType === 'group' ? parsed.groupId : 'individuals';
-    setSentGroups(prev => [...prev, sentTo]);
     onLobSent();
-    setShowConfirm(false);
-    setStep('relob');
-  }, [onLobSent, parsed.groupId, parsed.recipientType]);
-
-  const handleRelob = useCallback(() => {
-    if (!relobGroupId) return;
-    setSentGroups(prev => [...prev, relobGroupId]);
-    onLobSent();
-    setRelobGroupId('');
-  }, [relobGroupId, onLobSent]);
-
-  const handleDone = useCallback(() => {
     onClose();
-  }, [onClose]);
+  }, [onLobSent, onClose]);
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     if (info.offset.y > 100) onClose();
@@ -171,7 +153,7 @@ export function LobComposer({ open, onClose, onLobSent }: LobComposerProps) {
                     {step === 'time' && 'When?'}
                     {step === 'location' && 'Where?'}
                     {step === 'review' && 'Review'}
-                    {step === 'relob' && '🎯 Lobbed!'}
+                    {step === 'review' && 'Review'}
                   </h2>
                   <button onClick={onClose} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
                     <X className="w-4 h-4 text-muted-foreground" />
@@ -419,60 +401,6 @@ export function LobComposer({ open, onClose, onLobSent }: LobComposerProps) {
                     </motion.div>
                   )}
 
-                  {/* RE-LOB to another group */}
-                  {step === 'relob' && (
-                    <motion.div key="relob" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
-                      {/* Success badge */}
-                      <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-primary/10 border border-primary/20">
-                        <span className="text-2xl">✅</span>
-                        <div>
-                          <p className="text-sm font-bold text-foreground">{parsed.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Sent to {sentGroups.map(id => groups.find(g => g.id === id)?.name || 'friends').join(', ')}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Re-lob prompt */}
-                      <p className="text-sm font-semibold text-foreground mb-3">Lob it to another group?</p>
-                      <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
-                        {groups.filter(g => !sentGroups.includes(g.id)).map(g => (
-                          <button
-                            key={g.id}
-                            onClick={() => setRelobGroupId(g.id)}
-                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium whitespace-nowrap transition-all ${
-                              relobGroupId === g.id
-                                ? 'border-primary bg-primary/10 text-foreground'
-                                : 'border-border bg-secondary/50 text-muted-foreground'
-                            }`}
-                          >
-                            <span>{g.emoji}</span>
-                            {g.name}
-                          </button>
-                        ))}
-                      </div>
-
-                      {relobGroupId ? (
-                        <SwipeToLob onLob={handleRelob} />
-                      ) : (
-                        <button
-                          onClick={handleDone}
-                          className="w-full py-3 rounded-xl bg-secondary text-foreground font-semibold text-sm"
-                        >
-                          Done
-                        </button>
-                      )}
-
-                      {relobGroupId && (
-                        <button
-                          onClick={handleDone}
-                          className="w-full mt-2 py-2 text-sm text-muted-foreground font-medium"
-                        >
-                          Skip — I'm done
-                        </button>
-                      )}
-                    </motion.div>
-                  )}
                 </AnimatePresence>
               </div>
             </div>
