@@ -138,6 +138,8 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
       setQuickText(initial);
       setParsed({ title: '', category: '', time: '', location: '', groupId: groups[0]?.id || '', recipientType: 'group', selectedUserIds: [] });
       setShowConfirm(false);
+      setLobLaunched(false);
+      confirmDragY.set(0);
       setTimeout(() => inputRef.current?.focus(), 300);
     }
   }, [open, prefillText]);
@@ -158,9 +160,23 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
     onClose();
   }, [onLobSent, onClose]);
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
-    if (info.offset.y > 100) onClose();
-  };
+  // Confirm-mode swipe: the whole sheet flies up
+  const confirmDragY = useMotionValue(0);
+  const confirmOpacity = useTransform(confirmDragY, [0, -120], [1, 0.3]);
+  const confirmScale = useTransform(confirmDragY, [0, -120], [1, 0.92]);
+  const confirmHintOp = useTransform(confirmDragY, [0, -30], [1, 0]);
+  const [lobLaunched, setLobLaunched] = useState(false);
+
+  const handleConfirmDragEnd = useCallback((_: any, info: PanInfo) => {
+    if (info.offset.y < -60 || info.velocity.y < -300) {
+      setLobLaunched(true);
+      setTimeout(() => {
+        handleLobIt();
+        setLobLaunched(false);
+      }, 500);
+    }
+  }, [handleLobIt]);
+
 
   const selectedGroup = parsed.recipientType === 'group' ? groups.find(g => g.id === parsed.groupId) : null;
   const otherUsers = users.filter(u => u.id !== currentUser.id);
@@ -186,14 +202,14 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
           {/* Sheet */}
           <motion.div
             initial={{ y: '100%' }}
-            animate={{ y: 0 }}
+            animate={lobLaunched ? { y: '-100%', opacity: 0, scale: 0.8 } : { y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            drag="y"
-            dragConstraints={{ top: 0 }}
+            transition={lobLaunched ? { duration: 0.5, ease: [0.2, 0.8, 0.2, 1] } : { type: 'spring', damping: 28, stiffness: 300 }}
+            drag={showConfirm ? 'y' : 'y'}
+            dragConstraints={showConfirm ? { top: -200, bottom: 100 } : { top: 0 }}
             dragElastic={0.2}
-            onDragEnd={handleDragEnd}
-            style={{ y, opacity }}
+            onDragEnd={showConfirm ? handleConfirmDragEnd : ((_: any, info: PanInfo) => { if (info.offset.y > 100) onClose(); })}
+            style={showConfirm ? { y: confirmDragY, opacity: confirmOpacity, scale: confirmScale } : { y, opacity }}
             className="fixed bottom-0 left-0 right-0 z-[70] max-w-lg mx-auto"
           >
             <div className="bg-card rounded-t-3xl border border-border/50 shadow-card overflow-hidden max-h-[85vh]">
@@ -343,32 +359,27 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
                   {/* CONFIRMATION (after quick parse) */}
                   {showConfirm && (
                     <motion.div key="confirm" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
-                      <SwipeableCard
-                        onLob={handleLobIt}
-                        card={
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-3">
-                              <span className="text-3xl">{catConfig?.emoji || '📌'}</span>
-                              <div>
-                                <h3 className="font-bold text-foreground text-lg">{parsed.title}</h3>
-                                <p className="text-sm text-muted-foreground">{recipientLabel}</p>
-                              </div>
-                            </div>
-                            {parsed.time && (
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Clock className="w-4 h-4" />
-                                <span>{parsed.time}</span>
-                              </div>
-                            )}
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Users className="w-4 h-4" />
-                              <span>Quorum: {catConfig?.defaultQuorum || 2} needed</span>
-                            </div>
+                      <div className="gradient-card rounded-2xl p-5 border border-border/50 mb-4 space-y-3">
+                        <div className="flex items-center gap-3">
+                          <span className="text-3xl">{catConfig?.emoji || '📌'}</span>
+                          <div>
+                            <h3 className="font-bold text-foreground text-lg">{parsed.title}</h3>
+                            <p className="text-sm text-muted-foreground">{recipientLabel}</p>
                           </div>
-                        }
-                      />
+                        </div>
+                        {parsed.time && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Clock className="w-4 h-4" />
+                            <span>{parsed.time}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Users className="w-4 h-4" />
+                          <span>Quorum: {catConfig?.defaultQuorum || 2} needed</span>
+                        </div>
+                      </div>
 
-                      <div className="flex gap-2 mt-3">
+                      <div className="flex gap-2 mb-3">
                         <button
                           onClick={() => { setShowConfirm(false); setStep('category'); }}
                           className="flex-1 py-3 rounded-xl bg-secondary text-foreground font-semibold text-sm"
@@ -376,6 +387,13 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
                           Edit
                         </button>
                       </div>
+
+                      <motion.p
+                        style={{ opacity: confirmHintOp }}
+                        className="text-center text-[11px] font-semibold text-muted-foreground flex items-center justify-center gap-1"
+                      >
+                        <ChevronUp className="w-3.5 h-3.5" /> Swipe up to lob it
+                      </motion.p>
                     </motion.div>
                   )}
 
