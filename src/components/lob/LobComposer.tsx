@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { X, MapPin, Clock, Users, ChevronRight, Sparkles, Send, User } from 'lucide-react';
+import { SwipeToLob } from './SwipeToLob';
 import { useNavigate } from 'react-router-dom';
 import { groups, users, currentUser } from '@/data/seed';
 import { CATEGORY_CONFIG, LobCategory } from '@/data/types';
@@ -301,21 +302,15 @@ export function LobComposer({ open, onClose, onLobSent }: LobComposerProps) {
                         </div>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 mb-2">
                         <button
                           onClick={() => { setShowConfirm(false); setStep('category'); }}
                           className="flex-1 py-3 rounded-xl bg-secondary text-foreground font-semibold text-sm"
                         >
                           Edit
                         </button>
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          onClick={handleLobIt}
-                          className="flex-[2] py-3 rounded-xl gradient-primary text-primary-foreground font-bold text-base shadow-glow"
-                        >
-                          🏐 Lob It!
-                        </motion.button>
                       </div>
+                      <SwipeToLob onLob={handleLobIt} />
                     </motion.div>
                   )}
 
@@ -401,13 +396,7 @@ export function LobComposer({ open, onClose, onLobSent }: LobComposerProps) {
                           className="w-full p-3 pl-9 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handleLobIt}
-                        className="w-full py-4 rounded-xl gradient-primary text-primary-foreground font-bold text-base shadow-glow"
-                      >
-                        🏐 Lob It!
-                      </motion.button>
+                      <SwipeToLob onLob={handleLobIt} />
                     </motion.div>
                   )}
                 </AnimatePresence>
