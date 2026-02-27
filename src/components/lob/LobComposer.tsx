@@ -58,9 +58,10 @@ interface LobComposerProps {
   open: boolean;
   onClose: () => void;
   onLobSent: () => void;
+  prefillText?: string;
 }
 
-export function LobComposer({ open, onClose, onLobSent }: LobComposerProps) {
+export function LobComposer({ open, onClose, onLobSent, prefillText }: LobComposerProps) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<ComposerStep>('quick');
@@ -75,12 +76,13 @@ export function LobComposer({ open, onClose, onLobSent }: LobComposerProps) {
   useEffect(() => {
     if (open) {
       setStep('quick');
-      setQuickText('');
+      const initial = prefillText || '';
+      setQuickText(initial);
       setParsed({ title: '', category: '', time: '', location: '', groupId: groups[0]?.id || '', recipientType: 'group', selectedUserIds: [] });
       setShowConfirm(false);
       setTimeout(() => inputRef.current?.focus(), 300);
     }
-  }, [open]);
+  }, [open, prefillText]);
 
   const handleQuickSubmit = useCallback(() => {
     if (!quickText.trim()) return;

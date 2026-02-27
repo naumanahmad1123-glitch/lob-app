@@ -1,16 +1,20 @@
-import { ReactNode, useState, useCallback, useRef } from 'react';
+import { ReactNode, useState, useCallback } from 'react';
 import { motion, PanInfo } from 'framer-motion';
 import { ChevronUp } from 'lucide-react';
 import { BottomTabs } from './BottomTabs';
 import { LobComposer } from '@/components/lob/LobComposer';
 import { LobSentToast } from '@/components/lob/LobSentToast';
+import { LobSentAnimation } from '@/components/lob/LobSentAnimation';
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const [composerOpen, setComposerOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [showAnimation, setShowAnimation] = useState(false);
 
   const handleLobSent = useCallback(() => {
+    setShowAnimation(true);
     setShowToast(true);
+    setTimeout(() => setShowAnimation(false), 1500);
     setTimeout(() => setShowToast(false), 2500);
   }, []);
 
@@ -26,13 +30,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
 
-      {/* Swipe-up zone – sits above bottom tabs */}
+      {/* Swipe-up zone */}
       {!composerOpen && (
         <motion.div
           onPan={handleSwipeUp}
           className="fixed bottom-16 left-0 right-0 z-40 flex flex-col items-center cursor-grab active:cursor-grabbing select-none touch-pan-x"
         >
-          {/* Visual hint */}
           <motion.div
             animate={{ y: [0, -4, 0] }}
             transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
@@ -43,8 +46,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
               Swipe up to Lob
             </span>
           </motion.div>
-
-          {/* Invisible tall touch target */}
           <div className="w-full h-8" />
         </motion.div>
       )}
@@ -56,6 +57,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         onLobSent={handleLobSent}
       />
       <LobSentToast show={showToast} />
+      <LobSentAnimation show={showAnimation} />
     </div>
   );
 }

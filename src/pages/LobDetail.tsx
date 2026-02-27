@@ -6,7 +6,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { lobs, users } from '@/data/seed';
 import { CATEGORY_CONFIG, ResponseType } from '@/data/types';
 import { ResponseButtons } from '@/components/lob/ResponseButtons';
-import { QuorumBar } from '@/components/lob/QuorumBar';
+import { QuorumRing } from '@/components/lob/QuorumRing';
 import { StatusPill } from '@/components/lob/StatusPill';
 
 const LobDetail = () => {
@@ -29,19 +29,13 @@ const LobDetail = () => {
 
   const config = CATEGORY_CONFIG[lob.category];
   const inList = lob.responses.filter(r => r.response === 'in');
-  const maybeList = lob.responses.filter(r => r.response === 'maybe');
-  const outList = lob.responses.filter(r => r.response === 'out');
   const inCount = myResponse === 'in' ? inList.length + (inList.find(r => r.userId === 'u1') ? 0 : 1) : inList.length;
   const quorumReached = inCount >= lob.quorum;
 
   const timeStr = lob.selectedTime || lob.timeOptions[0]?.datetime;
   const formattedTime = timeStr
     ? new Date(timeStr).toLocaleString('en-US', {
-        weekday: 'long',
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
+        weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
       })
     : 'TBD';
 
@@ -120,58 +114,15 @@ const LobDetail = () => {
           </motion.div>
         )}
 
-        {/* Quorum Progress */}
+        {/* Quorum Ring + Avatar Stacks */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card mb-4"
+          className="gradient-card rounded-2xl p-5 border border-border/50 shadow-card mb-4"
         >
-          <p className="text-xs font-semibold text-muted-foreground mb-2">ATTENDANCE</p>
-          <QuorumBar current={inCount} target={lob.quorum} />
-
-          {/* Responders */}
-          <div className="mt-4 space-y-3">
-            {inList.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-lob-in mb-1.5">In ({inList.length})</p>
-                <div className="flex flex-wrap gap-2">
-                  {inList.map(r => (
-                    <span key={r.userId} className="flex items-center gap-1.5 bg-secondary rounded-full px-2.5 py-1 text-xs text-foreground">
-                      <span>{getUserAvatar(r.userId)}</span>
-                      {getUserName(r.userId)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {maybeList.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-lob-maybe mb-1.5">Maybe ({maybeList.length})</p>
-                <div className="flex flex-wrap gap-2">
-                  {maybeList.map(r => (
-                    <span key={r.userId} className="flex items-center gap-1.5 bg-secondary rounded-full px-2.5 py-1 text-xs text-foreground">
-                      <span>{getUserAvatar(r.userId)}</span>
-                      {getUserName(r.userId)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {outList.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-lob-out mb-1.5">Out ({outList.length})</p>
-                <div className="flex flex-wrap gap-2">
-                  {outList.map(r => (
-                    <span key={r.userId} className="flex items-center gap-1.5 bg-secondary rounded-full px-2.5 py-1 text-xs text-foreground">
-                      <span>{getUserAvatar(r.userId)}</span>
-                      {getUserName(r.userId)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <p className="text-xs font-semibold text-muted-foreground mb-4">ATTENDANCE</p>
+          <QuorumRing current={inCount} target={lob.quorum} responses={lob.responses} />
         </motion.div>
 
         {/* Time Poll */}
@@ -187,10 +138,7 @@ const LobDetail = () => {
               {lob.timeOptions.map(opt => {
                 const t = new Date(opt.datetime);
                 return (
-                  <div
-                    key={opt.id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border/50"
-                  >
+                  <div key={opt.id} className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border/50">
                     <span className="text-sm font-medium text-foreground">
                       {t.toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}
                     </span>
