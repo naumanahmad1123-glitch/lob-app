@@ -1,4 +1,4 @@
-import { Home, Users, Compass, User, Bell } from 'lucide-react';
+import { Home, Users, Share2, User } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { useCallback, useState } from 'react';
@@ -6,7 +6,7 @@ import { useCallback, useState } from 'react';
 const tabs = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/groups', icon: Users, label: 'Groups' },
-  { path: '/explore', icon: Compass, label: 'Explore' },
+  { path: '/sharing', icon: Share2, label: 'Sharing' },
   { path: '/profile', icon: User, label: 'Profile' },
 ];
 

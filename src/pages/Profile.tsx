@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
-import { Settings, ChevronRight, Bell, Calendar, Shield, Crown, LogOut } from 'lucide-react';
+import { Settings, ChevronRight, Bell, Calendar, Shield, Crown, LogOut, Plane } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { currentUser } from '@/data/seed';
+import { currentUser, trips } from '@/data/seed';
 
 const menuItems = [
   { icon: Bell, label: 'Notifications', desc: 'Manage alerts' },
@@ -11,6 +12,9 @@ const menuItems = [
 ];
 
 const Profile = () => {
+  const navigate = useNavigate();
+  const activeTrips = trips.filter(t => t.userId === currentUser.id && t.showOnProfile);
+
   return (
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
@@ -48,6 +52,24 @@ const Profile = () => {
               <p className="text-[11px] text-muted-foreground">Show Rate</p>
             </div>
           </div>
+
+          {/* Active trip badge */}
+          {activeTrips.length > 0 && (
+            <div className="mt-5 pt-4 border-t border-border/50">
+              {activeTrips.map(trip => (
+                <button
+                  key={trip.id}
+                  onClick={() => navigate('/sharing')}
+                  className="flex items-center gap-2 mx-auto px-3 py-1.5 rounded-full bg-accent/10 border border-accent/20"
+                >
+                  <Plane className="w-3.5 h-3.5 text-accent" />
+                  <span className="text-xs font-semibold text-accent">
+                    {trip.emoji} {trip.city} · {new Date(trip.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(trip.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </motion.div>
 
         {/* Interests */}

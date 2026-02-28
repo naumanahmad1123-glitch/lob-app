@@ -1,21 +1,22 @@
-import { User, Group, Lob } from './types';
+import { User, Group, Lob, Trip, CalendarShare } from './types';
 
 export const currentUser: User = {
   id: 'u1',
   name: 'You',
   avatar: '🙂',
   interests: ['sports', 'dinner', 'coffee'],
+  city: 'New York',
 };
 
 export const users: User[] = [
   currentUser,
-  { id: 'u2', name: 'Alex', avatar: '😎', interests: ['sports', 'gym'] },
-  { id: 'u3', name: 'Sam', avatar: '🤙', interests: ['dinner', 'coffee'] },
-  { id: 'u4', name: 'Jordan', avatar: '🏄', interests: ['sports', 'travel'] },
-  { id: 'u5', name: 'Taylor', avatar: '🎯', interests: ['padel', 'gym'] },
-  { id: 'u6', name: 'Morgan', avatar: '🎤', interests: ['dinner', 'chill'] },
-  { id: 'u7', name: 'Riley', avatar: '🚀', interests: ['sports', 'coffee'] },
-  { id: 'u8', name: 'Casey', avatar: '🎨', interests: ['chill', 'travel'] },
+  { id: 'u2', name: 'Alex', avatar: '😎', interests: ['sports', 'gym'], city: 'New York' },
+  { id: 'u3', name: 'Sam', avatar: '🤙', interests: ['dinner', 'coffee'], city: 'London' },
+  { id: 'u4', name: 'Jordan', avatar: '🏄', interests: ['sports', 'travel'], city: 'London' },
+  { id: 'u5', name: 'Taylor', avatar: '🎯', interests: ['padel', 'gym'], city: 'New York' },
+  { id: 'u6', name: 'Morgan', avatar: '🎤', interests: ['dinner', 'chill'], city: 'Paris' },
+  { id: 'u7', name: 'Riley', avatar: '🚀', interests: ['sports', 'coffee'], city: 'New York' },
+  { id: 'u8', name: 'Casey', avatar: '🎨', interests: ['chill', 'travel'], city: 'London' },
 ];
 
 export const groups: Group[] = [
@@ -136,6 +137,37 @@ export const lobs: Lob[] = [
     ],
     createdAt: '2026-02-27T12:00',
   },
+];
+
+export const trips: Trip[] = [
+  {
+    id: 'trip1',
+    userId: 'u1',
+    city: 'London',
+    country: 'UK',
+    emoji: '🇬🇧',
+    startDate: '2026-03-10',
+    endDate: '2026-03-15',
+    notifyUserIds: ['u3', 'u4', 'u8'],
+    showOnProfile: true,
+  },
+  {
+    id: 'trip2',
+    userId: 'u3',
+    city: 'New York',
+    country: 'US',
+    emoji: '🇺🇸',
+    startDate: '2026-03-05',
+    endDate: '2026-03-08',
+    notifyUserIds: ['u1', 'u2'],
+    showOnProfile: true,
+  },
+];
+
+export const calendarShares: CalendarShare[] = [
+  { id: 'cs1', ownerId: 'u1', targetType: 'user', targetId: 'u2', privacy: 'details' },
+  { id: 'cs2', ownerId: 'u1', targetType: 'user', targetId: 'u3', privacy: 'free-busy' },
+  { id: 'cs3', ownerId: 'u1', targetType: 'group', targetId: 'g1', privacy: 'free-busy' },
 ];
 
 export const suggestedLobs = [

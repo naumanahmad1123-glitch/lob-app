@@ -1,12 +1,14 @@
 export type LobStatus = 'draft' | 'voting' | 'confirmed' | 'cancelled' | 'completed';
 export type ResponseType = 'in' | 'maybe' | 'out';
 export type LobCategory = 'sports' | 'dinner' | 'coffee' | 'gym' | 'chill' | 'travel' | 'padel' | 'other';
+export type CalendarPrivacy = 'free-busy' | 'details';
 
 export interface User {
   id: string;
   name: string;
   avatar: string;
   interests: string[];
+  city?: string;
 }
 
 export interface Group {
@@ -47,6 +49,26 @@ export interface Lob {
   status: LobStatus;
   responses: LobResponse[];
   createdAt: string;
+}
+
+export interface Trip {
+  id: string;
+  userId: string;
+  city: string;
+  country: string;
+  emoji: string;
+  startDate: string;
+  endDate: string;
+  notifyUserIds: string[]; // push to these contacts
+  showOnProfile: boolean;
+}
+
+export interface CalendarShare {
+  id: string;
+  ownerId: string;
+  targetType: 'user' | 'group';
+  targetId: string;
+  privacy: CalendarPrivacy;
 }
 
 export const CATEGORY_CONFIG: Record<LobCategory, { label: string; emoji: string; defaultQuorum: number }> = {

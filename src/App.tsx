@@ -10,6 +10,7 @@ import { Navigate } from "react-router-dom";
 import LobDetail from "./pages/LobDetail";
 import Explore from "./pages/Explore";
 import Profile from "./pages/Profile";
+import Sharing from "./pages/Sharing";
 import NotFound from "./pages/NotFound";
 import Notifications from "./pages/Notifications";
 
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/create" element={<Navigate to="/" replace />} />
           <Route path="/lob/:id" element={<LobDetail />} />
           <Route path="/explore" element={<Explore />} />
+          <Route path="/sharing" element={<Sharing />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="*" element={<NotFound />} />
