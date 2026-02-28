@@ -79,7 +79,7 @@ export function BottomTabs({ onLobTap, notificationCount = 3 }: BottomTabsProps)
               onClick={() => !isDragging && onLobTap()}
               className="w-14 h-14 rounded-full gradient-primary flex items-center justify-center shadow-glow text-2xl cursor-grab active:cursor-grabbing relative z-10"
             >
-              🪃
+              ✨
             </motion.div>
           </motion.div>
           <span className="text-[9px] font-bold text-primary mt-0.5 block text-center">Lob</span>
