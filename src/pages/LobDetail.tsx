@@ -8,6 +8,7 @@ import { CATEGORY_CONFIG, ResponseType } from '@/data/types';
 import { ResponseButtons } from '@/components/lob/ResponseButtons';
 import { QuorumRing } from '@/components/lob/QuorumRing';
 import { StatusPill } from '@/components/lob/StatusPill';
+import { LocationMap } from '@/components/lob/LocationMap';
 
 const LobDetail = () => {
   const { id } = useParams();
@@ -86,6 +87,9 @@ const LobDetail = () => {
             </div>
           )}
         </motion.div>
+
+        {/* Location Map */}
+        {lob.location && <LocationMap location={lob.location} />}
 
         {/* Quorum Banner */}
         {quorumReached && lob.status === 'voting' && (
