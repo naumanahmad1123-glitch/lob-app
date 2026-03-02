@@ -1,12 +1,12 @@
-import { Home, Share2, Compass, User } from 'lucide-react';
+import { Home, Users, Share2, User } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { useCallback, useState } from 'react';
 
 const tabs = [
   { path: '/', icon: Home, label: 'Home' },
+  { path: '/groups', icon: Users, label: 'Groups' },
   { path: '/sharing', icon: Share2, label: 'Sharing' },
-  { path: '/explore', icon: Compass, label: 'Explore' },
   { path: '/profile', icon: User, label: 'Profile' },
 ];
 
@@ -88,6 +88,7 @@ export function BottomTabs({ onLobTap, notificationCount = 3 }: BottomTabsProps)
         {tabs.slice(2).map((tab) => {
           const isActive = location.pathname === tab.path;
           const Icon = tab.icon;
+          const isExplore = tab.path === '/explore';
           return (
             <button
               key={tab.path}

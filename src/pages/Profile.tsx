@@ -1,9 +1,8 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, ChevronRight, Bell, Calendar, Shield, Crown, LogOut, Plane, Plus, Users } from 'lucide-react';
+import { Settings, ChevronRight, Bell, Calendar, Shield, Crown, LogOut, Plane } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { currentUser, trips, groups } from '@/data/seed';
+import { currentUser, trips } from '@/data/seed';
 
 const menuItems = [
   { icon: Bell, label: 'Notifications', desc: 'Manage alerts' },
@@ -45,7 +44,7 @@ const Profile = () => {
               <p className="text-[11px] text-muted-foreground">Plans Made</p>
             </div>
             <div>
-              <p className="text-xl font-bold text-foreground">{groups.length}</p>
+              <p className="text-xl font-bold text-foreground">4</p>
               <p className="text-[11px] text-muted-foreground">Groups</p>
             </div>
             <div>
@@ -58,15 +57,16 @@ const Profile = () => {
           {activeTrips.length > 0 && (
             <div className="mt-5 pt-4 border-t border-border/50">
               {activeTrips.map(trip => (
-                <div
+                <button
                   key={trip.id}
-                  className="flex items-center gap-2 mx-auto px-3 py-1.5 rounded-full bg-accent/10 border border-accent/20 w-fit"
+                  onClick={() => navigate('/sharing')}
+                  className="flex items-center gap-2 mx-auto px-3 py-1.5 rounded-full bg-accent/10 border border-accent/20"
                 >
                   <Plane className="w-3.5 h-3.5 text-accent" />
                   <span className="text-xs font-semibold text-accent">
                     {trip.emoji} {trip.city} · {new Date(trip.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(trip.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </span>
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -80,62 +80,6 @@ const Profile = () => {
               <span key={tag} className="px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-foreground">
                 {tag}
               </span>
-            ))}
-          </div>
-        </section>
-
-        {/* Groups Section */}
-        <section className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-foreground">Your Groups</h3>
-            <button className="flex items-center gap-1 text-xs font-semibold text-primary">
-              <Plus className="w-3.5 h-3.5" />
-              New Group
-            </button>
-          </div>
-          <div className="space-y-2">
-            {groups.map((group, i) => (
-              <motion.div
-                key={group.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                onClick={() => navigate(`/groups/${group.id}`)}
-                className="gradient-card rounded-xl p-3 border border-border/50 shadow-card cursor-pointer active:scale-[0.98] transition-transform"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-xl">
-                      {group.emoji}
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-foreground text-sm">{group.name}</h4>
-                      <p className="text-[11px] text-muted-foreground">
-                        {group.members.length} members · {group.lastActivity}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {group.unreadCount > 0 && (
-                      <span className="w-5 h-5 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
-                        {group.unreadCount}
-                      </span>
-                    )}
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                </div>
-                {/* Member avatars */}
-                <div className="flex items-center gap-1 mt-2">
-                  {group.members.slice(0, 5).map((m) => (
-                    <div key={m.id} className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs">
-                      {m.avatar}
-                    </div>
-                  ))}
-                  {group.members.length > 5 && (
-                    <span className="text-[10px] text-muted-foreground ml-1">+{group.members.length - 5}</span>
-                  )}
-                </div>
-              </motion.div>
             ))}
           </div>
         </section>
