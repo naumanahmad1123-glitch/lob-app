@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Bell, ChevronUp, List, CalendarDays } from 'lucide-react';
+import { Sparkles, Bell, List, CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LobCard } from '@/components/lob/LobCard';
@@ -259,21 +259,8 @@ const Home = () => {
           )}
         </AnimatePresence>
 
-        {/* Swipe-up hint */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1, duration: 0.5 }}
-          className="flex flex-col items-center pb-4 pt-6 text-muted-foreground"
-        >
-          <motion.div
-            animate={{ y: [0, -6, 0] }}
-            transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
-          >
-            <ChevronUp className="w-5 h-5" />
-          </motion.div>
-          <span className="text-xs font-medium">Swipe up to Lob it</span>
-        </motion.div>
+        {/* Bottom spacer */}
+        <div className="h-8" />
       </div>
     </AppLayout>
   );

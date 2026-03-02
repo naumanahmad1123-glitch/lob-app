@@ -1,5 +1,6 @@
-import { motion } from 'framer-motion';
-import { Settings, ChevronRight, Bell, Calendar, Shield, Crown, LogOut, Plane, Users } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Settings, ChevronRight, Bell, Calendar, Shield, Crown, LogOut, Plane, Users, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { currentUser, trips } from '@/data/seed';
@@ -13,6 +14,7 @@ const menuItems = [
 
 const Profile = () => {
   const navigate = useNavigate();
+  const [showRateTooltip, setShowRateTooltip] = useState(false);
   const activeTrips = trips.filter(t => t.userId === currentUser.id && t.showOnProfile);
 
   return (
@@ -47,9 +49,29 @@ const Profile = () => {
               <p className="text-xl font-bold text-foreground">4</p>
               <p className="text-[11px] text-muted-foreground">Groups</p>
             </div>
-            <div>
+            <div className="relative">
               <p className="text-xl font-bold text-primary">92%</p>
-              <p className="text-[11px] text-muted-foreground">Show Rate</p>
+              <button
+                onClick={() => setShowRateTooltip(!showRateTooltip)}
+                className="flex items-center gap-0.5 text-[11px] text-muted-foreground"
+              >
+                Show Rate
+                <HelpCircle className="w-3 h-3" />
+              </button>
+              <AnimatePresence>
+                {showRateTooltip && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 4 }}
+                    className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-48 p-2.5 rounded-xl border border-border bg-card shadow-lg z-10"
+                  >
+                    <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
+                      How often you actually show up to confirmed plans. Keep it high to stay reliable! 💪
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
 
