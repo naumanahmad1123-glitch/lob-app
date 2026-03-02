@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Settings, ChevronRight, Bell, Calendar, Shield, Crown, LogOut, Plane } from 'lucide-react';
+import { Settings, ChevronRight, Bell, Calendar, Shield, Crown, LogOut, Plane, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { currentUser, trips } from '@/data/seed';
@@ -71,6 +71,21 @@ const Profile = () => {
             </div>
           )}
         </motion.div>
+
+        {/* Groups shortcut */}
+        <motion.button
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={() => navigate('/groups')}
+          className="w-full flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-secondary transition-all mb-6"
+        >
+          <Users className="w-5 h-5 text-primary" />
+          <div className="flex-1 text-left">
+            <p className="text-sm font-semibold text-foreground">My Groups</p>
+            <p className="text-xs text-muted-foreground">View and manage your groups</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        </motion.button>
 
         {/* Interests */}
         <section className="mb-6">
