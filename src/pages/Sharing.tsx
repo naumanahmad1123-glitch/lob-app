@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plane, CalendarDays, Plus, ChevronRight, Eye, EyeOff, Users, User, Globe, Lock } from 'lucide-react';
+import { Plane, CalendarDays, Plus, ChevronRight, Eye, EyeOff, Users, User, Globe, Lock, HelpCircle, X } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { trips, calendarShares, users, groups, currentUser } from '@/data/seed';
 import { CalendarPrivacy } from '@/data/types';
@@ -9,6 +9,7 @@ type Tab = 'trips' | 'calendar';
 
 const Sharing = () => {
   const [tab, setTab] = useState<Tab>('trips');
+  const [showPrivacyInfo, setShowPrivacyInfo] = useState(false);
   const myTrips = trips.filter(t => t.userId === currentUser.id);
   const friendTrips = trips.filter(t => t.userId !== currentUser.id && t.notifyUserIds.includes(currentUser.id));
 
@@ -230,30 +231,49 @@ const Sharing = () => {
                 </div>
               </section>
 
-              {/* Privacy tiers explainer */}
-              <section className="mb-8">
-                <h3 className="text-sm font-bold text-foreground mb-3">Privacy Tiers</h3>
-                <div className="space-y-2">
-                  <div className="flex items-start gap-3 p-3 rounded-xl border border-border bg-card">
-                    <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center mt-0.5">
-                      <EyeOff className="w-4 h-4 text-accent" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">Free / Busy</p>
-                      <p className="text-xs text-muted-foreground">Others only see when you're available or busy — no plan details</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 p-3 rounded-xl border border-border bg-card">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mt-0.5">
-                      <Eye className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">Full Details</p>
-                      <p className="text-xs text-muted-foreground">Others can see your plan names, locations, and times</p>
-                    </div>
-                  </div>
-                </div>
-              </section>
+              {/* Privacy info as inline popover */}
+              <div className="mt-4 mb-8">
+                <button
+                  onClick={() => setShowPrivacyInfo(!showPrivacyInfo)}
+                  className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  What do privacy tiers mean?
+                </button>
+                <AnimatePresence>
+                  {showPrivacyInfo && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-3 p-4 rounded-xl border border-border bg-card space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-xs font-bold text-foreground">Privacy Tiers</h4>
+                          <button onClick={() => setShowPrivacyInfo(false)} className="text-muted-foreground">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <div className="flex items-start gap-2.5">
+                          <EyeOff className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+                          <div>
+                            <p className="text-xs font-semibold text-foreground">Free / Busy</p>
+                            <p className="text-[11px] text-muted-foreground">Others only see when you're available — no plan details</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2.5">
+                          <Eye className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                          <div>
+                            <p className="text-xs font-semibold text-foreground">Full Details</p>
+                            <p className="text-[11px] text-muted-foreground">Others can see plan names, locations, and times</p>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
