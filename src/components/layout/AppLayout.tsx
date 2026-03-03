@@ -1,12 +1,15 @@
 import { ReactNode, useState, useCallback } from 'react';
 import { motion, PanInfo } from 'framer-motion';
 import { ChevronUp } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { BottomTabs } from './BottomTabs';
 import { LobComposer } from '@/components/lob/LobComposer';
 import { LobSentToast } from '@/components/lob/LobSentToast';
 import { LobSentAnimation } from '@/components/lob/LobSentAnimation';
 
 export function AppLayout({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  const isCreatePage = location.pathname === '/create';
   const [composerOpen, setComposerOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [showAnimation, setShowAnimation] = useState(false);
@@ -31,7 +34,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </main>
 
       {/* Swipe-up zone */}
-      {!composerOpen && (
+      {!composerOpen && !isCreatePage && (
         <motion.div
           onPan={handleSwipeUp}
           className="fixed bottom-16 left-0 right-0 z-40 flex flex-col items-center cursor-grab active:cursor-grabbing select-none touch-pan-x"
