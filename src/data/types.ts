@@ -39,6 +39,7 @@ export interface LobComment {
   userId: string;
   message: string;
   createdAt: string;
+  suggestedTime?: string; // ISO datetime if this is a time suggestion
 }
 
 export interface Lob {
