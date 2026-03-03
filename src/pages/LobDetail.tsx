@@ -10,6 +10,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { lobs, users, groups } from '@/data/seed';
 import { CATEGORY_CONFIG, ResponseType, LobComment, RECURRENCE_OPTIONS, TimeOption } from '@/data/types';
 import { useCreatedLobs } from '@/hooks/useCreatedLobs';
+import { lobStore } from '@/stores/lobStore';
 import { ResponseButtons } from '@/components/lob/ResponseButtons';
 import { QuorumRing } from '@/components/lob/QuorumRing';
 import { StatusPill } from '@/components/lob/StatusPill';
@@ -89,6 +90,12 @@ const LobDetail = () => {
   // Dynamic time options (can be added to by creator)
   const [extraTimeOptions, setExtraTimeOptions] = useState<TimeOption[]>([]);
 
+  // Inline date edit for creator
+  const [editingTime, setEditingTime] = useState(false);
+  const [editDay, setEditDay] = useState<Date | undefined>(undefined);
+  const [editTime, setEditTime] = useState('');
+  const [overriddenTime, setOverriddenTime] = useState<string | null>(null);
+
   if (!lob) {
     return (
       <AppLayout>
@@ -112,12 +119,27 @@ const LobDetail = () => {
   const groupMembers = group?.members || [];
   const unrespondedCount = groupMembers.filter(m => !respondedUserIds.includes(m.id)).length;
 
-  const timeStr = lob.selectedTime || lob.timeOptions[0]?.datetime;
-  const formattedTime = timeStr
-    ? new Date(timeStr).toLocaleString('en-US', {
+  const timeStr = overriddenTime || lob.selectedTime || lob.timeOptions[0]?.datetime;
+  const parsedDate = timeStr ? new Date(timeStr) : null;
+  const isInvalidDate = !parsedDate || isNaN(parsedDate.getTime());
+  const formattedTime = isInvalidDate
+    ? 'Invalid Date'
+    : parsedDate.toLocaleString('en-US', {
         weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-      })
-    : 'TBD';
+      });
+
+  const handleSaveTime = () => {
+    if (!editDay || !editTime) return;
+    const parsed = parseTimeString(editTime);
+    if (!parsed) return;
+    const dt = new Date(editDay);
+    dt.setHours(parsed.hours, parsed.minutes, 0, 0);
+    const iso = dt.toISOString();
+    setOverriddenTime(iso);
+    lobStore.updateLobTime(lob.id, iso);
+    setEditingTime(false);
+    toast.success('Date updated!');
+  };
 
   const getUserName = (userId: string) => users.find(u => u.id === userId)?.name || 'Unknown';
   const getUserAvatar = (userId: string) => users.find(u => u.id === userId)?.avatar || '👤';
@@ -314,10 +336,80 @@ const LobDetail = () => {
           transition={{ delay: 0.1 }}
           className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card mb-4 space-y-3"
         >
-          <div className="flex items-center gap-2 text-sm text-foreground">
-            <Clock className="w-4 h-4 text-primary" />
+          <div
+            className={cn(
+              'flex items-center gap-2 text-sm',
+              isInvalidDate && isCreator ? 'text-destructive cursor-pointer' : 'text-foreground',
+              isCreator && 'cursor-pointer'
+            )}
+            onClick={() => isCreator && setEditingTime(true)}
+          >
+            <Clock className={cn('w-4 h-4', isInvalidDate ? 'text-destructive' : 'text-primary')} />
             <span>{formattedTime}</span>
+            {isCreator && (
+              <span className="text-xs text-muted-foreground ml-1">tap to edit</span>
+            )}
           </div>
+          <AnimatePresence>
+            {editingTime && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-3 pt-2"
+              >
+                <p className="text-xs font-medium text-muted-foreground">Pick a day</p>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {DAY_CHIPS.map(chip => (
+                    <button
+                      key={chip.label}
+                      onClick={() => setEditDay(chip.date)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all',
+                        editDay && isSameDay(editDay, chip.date)
+                          ? 'border-primary bg-primary/10 text-foreground'
+                          : 'border-border bg-secondary/50 text-muted-foreground'
+                      )}
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs font-medium text-muted-foreground">Pick a time</p>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {TIME_CHIPS.filter((_, i) => i % 2 === 0).map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setEditTime(t)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all',
+                        editTime === t
+                          ? 'border-primary bg-primary/10 text-foreground'
+                          : 'border-border bg-secondary/50 text-muted-foreground'
+                      )}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setEditingTime(false)}
+                    className="flex-1 py-2 rounded-xl bg-secondary text-muted-foreground text-sm font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveTime}
+                    disabled={!editDay || !editTime}
+                    className="flex-1 py-2 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-40"
+                  >
+                    Save
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           {lob.location && (
             <div className="flex items-center gap-2 text-sm text-foreground">
               <MapPin className="w-4 h-4 text-primary" />
