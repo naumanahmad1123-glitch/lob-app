@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, MapPin, Clock, Share2, MessageCircle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, Share2, MessageCircle, CheckCircle2, Check } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { lobs, users } from '@/data/seed';
 import { CATEGORY_CONFIG, ResponseType } from '@/data/types';
@@ -16,6 +16,9 @@ const LobDetail = () => {
   const lob = lobs.find(l => l.id === id);
   const [myResponse, setMyResponse] = useState<ResponseType | undefined>(
     lob?.responses.find(r => r.userId === 'u1')?.response
+  );
+  const [votedTimeIds, setVotedTimeIds] = useState<string[]>(
+    lob?.timeOptions.filter(t => t.votes.includes('u1')).map(t => t.id) || []
   );
 
   if (!lob) {
@@ -137,15 +140,39 @@ const LobDetail = () => {
             transition={{ delay: 0.25 }}
             className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card mb-4"
           >
-            <p className="text-xs font-semibold text-muted-foreground mb-3">TIME POLL</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-3">⏱ TIME POLL — tap to vote</p>
             <div className="space-y-2">
               {lob.timeOptions.map(opt => {
                 const t = new Date(opt.datetime);
+                const iVoted = votedTimeIds.includes(opt.id);
+                const voteCount = opt.votes.length + (iVoted && !opt.votes.includes('u1') ? 1 : 0);
+
                 return (
-                  <div key={opt.id} className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border/50">
-                    <span className="text-sm font-medium text-foreground">
-                      {t.toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}
-                    </span>
+                  <button
+                    key={opt.id}
+                    onClick={() => {
+                      setVotedTimeIds(prev =>
+                        prev.includes(opt.id)
+                          ? prev.filter(id => id !== opt.id)
+                          : [...prev, opt.id]
+                      );
+                    }}
+                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
+                      iVoted
+                        ? 'bg-primary/10 border-primary'
+                        : 'bg-secondary/50 border-border/50 hover:border-primary/40'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                        iVoted ? 'bg-primary border-primary' : 'border-muted-foreground/40'
+                      }`}>
+                        {iVoted && <Check className="w-3 h-3 text-primary-foreground" />}
+                      </div>
+                      <span className="text-sm font-medium text-foreground">
+                        {t.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                      </span>
+                    </div>
                     <div className="flex items-center gap-2">
                       <div className="flex -space-x-1">
                         {opt.votes.slice(0, 3).map(uid => (
@@ -154,9 +181,9 @@ const LobDetail = () => {
                           </span>
                         ))}
                       </div>
-                      <span className="text-xs font-semibold text-muted-foreground">{opt.votes.length}</span>
+                      <span className="text-xs font-semibold text-muted-foreground">{voteCount}</span>
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
