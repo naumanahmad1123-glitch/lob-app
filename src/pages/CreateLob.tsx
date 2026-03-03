@@ -1,16 +1,17 @@
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
-import { ArrowLeft, MapPin, Clock, Users, Plus, X, CalendarIcon, Timer, ChevronUp, ArrowUp, Repeat } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, Users, Plus, X, CalendarIcon, Timer, ChevronUp, ArrowUp, Repeat, Search, Minus, Edit2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { format, addDays, addHours, setHours, setMinutes, startOfTomorrow, isToday, isTomorrow } from 'date-fns';
+import { format, addDays, addHours, setHours, setMinutes, startOfTomorrow } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { groups } from '@/data/seed';
+import { groups, users } from '@/data/seed';
 import { CATEGORY_CONFIG, LobCategory, RecurrenceType, RECURRENCE_OPTIONS } from '@/data/types';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-const steps = ['Group', 'Category', 'When', 'Where', 'Review'];
+const STEP_LABELS = ['What?', 'Who?', 'When?', 'Where?', 'How many?', 'Deadline?', 'Confirm'];
+const TOTAL_STEPS = STEP_LABELS.length;
 
 interface TimeSlot {
   date: Date | undefined;
@@ -61,7 +62,7 @@ const ChipRow = ({
   onSelect: (v: string) => void;
   onPickCustom: () => void;
 }) => (
-  <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 snap-x">
+  <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 snap-x scrollbar-hide">
     {items.map((item) => (
       <button
         key={item.value}
@@ -107,26 +108,39 @@ function resolveDeadlinePreset(key: DeadlinePreset): Date | null {
   }
 }
 
+const QUICK_TEMPLATES = [
+  { label: '🏀 Hoops tonight', title: 'Hoops tonight', category: 'sports' as LobCategory },
+  { label: '☕ Coffee tomorrow', title: 'Coffee tomorrow', category: 'coffee' as LobCategory },
+  { label: '🍽️ Dinner this week', title: 'Dinner this week', category: 'dinner' as LobCategory },
+  { label: '🎾 Padel match', title: 'Padel match', category: 'padel' as LobCategory },
+  { label: '💪 Gym session', title: 'Gym session', category: 'gym' as LobCategory },
+];
+
+// ─── Review Swipe Card ───
 interface ReviewSwipeCardProps {
-  catConfig: { emoji: string; label: string; defaultQuorum: number } | null;
   title: string;
+  category: LobCategory | '';
   groupName?: string;
-  useTimePoll: boolean;
+  peopleName?: string;
   validTimeOptions: TimeSlot[];
+  useTimePoll: boolean;
   location: string;
+  quorum: number;
   resolvedDeadline: Date | null;
   recurrence?: string;
   onLob: () => void;
+  onEdit: (step: number) => void;
 }
 
 function ReviewSwipeCard({
-  catConfig, title, groupName, useTimePoll, validTimeOptions, location, resolvedDeadline, recurrence, onLob,
+  title, category, groupName, peopleName, validTimeOptions, useTimePoll, location, quorum, resolvedDeadline, recurrence, onLob, onEdit,
 }: ReviewSwipeCardProps) {
   const dragY = useMotionValue(0);
   const cardOpacity = useTransform(dragY, [0, -140], [1, 0.3]);
   const cardScale = useTransform(dragY, [0, -140], [1, 0.92]);
   const hintOp = useTransform(dragY, [0, -30], [1, 0]);
   const [launched, setLaunched] = useState(false);
+  const catConfig = category ? CATEGORY_CONFIG[category] : null;
 
   const handleDragEnd = useCallback((_: any, info: PanInfo) => {
     if (info.offset.y < -70 || info.velocity.y < -300) {
@@ -143,21 +157,12 @@ function ReviewSwipeCard({
           animate={{ y: -400, opacity: 0, scale: 0.7 }}
           transition={{ duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
         >
-          <div className="flex justify-center mb-2">
-            <motion.div
-              initial={{ y: 0, opacity: 1 }}
-              animate={{ y: -60, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <ArrowUp className="w-6 h-6 text-primary" strokeWidth={2.5} />
-            </motion.div>
-          </div>
-          <div className="gradient-card rounded-2xl p-5 border border-border/50 space-y-4">
+          <div className="gradient-card rounded-2xl p-5 border border-border/50 space-y-2">
             <div className="flex items-center gap-3">
               <span className="text-3xl">{catConfig?.emoji}</span>
               <div>
                 <h3 className="font-bold text-foreground text-lg">{title}</h3>
-                <p className="text-sm text-muted-foreground">{groupName}</p>
+                <p className="text-sm text-muted-foreground">{groupName || peopleName}</p>
               </div>
             </div>
           </div>
@@ -166,11 +171,20 @@ function ReviewSwipeCard({
     );
   }
 
+  const Row = ({ icon: Icon, children, step }: { icon: any; children: React.ReactNode; step: number }) => (
+    <div className="flex items-start gap-2 text-muted-foreground group">
+      <Icon className="w-4 h-4 mt-0.5 shrink-0" />
+      <div className="flex-1 text-sm">{children}</div>
+      <button onClick={() => onEdit(step)} className="opacity-0 group-hover:opacity-100 transition-opacity">
+        <Edit2 className="w-3.5 h-3.5 text-primary" />
+      </button>
+    </div>
+  );
+
   return (
     <div className="select-none">
       <h2 className="text-lg font-bold text-foreground mb-4">Review your Lob</h2>
 
-      {/* Animated arrow hint */}
       <div className="flex justify-center mb-2">
         <motion.div
           animate={{ y: [0, -6, 0] }}
@@ -189,45 +203,32 @@ function ReviewSwipeCard({
         onDragEnd={handleDragEnd}
         style={{ y: dragY, opacity: cardOpacity, scale: cardScale }}
         whileTap={{ cursor: 'grabbing' }}
-        className="gradient-card rounded-2xl p-5 border border-border/50 space-y-4 cursor-grab"
+        className="gradient-card rounded-2xl p-5 border border-border/50 space-y-3 cursor-grab"
       >
         <div className="flex items-center gap-3">
           <span className="text-3xl">{catConfig?.emoji}</span>
           <div>
             <h3 className="font-bold text-foreground text-lg">{title}</h3>
-            <p className="text-sm text-muted-foreground">{groupName}</p>
+            <p className="text-sm text-muted-foreground">{groupName || peopleName}</p>
           </div>
         </div>
-        <div className="flex flex-col gap-2 text-sm">
-          <div className="flex items-start gap-2 text-muted-foreground">
-            <Clock className="w-4 h-4 mt-0.5 shrink-0" />
-            <div className="flex flex-col gap-1">
-              {useTimePoll && (
-                <span className="text-xs font-medium text-primary mb-0.5">⏱ Time Poll</span>
-              )}
+
+        <div className="flex flex-col gap-2">
+          <Row icon={Clock} step={2}>
+            <div className="flex flex-col gap-0.5">
+              {useTimePoll && <span className="text-xs font-medium text-primary">⏱ Time Poll</span>}
               {validTimeOptions.map((o, i) => (
-                <span key={i}>{format(o.date!, 'PPP')} at {o.time}</span>
+                <span key={i}>{o.date ? format(o.date, 'EEE, MMM d') : ''} at {o.time}</span>
               ))}
             </div>
-          </div>
-          {location && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <MapPin className="w-4 h-4" />
-              <span>{location}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Users className="w-4 h-4" />
-            <span>{catConfig?.defaultQuorum} to make it happen</span>
-          </div>
+          </Row>
+          {location && <Row icon={MapPin} step={3}>{location}</Row>}
+          <Row icon={Users} step={4}>{quorum} to make it happen</Row>
           {resolvedDeadline && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Timer className="w-4 h-4" />
-              <span>Deadline: {format(resolvedDeadline, 'EEE, MMM d \'at\' h:mm a')}</span>
-            </div>
+            <Row icon={Timer} step={5}>Deadline: {format(resolvedDeadline, 'EEE, MMM d \'at\' h:mm a')}</Row>
           )}
           {recurrence && (
-            <div className="flex items-center gap-2 text-primary">
+            <div className="flex items-center gap-2 text-primary text-sm">
               <Repeat className="w-4 h-4" />
               <span>{RECURRENCE_OPTIONS.find(r => r.key === recurrence)?.label}</span>
             </div>
@@ -245,14 +246,22 @@ function ReviewSwipeCard({
   );
 }
 
+// ─── Main Component ───
 const CreateLob = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
-  const [selectedGroup, setSelectedGroup] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<LobCategory | ''>('');
-  const [title, setTitle] = useState('');
 
-  // Time state
+  // Step 0: What?
+  const [title, setTitle] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<LobCategory | ''>('');
+
+  // Step 1: Who?
+  const [whoMode, setWhoMode] = useState<'group' | 'people'>('group');
+  const [selectedGroup, setSelectedGroup] = useState('');
+  const [selectedPeople, setSelectedPeople] = useState<string[]>([]);
+  const [peopleSearch, setPeopleSearch] = useState('');
+
+  // Step 2: When?
   const [fixedTime, setFixedTime] = useState<TimeSlot>({ date: undefined, time: '' });
   const [useTimePoll, setUseTimePoll] = useState(false);
   const [pollOptions, setPollOptions] = useState<TimeSlot[]>([
@@ -263,37 +272,28 @@ const CreateLob = () => {
   const [showCustomTimePicker, setShowCustomTimePicker] = useState(false);
   const [customTimeInput, setCustomTimeInput] = useState('');
 
-  // For poll mode custom pickers
-  const [editingPollIndex, setEditingPollIndex] = useState<number | null>(null);
+  // Step 3: Where?
+  const [location, setLocation] = useState('');
 
-  // Deadline state
-  const [useDeadline, setUseDeadline] = useState(false);
+  // Step 4: How many?
+  const [quorum, setQuorum] = useState(2);
+
+  // Step 5: Deadline?
   const [deadlinePreset, setDeadlinePreset] = useState<DeadlinePreset | ''>('');
   const [customDeadlineDate, setCustomDeadlineDate] = useState<Date | undefined>(undefined);
   const [customDeadlineTime, setCustomDeadlineTime] = useState('');
 
-  const [location, setLocation] = useState('');
+  // Recurrence (lives on Where step)
   const [recurrence, setRecurrence] = useState<RecurrenceType | ''>('');
 
-  const next = () => setStep((s) => Math.min(s + 1, steps.length - 1));
-  const back = () => {
-    if (step === 0) navigate(-1);
-    else setStep((s) => s - 1);
-  };
-
-  const send = () => navigate('/');
-
   const group = groups.find((g) => g.id === selectedGroup);
-  const catConfig = selectedCategory ? CATEGORY_CONFIG[selectedCategory] : null;
 
   const validTimeOptions = useTimePoll
     ? pollOptions.filter((o) => o.date && o.time)
     : fixedTime.date && fixedTime.time ? [fixedTime] : [];
 
-  const canProceedFromWhen = validTimeOptions.length > 0;
-
   const resolvedDeadline = (() => {
-    if (!useDeadline || !deadlinePreset) return null;
+    if (!deadlinePreset) return null;
     if (deadlinePreset === 'custom') {
       if (customDeadlineDate && customDeadlineTime) {
         const [h, m] = customDeadlineTime.split(':').map(Number);
@@ -306,14 +306,41 @@ const CreateLob = () => {
     return resolveDeadlinePreset(deadlinePreset);
   })();
 
+  const canProceed = useMemo(() => {
+    switch (step) {
+      case 0: return !!title.trim() && !!selectedCategory;
+      case 1: return whoMode === 'group' ? !!selectedGroup : selectedPeople.length > 0;
+      case 2: return validTimeOptions.length > 0;
+      case 3: return true; // optional
+      case 4: return true; // optional
+      case 5: return true; // optional
+      default: return false;
+    }
+  }, [step, title, selectedCategory, whoMode, selectedGroup, selectedPeople, validTimeOptions]);
+
+  const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1));
+  const back = () => {
+    if (step === 0) navigate(-1);
+    else setStep((s) => s - 1);
+  };
+  const send = () => navigate('/');
+
+  const isOptional = step >= 3 && step <= 5;
+  const buttonLabel = step === TOTAL_STEPS - 2 ? 'Review' : isOptional ? 'Skip' : 'Next';
+
   const updatePollOption = (i: number, s: TimeSlot) => {
     const updated = [...pollOptions];
     updated[i] = s;
     setPollOptions(updated);
   };
-
   const removePollOption = (i: number) => setPollOptions(pollOptions.filter((_, j) => j !== i));
   const addPollOption = () => { if (pollOptions.length < 3) setPollOptions([...pollOptions, { date: undefined, time: '' }]); };
+
+  const filteredPeople = users.filter(u =>
+    u.id !== 'u1' && u.name.toLowerCase().includes(peopleSearch.toLowerCase())
+  );
+
+  const selectedPeopleNames = users.filter(u => selectedPeople.includes(u.id)).map(u => u.name).join(', ');
 
   return (
     <AppLayout>
@@ -323,12 +350,13 @@ const CreateLob = () => {
           <button onClick={back} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
-          <h1 className="text-xl font-extrabold text-foreground">Create a Lob</h1>
+          <h1 className="text-xl font-extrabold text-foreground">{STEP_LABELS[step]}</h1>
+          <span className="ml-auto text-xs text-muted-foreground font-medium">{step + 1}/{TOTAL_STEPS}</span>
         </div>
 
         {/* Progress */}
-        <div className="flex gap-1.5 mb-8">
-          {steps.map((_, i) => (
+        <div className="flex gap-1.5 mb-6">
+          {STEP_LABELS.map((_, i) => (
             <div key={i} className={`h-1 rounded-full flex-1 transition-all duration-300 ${i <= step ? 'bg-primary' : 'bg-secondary'}`} />
           ))}
         </div>
@@ -341,60 +369,154 @@ const CreateLob = () => {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
           >
-            {/* Step 0: Group */}
+            {/* ── Step 0: What? ── */}
             {step === 0 && (
               <div>
-                <h2 className="text-lg font-bold text-foreground mb-1">Who's in?</h2>
-                <p className="text-sm text-muted-foreground mb-4">Pick a group to lob to</p>
-                <div className="space-y-2">
-                  {groups.map((g) => (
-                    <button
-                      key={g.id}
-                      onClick={() => { setSelectedGroup(g.id); next(); }}
-                      className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all ${
-                        selectedGroup === g.id ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/50'
-                      }`}
-                    >
-                      <span className="text-2xl">{g.emoji}</span>
-                      <div className="text-left">
-                        <p className="font-semibold text-foreground text-sm">{g.name}</p>
-                        <p className="text-xs text-muted-foreground">{g.members.length} members</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Step 1: Category */}
-            {step === 1 && (
-              <div>
-                <h2 className="text-lg font-bold text-foreground mb-1">What's the plan?</h2>
-                <p className="text-sm text-muted-foreground mb-4">Pick a category</p>
-                <div className="grid grid-cols-2 gap-2 mb-4">
-                  {(Object.entries(CATEGORY_CONFIG) as [LobCategory, typeof CATEGORY_CONFIG[LobCategory]][]).map(([key, val]) => (
-                    <button
-                      key={key}
-                      onClick={() => { setSelectedCategory(key); setTitle(val.label); }}
-                      className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${
-                        selectedCategory === key ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/50'
-                      }`}
-                    >
-                      <span className="text-xl">{val.emoji}</span>
-                      <span className="font-medium text-sm text-foreground">{val.label}</span>
-                    </button>
-                  ))}
-                </div>
+                <p className="text-sm text-muted-foreground mb-3">Name your plan</p>
                 <input
                   type="text"
-                  placeholder="Plan title (e.g. Friday Hoops)"
+                  placeholder="e.g. Friday Hoops"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full p-3 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  autoFocus
                 />
+                <p className="text-xs font-medium text-muted-foreground mt-4 mb-2">Quick templates</p>
+                <div className="flex flex-wrap gap-2">
+                  {QUICK_TEMPLATES.map((t) => (
+                    <button
+                      key={t.title}
+                      onClick={() => { setTitle(t.title); setSelectedCategory(t.category); }}
+                      className={cn(
+                        'px-3 py-2 rounded-xl text-sm font-medium border transition-all',
+                        title === t.title && selectedCategory === t.category
+                          ? 'border-primary bg-primary/15 text-primary'
+                          : 'border-border bg-card text-muted-foreground hover:border-primary/50'
+                      )}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+
+                <p className="text-xs font-medium text-muted-foreground mt-5 mb-2">Category</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {(Object.entries(CATEGORY_CONFIG) as [LobCategory, typeof CATEGORY_CONFIG[LobCategory]][]).map(([key, val]) => (
+                    <button
+                      key={key}
+                      onClick={() => setSelectedCategory(key)}
+                      className={cn(
+                        'flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all text-center',
+                        selectedCategory === key
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border bg-card hover:border-primary/50'
+                      )}
+                    >
+                      <span className="text-lg">{val.emoji}</span>
+                      <span className="text-[11px] font-medium text-foreground">{val.label}</span>
+                    </button>
+                  ))}
+                </div>
+
                 <button
                   onClick={next}
-                  disabled={!selectedCategory || !title}
+                  disabled={!canProceed}
+                  className="w-full mt-6 py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-40 transition-opacity"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+
+            {/* ── Step 1: Who? ── */}
+            {step === 1 && (
+              <div>
+                <div className="flex gap-2 mb-4">
+                  {(['group', 'people'] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setWhoMode(m)}
+                      className={cn(
+                        'flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all',
+                        whoMode === m
+                          ? 'border-primary bg-primary/15 text-primary'
+                          : 'border-border bg-card text-muted-foreground'
+                      )}
+                    >
+                      {m === 'group' ? 'Group' : 'People'}
+                    </button>
+                  ))}
+                </div>
+
+                {whoMode === 'group' ? (
+                  <div className="space-y-2">
+                    {groups.map((g) => (
+                      <button
+                        key={g.id}
+                        onClick={() => setSelectedGroup(g.id)}
+                        className={cn(
+                          'w-full flex items-center gap-3 p-4 rounded-xl border transition-all',
+                          selectedGroup === g.id ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/50'
+                        )}
+                      >
+                        <span className="text-2xl">{g.emoji}</span>
+                        <div className="text-left">
+                          <p className="font-semibold text-foreground text-sm">{g.name}</p>
+                          <p className="text-xs text-muted-foreground">{g.members.length} members</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div>
+                    <div className="relative mb-3">
+                      <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                      <input
+                        type="text"
+                        placeholder="Search contacts..."
+                        value={peopleSearch}
+                        onChange={(e) => setPeopleSearch(e.target.value)}
+                        className="w-full p-3 pl-9 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                    {selectedPeople.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-3">
+                        {selectedPeople.map((id) => {
+                          const u = users.find(x => x.id === id);
+                          return u ? (
+                            <span key={id} className="px-2.5 py-1 rounded-full bg-primary/15 text-primary text-xs font-medium flex items-center gap-1">
+                              {u.avatar} {u.name}
+                              <button onClick={() => setSelectedPeople(prev => prev.filter(p => p !== id))}>
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          ) : null;
+                        })}
+                      </div>
+                    )}
+                    <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                      {filteredPeople.map((u) => (
+                        <button
+                          key={u.id}
+                          onClick={() => setSelectedPeople(prev =>
+                            prev.includes(u.id) ? prev.filter(p => p !== u.id) : [...prev, u.id]
+                          )}
+                          className={cn(
+                            'w-full flex items-center gap-3 p-3 rounded-xl border transition-all',
+                            selectedPeople.includes(u.id) ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/50'
+                          )}
+                        >
+                          <span className="text-xl">{u.avatar}</span>
+                          <span className="text-sm font-medium text-foreground">{u.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  onClick={next}
+                  disabled={!canProceed}
                   className="w-full mt-4 py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-40 transition-opacity"
                 >
                   Next
@@ -402,17 +524,15 @@ const CreateLob = () => {
               </div>
             )}
 
-            {/* Step 2: When */}
-             {step === 2 && (
+            {/* ── Step 2: When? ── */}
+            {step === 2 && (
               <div>
-                <h2 className="text-lg font-bold text-foreground mb-1">When?</h2>
                 <p className="text-sm text-muted-foreground mb-4">
                   {useTimePoll ? 'Add up to 3 options for the group to vote on' : 'Pick a day & time'}
                 </p>
 
                 {!useTimePoll ? (
                   <>
-                    {/* Day chips */}
                     <p className="text-xs font-medium text-muted-foreground mb-2">Day</p>
                     <ChipRow
                       items={DAY_CHIPS.map(c => ({ label: c.label, value: c.date.toISOString() }))}
@@ -441,7 +561,6 @@ const CreateLob = () => {
                       </Popover>
                     )}
 
-                    {/* Time chips */}
                     <p className="text-xs font-medium text-muted-foreground mb-2 mt-4">Time</p>
                     <ChipRow
                       items={TIME_CHIPS.map(t => ({ label: t, value: t }))}
@@ -470,7 +589,6 @@ const CreateLob = () => {
                       </div>
                     )}
 
-                    {/* Selected summary */}
                     {fixedTime.date && fixedTime.time && (
                       <div className="mt-4 p-3 rounded-xl bg-primary/10 border border-primary/20 text-sm text-primary flex items-center gap-2">
                         <Clock className="w-4 h-4" />
@@ -487,8 +605,8 @@ const CreateLob = () => {
                       }}
                       className="w-full mt-4 py-2.5 rounded-xl border border-dashed border-border text-sm text-muted-foreground flex items-center justify-center gap-2 hover:border-primary/50 transition-colors"
                     >
-                      <Clock className="w-4 h-4" />
-                      Add time options — let the group vote
+                      <Plus className="w-4 h-4" />
+                      Add more time options
                     </button>
                   </>
                 ) : (
@@ -509,14 +627,14 @@ const CreateLob = () => {
                             items={DAY_CHIPS.map(c => ({ label: c.label, value: c.date.toISOString() }))}
                             selected={opt.date ? DAY_CHIPS.find(c => isSameDay(opt.date, c.date))?.date.toISOString() || '' : ''}
                             onSelect={(v) => updatePollOption(i, { ...opt, date: new Date(v) })}
-                            onPickCustom={() => setEditingPollIndex(i)}
+                            onPickCustom={() => {}}
                           />
                           <p className="text-xs font-medium text-muted-foreground mb-1.5 mt-3">Time</p>
                           <ChipRow
                             items={TIME_CHIPS.map(t => ({ label: t, value: t }))}
                             selected={opt.time}
                             onSelect={(v) => updatePollOption(i, { ...opt, time: v })}
-                            onPickCustom={() => setEditingPollIndex(i)}
+                            onPickCustom={() => {}}
                           />
                           {opt.date && opt.time && (
                             <div className="mt-2 text-xs text-primary flex items-center gap-1.5">
@@ -543,115 +661,20 @@ const CreateLob = () => {
                     </button>
                   </>
                 )}
-                <div className="mt-6 pt-5 border-t border-border/50">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Timer className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-semibold text-foreground">Voting Deadline</span>
-                    </div>
-                    <button
-                      onClick={() => { setUseDeadline(!useDeadline); setDeadlinePreset(''); }}
-                      className={cn(
-                        'text-xs font-medium px-3 py-1 rounded-full transition-colors',
-                        useDeadline ? 'bg-primary/15 text-primary' : 'bg-secondary text-muted-foreground'
-                      )}
-                    >
-                      {useDeadline ? 'On' : 'Optional'}
-                    </button>
-                  </div>
-
-                  <AnimatePresence>
-                    {useDeadline && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {DEADLINE_PRESETS.map((p) => (
-                            <button
-                              key={p.key}
-                              onClick={() => setDeadlinePreset(p.key)}
-                              className={cn(
-                                'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
-                                deadlinePreset === p.key
-                                  ? 'border-primary bg-primary/10 text-primary'
-                                  : 'border-border bg-card text-muted-foreground hover:border-primary/50'
-                              )}
-                            >
-                              {p.label}
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Custom picker */}
-                        {deadlinePreset === 'custom' && (
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="flex gap-2"
-                          >
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <button className={cn(
-                                  'flex-1 flex items-center gap-2 p-2.5 rounded-xl border border-border bg-input text-sm text-left',
-                                  !customDeadlineDate && 'text-muted-foreground'
-                                )}>
-                                  <CalendarIcon className="w-4 h-4" />
-                                  {customDeadlineDate ? format(customDeadlineDate, 'MMM d') : 'Date'}
-                                </button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={customDeadlineDate}
-                                  onSelect={setCustomDeadlineDate}
-                                  disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
-                                  initialFocus
-                                  className={cn('p-3 pointer-events-auto')}
-                                />
-                              </PopoverContent>
-                            </Popover>
-                            <input
-                              type="time"
-                              value={customDeadlineTime}
-                              onChange={e => setCustomDeadlineTime(e.target.value)}
-                              className="w-24 p-2.5 rounded-xl bg-input border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:dark]"
-                            />
-                          </motion.div>
-                        )}
-
-                        {/* Preview resolved deadline */}
-                        {resolvedDeadline && deadlinePreset !== 'custom' && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Expires {format(resolvedDeadline, 'EEE, MMM d \'at\' h:mm a')}
-                          </p>
-                        )}
-                        {resolvedDeadline && deadlinePreset === 'custom' && (
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Expires {format(resolvedDeadline, 'EEE, MMM d \'at\' h:mm a')}
-                          </p>
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
 
                 <button
                   onClick={next}
-                  disabled={!canProceedFromWhen}
-                  className="w-full mt-4 py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-40 transition-opacity"
+                  disabled={!canProceed}
+                  className="w-full mt-6 py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-40 transition-opacity"
                 >
                   Next
                 </button>
               </div>
             )}
 
-            {/* Step 3: Where */}
+            {/* ── Step 3: Where? ── */}
             {step === 3 && (
               <div>
-                <h2 className="text-lg font-bold text-foreground mb-1">Where?</h2>
                 <p className="text-sm text-muted-foreground mb-4">Add a location (optional)</p>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-muted-foreground" />
@@ -663,6 +686,17 @@ const CreateLob = () => {
                     className="w-full p-3 pl-9 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
+                <button
+                  onClick={() => { setLocation('TBD'); }}
+                  className={cn(
+                    'mt-3 px-4 py-2 rounded-xl text-sm font-medium border transition-all',
+                    location === 'TBD'
+                      ? 'border-primary bg-primary/15 text-primary'
+                      : 'border-border bg-card text-muted-foreground hover:border-primary/50'
+                  )}
+                >
+                  📍 TBD — decide later
+                </button>
 
                 {/* Repeat toggle */}
                 <div className="mt-5 pt-4 border-t border-border/50">
@@ -712,25 +746,125 @@ const CreateLob = () => {
 
                 <button
                   onClick={next}
-                  className="w-full mt-4 py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm"
+                  className="w-full mt-6 py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm"
                 >
-                  Review
+                  {location ? 'Next' : 'Skip'}
                 </button>
               </div>
             )}
 
-            {/* Step 4: Review — swipe up to lob */}
+            {/* ── Step 4: How many? ── */}
             {step === 4 && (
+              <div>
+                <p className="text-sm text-muted-foreground mb-6">How many people do you need?</p>
+                <div className="flex items-center justify-center gap-6">
+                  <button
+                    onClick={() => setQuorum(Math.max(2, quorum - 1))}
+                    className="w-12 h-12 rounded-full border border-border bg-card flex items-center justify-center hover:border-primary/50 transition-colors"
+                  >
+                    <Minus className="w-5 h-5 text-foreground" />
+                  </button>
+                  <span className="text-5xl font-extrabold text-primary tabular-nums">{quorum}</span>
+                  <button
+                    onClick={() => setQuorum(Math.min(50, quorum + 1))}
+                    className="w-12 h-12 rounded-full border border-border bg-card flex items-center justify-center hover:border-primary/50 transition-colors"
+                  >
+                    <Plus className="w-5 h-5 text-foreground" />
+                  </button>
+                </div>
+                <p className="text-center text-xs text-muted-foreground mt-3">Minimum people to make it happen</p>
+                <button
+                  onClick={next}
+                  className="w-full mt-8 py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+
+            {/* ── Step 5: Deadline? ── */}
+            {step === 5 && (
+              <div>
+                <p className="text-sm text-muted-foreground mb-4">Set a voting deadline (optional)</p>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {DEADLINE_PRESETS.map((p) => (
+                    <button
+                      key={p.key}
+                      onClick={() => setDeadlinePreset(prev => prev === p.key ? '' : p.key)}
+                      className={cn(
+                        'px-4 py-2.5 rounded-xl text-sm font-medium border transition-all',
+                        deadlinePreset === p.key
+                          ? 'border-primary bg-primary/15 text-primary'
+                          : 'border-border bg-card text-muted-foreground hover:border-primary/50'
+                      )}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+
+                {deadlinePreset === 'custom' && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-2 mb-3">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className={cn(
+                          'flex-1 flex items-center gap-2 p-2.5 rounded-xl border border-border bg-input text-sm text-left',
+                          !customDeadlineDate && 'text-muted-foreground'
+                        )}>
+                          <CalendarIcon className="w-4 h-4" />
+                          {customDeadlineDate ? format(customDeadlineDate, 'MMM d') : 'Date'}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={customDeadlineDate}
+                          onSelect={setCustomDeadlineDate}
+                          disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
+                          initialFocus
+                          className={cn('p-3 pointer-events-auto')}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <input
+                      type="time"
+                      value={customDeadlineTime}
+                      onChange={e => setCustomDeadlineTime(e.target.value)}
+                      className="w-24 p-2.5 rounded-xl bg-input border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:dark]"
+                    />
+                  </motion.div>
+                )}
+
+                {resolvedDeadline && (
+                  <p className="text-xs text-muted-foreground">
+                    Expires {format(resolvedDeadline, 'EEE, MMM d \'at\' h:mm a')}
+                  </p>
+                )}
+
+                <button
+                  onClick={next}
+                  className="w-full mt-6 py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm"
+                >
+                  {deadlinePreset ? 'Review' : 'Skip'}
+                </button>
+              </div>
+            )}
+
+            {/* ── Step 6: Confirm ── */}
+            {step === 6 && (
               <ReviewSwipeCard
-                catConfig={catConfig}
                 title={title}
+                category={selectedCategory}
                 groupName={group?.name}
-                useTimePoll={useTimePoll}
+                peopleName={selectedPeopleNames || undefined}
                 validTimeOptions={validTimeOptions}
+                useTimePoll={useTimePoll}
                 location={location}
+                quorum={quorum}
                 resolvedDeadline={resolvedDeadline}
                 recurrence={recurrence || undefined}
                 onLob={send}
+                onEdit={(s) => setStep(s)}
               />
             )}
           </motion.div>
