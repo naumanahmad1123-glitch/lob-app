@@ -9,6 +9,7 @@ import { ResponseButtons } from '@/components/lob/ResponseButtons';
 import { QuorumRing } from '@/components/lob/QuorumRing';
 import { StatusPill } from '@/components/lob/StatusPill';
 import { LocationMap } from '@/components/lob/LocationMap';
+import { DeadlineCountdown } from '@/components/lob/DeadlineCountdown';
 
 const LobDetail = () => {
   const { id } = useParams();
@@ -131,6 +132,15 @@ const LobDetail = () => {
           <p className="text-xs font-semibold text-muted-foreground mb-4">ATTENDANCE</p>
           <QuorumRing current={inCount} target={lob.quorum} responses={lob.responses} />
         </motion.div>
+
+        {/* Deadline Countdown */}
+        {lob.deadline && lob.status === 'voting' && (
+          <DeadlineCountdown
+            deadline={lob.deadline}
+            isCreator={lob.createdBy === 'u1'}
+            quorumReached={quorumReached}
+          />
+        )}
 
         {/* Time Poll */}
         {lob.timeOptions.length > 1 && (

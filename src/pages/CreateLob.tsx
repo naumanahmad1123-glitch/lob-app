@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, MapPin, Clock, Users, Plus, X, CalendarIcon } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, Users, Plus, X, CalendarIcon, Timer } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, addHours, setHours, setMinutes, startOfTomorrow } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { groups } from '@/data/seed';
 import { CATEGORY_CONFIG, LobCategory } from '@/data/types';
@@ -71,6 +71,27 @@ const TimeSlotPicker = ({
   </div>
 );
 
+type DeadlinePreset = '2h' | '6h' | 'tonight' | 'tomorrow' | 'custom';
+
+const DEADLINE_PRESETS: { key: DeadlinePreset; label: string }[] = [
+  { key: '2h', label: '2 hours' },
+  { key: '6h', label: '6 hours' },
+  { key: 'tonight', label: 'Tonight' },
+  { key: 'tomorrow', label: 'Tomorrow AM' },
+  { key: 'custom', label: 'Custom' },
+];
+
+function resolveDeadlinePreset(key: DeadlinePreset): Date | null {
+  const now = new Date();
+  switch (key) {
+    case '2h': return addHours(now, 2);
+    case '6h': return addHours(now, 6);
+    case 'tonight': return setMinutes(setHours(now, 23), 59);
+    case 'tomorrow': return setMinutes(setHours(startOfTomorrow(), 9), 0);
+    default: return null;
+  }
+}
+
 const CreateLob = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
@@ -78,13 +99,19 @@ const CreateLob = () => {
   const [selectedCategory, setSelectedCategory] = useState<LobCategory | ''>('');
   const [title, setTitle] = useState('');
 
-  // Time state: single fixed time by default
+  // Time state
   const [fixedTime, setFixedTime] = useState<TimeSlot>({ date: undefined, time: '' });
   const [useTimePoll, setUseTimePoll] = useState(false);
   const [pollOptions, setPollOptions] = useState<TimeSlot[]>([
     { date: undefined, time: '' },
     { date: undefined, time: '' },
   ]);
+
+  // Deadline state
+  const [useDeadline, setUseDeadline] = useState(false);
+  const [deadlinePreset, setDeadlinePreset] = useState<DeadlinePreset | ''>('');
+  const [customDeadlineDate, setCustomDeadlineDate] = useState<Date | undefined>(undefined);
+  const [customDeadlineTime, setCustomDeadlineTime] = useState('');
 
   const [location, setLocation] = useState('');
 
@@ -94,20 +121,30 @@ const CreateLob = () => {
     else setStep((s) => s - 1);
   };
 
-  const send = () => {
-    navigate('/');
-  };
+  const send = () => navigate('/');
 
   const group = groups.find((g) => g.id === selectedGroup);
   const catConfig = selectedCategory ? CATEGORY_CONFIG[selectedCategory] : null;
 
   const validTimeOptions = useTimePoll
     ? pollOptions.filter((o) => o.date && o.time)
-    : fixedTime.date && fixedTime.time
-      ? [fixedTime]
-      : [];
+    : fixedTime.date && fixedTime.time ? [fixedTime] : [];
 
   const canProceedFromWhen = validTimeOptions.length > 0;
+
+  const resolvedDeadline = (() => {
+    if (!useDeadline || !deadlinePreset) return null;
+    if (deadlinePreset === 'custom') {
+      if (customDeadlineDate && customDeadlineTime) {
+        const [h, m] = customDeadlineTime.split(':').map(Number);
+        const d = new Date(customDeadlineDate);
+        d.setHours(h, m, 0, 0);
+        return d;
+      }
+      return null;
+    }
+    return resolveDeadlinePreset(deadlinePreset);
+  })();
 
   const updatePollOption = (i: number, s: TimeSlot) => {
     const updated = [...pollOptions];
@@ -115,15 +152,8 @@ const CreateLob = () => {
     setPollOptions(updated);
   };
 
-  const removePollOption = (i: number) => {
-    setPollOptions(pollOptions.filter((_, j) => j !== i));
-  };
-
-  const addPollOption = () => {
-    if (pollOptions.length < 3) {
-      setPollOptions([...pollOptions, { date: undefined, time: '' }]);
-    }
-  };
+  const removePollOption = (i: number) => setPollOptions(pollOptions.filter((_, j) => j !== i));
+  const addPollOption = () => { if (pollOptions.length < 3) setPollOptions([...pollOptions, { date: undefined, time: '' }]); };
 
   return (
     <AppLayout>
@@ -139,12 +169,7 @@ const CreateLob = () => {
         {/* Progress */}
         <div className="flex gap-1.5 mb-8">
           {steps.map((_, i) => (
-            <div
-              key={i}
-              className={`h-1 rounded-full flex-1 transition-all duration-300 ${
-                i <= step ? 'bg-primary' : 'bg-secondary'
-              }`}
-            />
+            <div key={i} className={`h-1 rounded-full flex-1 transition-all duration-300 ${i <= step ? 'bg-primary' : 'bg-secondary'}`} />
           ))}
         </div>
 
@@ -167,9 +192,7 @@ const CreateLob = () => {
                       key={g.id}
                       onClick={() => { setSelectedGroup(g.id); next(); }}
                       className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all ${
-                        selectedGroup === g.id
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border bg-card hover:border-primary/50'
+                        selectedGroup === g.id ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/50'
                       }`}
                     >
                       <span className="text-2xl">{g.emoji}</span>
@@ -194,9 +217,7 @@ const CreateLob = () => {
                       key={key}
                       onClick={() => { setSelectedCategory(key); setTitle(val.label); }}
                       className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${
-                        selectedCategory === key
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border bg-card hover:border-primary/50'
+                        selectedCategory === key ? 'border-primary bg-primary/10' : 'border-border bg-card hover:border-primary/50'
                       }`}
                     >
                       <span className="text-xl">{val.emoji}</span>
@@ -231,17 +252,10 @@ const CreateLob = () => {
 
                 {!useTimePoll ? (
                   <>
-                    {/* Single fixed time */}
-                    <TimeSlotPicker
-                      slot={fixedTime}
-                      onChange={setFixedTime}
-                      showRemove={false}
-                    />
-                    {/* Toggle to time poll */}
+                    <TimeSlotPicker slot={fixedTime} onChange={setFixedTime} showRemove={false} />
                     <button
                       onClick={() => {
                         setUseTimePoll(true);
-                        // Seed first poll option from fixed time if it was filled
                         if (fixedTime.date || fixedTime.time) {
                           setPollOptions([{ ...fixedTime }, { date: undefined, time: '' }]);
                         }
@@ -254,7 +268,6 @@ const CreateLob = () => {
                   </>
                 ) : (
                   <>
-                    {/* Multiple time poll options */}
                     <div className="space-y-3">
                       {pollOptions.map((opt, i) => (
                         <div key={i}>
@@ -276,7 +289,6 @@ const CreateLob = () => {
                         <Plus className="w-4 h-4" /> Add option {pollOptions.length + 1}
                       </button>
                     )}
-                    {/* Switch back to fixed time */}
                     <button
                       onClick={() => setUseTimePoll(false)}
                       className="w-full mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors text-center py-1"
@@ -285,6 +297,102 @@ const CreateLob = () => {
                     </button>
                   </>
                 )}
+
+                {/* Deadline section */}
+                <div className="mt-6 pt-5 border-t border-border/50">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Timer className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold text-foreground">Voting Deadline</span>
+                    </div>
+                    <button
+                      onClick={() => { setUseDeadline(!useDeadline); setDeadlinePreset(''); }}
+                      className={cn(
+                        'text-xs font-medium px-3 py-1 rounded-full transition-colors',
+                        useDeadline ? 'bg-primary/15 text-primary' : 'bg-secondary text-muted-foreground'
+                      )}
+                    >
+                      {useDeadline ? 'On' : 'Optional'}
+                    </button>
+                  </div>
+
+                  <AnimatePresence>
+                    {useDeadline && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {DEADLINE_PRESETS.map((p) => (
+                            <button
+                              key={p.key}
+                              onClick={() => setDeadlinePreset(p.key)}
+                              className={cn(
+                                'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                                deadlinePreset === p.key
+                                  ? 'border-primary bg-primary/10 text-primary'
+                                  : 'border-border bg-card text-muted-foreground hover:border-primary/50'
+                              )}
+                            >
+                              {p.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Custom picker */}
+                        {deadlinePreset === 'custom' && (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="flex gap-2"
+                          >
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button className={cn(
+                                  'flex-1 flex items-center gap-2 p-2.5 rounded-xl border border-border bg-input text-sm text-left',
+                                  !customDeadlineDate && 'text-muted-foreground'
+                                )}>
+                                  <CalendarIcon className="w-4 h-4" />
+                                  {customDeadlineDate ? format(customDeadlineDate, 'MMM d') : 'Date'}
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={customDeadlineDate}
+                                  onSelect={setCustomDeadlineDate}
+                                  disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
+                                  initialFocus
+                                  className={cn('p-3 pointer-events-auto')}
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            <input
+                              type="time"
+                              value={customDeadlineTime}
+                              onChange={e => setCustomDeadlineTime(e.target.value)}
+                              className="w-24 p-2.5 rounded-xl bg-input border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:dark]"
+                            />
+                          </motion.div>
+                        )}
+
+                        {/* Preview resolved deadline */}
+                        {resolvedDeadline && deadlinePreset !== 'custom' && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Expires {format(resolvedDeadline, 'EEE, MMM d \'at\' h:mm a')}
+                          </p>
+                        )}
+                        {resolvedDeadline && deadlinePreset === 'custom' && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Expires {format(resolvedDeadline, 'EEE, MMM d \'at\' h:mm a')}
+                          </p>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
                 <button
                   onClick={next}
@@ -354,6 +462,12 @@ const CreateLob = () => {
                       <Users className="w-4 h-4" />
                       <span>Quorum: {catConfig?.defaultQuorum} needed</span>
                     </div>
+                    {resolvedDeadline && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Timer className="w-4 h-4" />
+                        <span>Deadline: {format(resolvedDeadline, 'EEE, MMM d \'at\' h:mm a')}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <motion.button

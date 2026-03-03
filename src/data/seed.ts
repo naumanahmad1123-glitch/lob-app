@@ -68,6 +68,7 @@ export const lobs: Lob[] = [
       { id: 't2', datetime: '2026-03-06T20:00', votes: ['u1', 'u6'] },
     ],
     quorum: 6,
+    deadline: '2026-03-06T18:00',
     status: 'voting',
     responses: [
       { userId: 'u2', response: 'in' },
@@ -111,6 +112,7 @@ export const lobs: Lob[] = [
       { id: 't4', datetime: '2026-03-04T09:00', votes: ['u6'] },
     ],
     quorum: 2,
+    deadline: '2026-03-03T20:00',
     status: 'voting',
     responses: [
       { userId: 'u6', response: 'in' },
@@ -130,6 +132,7 @@ export const lobs: Lob[] = [
       { id: 't6', datetime: '2026-03-08T18:00', votes: ['u4'] },
     ],
     quorum: 4,
+    deadline: '2026-03-07T12:00',
     status: 'voting',
     responses: [
       { userId: 'u4', response: 'in' },

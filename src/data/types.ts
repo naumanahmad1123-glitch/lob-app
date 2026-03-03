@@ -46,6 +46,7 @@ export interface Lob {
   selectedTime?: string;
   quorum: number;
   capacity?: number;
+  deadline?: string; // ISO datetime for voting deadline
   status: LobStatus;
   responses: LobResponse[];
   createdAt: string;
