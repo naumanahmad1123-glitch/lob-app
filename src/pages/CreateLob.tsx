@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Check, MapPin, Clock, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, MapPin, Clock, Users, Plus, X, CalendarIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { groups } from '@/data/seed';
 import { CATEGORY_CONFIG, LobCategory } from '@/data/types';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 const steps = ['Group', 'Category', 'When', 'Where', 'Review'];
 
@@ -14,8 +18,9 @@ const CreateLob = () => {
   const [selectedGroup, setSelectedGroup] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<LobCategory | ''>('');
   const [title, setTitle] = useState('');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
+  const [timeOptions, setTimeOptions] = useState<{ date: Date | undefined; time: string }[]>([
+    { date: undefined, time: '' },
+  ]);
   const [location, setLocation] = useState('');
 
   const next = () => setStep(s => Math.min(s + 1, steps.length - 1));
@@ -131,30 +136,67 @@ const CreateLob = () => {
             {step === 2 && (
               <div>
                 <h2 className="text-lg font-bold text-foreground mb-1">When?</h2>
-                <p className="text-sm text-muted-foreground mb-4">Pick a date & time</p>
+                <p className="text-sm text-muted-foreground mb-4">Add one or more date & time options for people to vote on</p>
                 <div className="space-y-3">
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Date</label>
-                    <input
-                      type="date"
-                      value={date}
-                      onChange={e => setDate(e.target.value)}
-                      className="w-full p-3 rounded-xl bg-input border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:dark]"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Time</label>
-                    <input
-                      type="time"
-                      value={time}
-                      onChange={e => setTime(e.target.value)}
-                      className="w-full p-3 rounded-xl bg-input border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:dark]"
-                    />
-                  </div>
+                  {timeOptions.map((opt, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <div className="flex-1 flex gap-2">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className={cn(
+                              "flex-1 flex items-center gap-2 p-3 rounded-xl border border-border bg-input text-sm text-left",
+                              !opt.date && "text-muted-foreground"
+                            )}>
+                              <CalendarIcon className="w-4 h-4" />
+                              {opt.date ? format(opt.date, 'PPP') : 'Pick date'}
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={opt.date}
+                              onSelect={(d) => {
+                                const updated = [...timeOptions];
+                                updated[i] = { ...updated[i], date: d };
+                                setTimeOptions(updated);
+                              }}
+                              disabled={(d) => d < new Date(new Date().setHours(0,0,0,0))}
+                              initialFocus
+                              className={cn("p-3 pointer-events-auto")}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <input
+                          type="time"
+                          value={opt.time}
+                          onChange={e => {
+                            const updated = [...timeOptions];
+                            updated[i] = { ...updated[i], time: e.target.value };
+                            setTimeOptions(updated);
+                          }}
+                          className="w-28 p-3 rounded-xl bg-input border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:dark]"
+                        />
+                      </div>
+                      {timeOptions.length > 1 && (
+                        <button
+                          onClick={() => setTimeOptions(timeOptions.filter((_, j) => j !== i))}
+                          className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0"
+                        >
+                          <X className="w-4 h-4 text-muted-foreground" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
                 </div>
                 <button
+                  onClick={() => setTimeOptions([...timeOptions, { date: undefined, time: '' }])}
+                  className="w-full mt-3 py-2.5 rounded-xl border border-dashed border-border text-sm text-muted-foreground flex items-center justify-center gap-2 hover:border-primary/50 transition-colors"
+                >
+                  <Plus className="w-4 h-4" /> Add another time option
+                </button>
+                <button
                   onClick={next}
-                  disabled={!date || !time}
+                  disabled={!timeOptions.some(o => o.date && o.time)}
                   className="w-full mt-4 py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-40 transition-opacity"
                 >
                   Next
@@ -201,7 +243,11 @@ const CreateLob = () => {
                   <div className="flex flex-col gap-2 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Clock className="w-4 h-4" />
-                      <span>{date} at {time}</span>
+                      <div className="flex flex-col gap-1">
+                        {timeOptions.filter(o => o.date && o.time).map((o, i) => (
+                          <span key={i}>{format(o.date!, 'PPP')} at {o.time}</span>
+                        ))}
+                      </div>
                     </div>
                     {location && (
                       <div className="flex items-center gap-2 text-muted-foreground">
