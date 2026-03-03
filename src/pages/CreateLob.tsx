@@ -460,7 +460,7 @@ const CreateLob = () => {
                     )}
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Users className="w-4 h-4" />
-                      <span>Quorum: {catConfig?.defaultQuorum} needed</span>
+                      <span>{catConfig?.defaultQuorum} to make it happen</span>
                     </div>
                     {resolvedDeadline && (
                       <div className="flex items-center gap-2 text-muted-foreground">

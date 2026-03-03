@@ -22,7 +22,7 @@ const notifications: Notification[] = [
     body: 'Friday Night Hoops', emoji: '😎', time: '2m ago', lobId: 'l1', read: false,
   },
   {
-    id: 'n2', type: 'quorum', title: 'Quorum reached! 🎉',
+    id: 'n2', type: 'quorum', title: "It's on! 🎉",
     body: 'Sushi Thursday is confirmed', emoji: '🍽️', time: '1h ago', lobId: 'l2', read: false,
   },
   {
