@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Groups from "./pages/Groups";
 import GroupDetail from "./pages/GroupDetail";
-import { Navigate } from "react-router-dom";
+import CreateLob from "./pages/CreateLob";
 import LobDetail from "./pages/LobDetail";
 import Explore from "./pages/Explore";
 import Profile from "./pages/Profile";
@@ -26,7 +26,7 @@ const App = () => (
           <Route path="/" element={<Home />} />
           <Route path="/groups" element={<Groups />} />
           <Route path="/groups/:id" element={<GroupDetail />} />
-          <Route path="/create" element={<Navigate to="/" replace />} />
+          <Route path="/create" element={<CreateLob />} />
           <Route path="/lob/:id" element={<LobDetail />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/sharing" element={<Sharing />} />
