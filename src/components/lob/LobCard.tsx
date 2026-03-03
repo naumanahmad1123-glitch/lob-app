@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
-import { MapPin, Clock, ChevronRight } from 'lucide-react';
+import { MapPin, Clock, ChevronRight, Repeat } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Lob, CATEGORY_CONFIG } from '@/data/types';
+import { Lob, CATEGORY_CONFIG, RECURRENCE_OPTIONS } from '@/data/types';
 import { QuorumBar } from './QuorumBar';
 import { StatusPill } from './StatusPill';
 
@@ -22,6 +22,9 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
         minute: '2-digit',
       })
     : 'TBD';
+  const recurrenceLabel = lob.recurrence
+    ? RECURRENCE_OPTIONS.find(r => r.key === lob.recurrence)?.label
+    : null;
 
   return (
     <motion.div
@@ -51,6 +54,12 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
           <span className="flex items-center gap-1">
             <MapPin className="w-3.5 h-3.5" />
             {lob.location}
+          </span>
+        )}
+        {recurrenceLabel && (
+          <span className="flex items-center gap-1 text-primary">
+            <Repeat className="w-3 h-3" />
+            {recurrenceLabel}
           </span>
         )}
       </div>

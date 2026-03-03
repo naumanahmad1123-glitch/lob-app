@@ -1,11 +1,11 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
-import { ArrowLeft, MapPin, Clock, Users, Plus, X, CalendarIcon, Timer, ChevronUp, ArrowUp } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, Users, Plus, X, CalendarIcon, Timer, ChevronUp, ArrowUp, Repeat } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, addHours, setHours, setMinutes, startOfTomorrow } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { groups } from '@/data/seed';
-import { CATEGORY_CONFIG, LobCategory } from '@/data/types';
+import { CATEGORY_CONFIG, LobCategory, RecurrenceType, RECURRENCE_OPTIONS } from '@/data/types';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -100,11 +100,12 @@ interface ReviewSwipeCardProps {
   validTimeOptions: TimeSlot[];
   location: string;
   resolvedDeadline: Date | null;
+  recurrence?: string;
   onLob: () => void;
 }
 
 function ReviewSwipeCard({
-  catConfig, title, groupName, useTimePoll, validTimeOptions, location, resolvedDeadline, onLob,
+  catConfig, title, groupName, useTimePoll, validTimeOptions, location, resolvedDeadline, recurrence, onLob,
 }: ReviewSwipeCardProps) {
   const dragY = useMotionValue(0);
   const cardOpacity = useTransform(dragY, [0, -140], [1, 0.3]);
@@ -210,6 +211,12 @@ function ReviewSwipeCard({
               <span>Deadline: {format(resolvedDeadline, 'EEE, MMM d \'at\' h:mm a')}</span>
             </div>
           )}
+          {recurrence && (
+            <div className="flex items-center gap-2 text-primary">
+              <Repeat className="w-4 h-4" />
+              <span>{RECURRENCE_OPTIONS.find(r => r.key === recurrence)?.label}</span>
+            </div>
+          )}
         </div>
       </motion.div>
 
@@ -245,6 +252,7 @@ const CreateLob = () => {
   const [customDeadlineTime, setCustomDeadlineTime] = useState('');
 
   const [location, setLocation] = useState('');
+  const [recurrence, setRecurrence] = useState<RecurrenceType | ''>('');
 
   const next = () => setStep((s) => Math.min(s + 1, steps.length - 1));
   const back = () => {
@@ -550,6 +558,53 @@ const CreateLob = () => {
                     className="w-full p-3 pl-9 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
+
+                {/* Repeat toggle */}
+                <div className="mt-5 pt-4 border-t border-border/50">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Repeat className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold text-foreground">Repeat</span>
+                    </div>
+                    <button
+                      onClick={() => setRecurrence(recurrence ? '' : 'weekly')}
+                      className={cn(
+                        'text-xs font-medium px-3 py-1 rounded-full transition-colors',
+                        recurrence ? 'bg-primary/15 text-primary' : 'bg-secondary text-muted-foreground'
+                      )}
+                    >
+                      {recurrence ? 'On' : 'Optional'}
+                    </button>
+                  </div>
+                  <AnimatePresence>
+                    {recurrence && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="flex flex-wrap gap-2">
+                          {RECURRENCE_OPTIONS.map((opt) => (
+                            <button
+                              key={opt.key}
+                              onClick={() => setRecurrence(opt.key)}
+                              className={cn(
+                                'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+                                recurrence === opt.key
+                                  ? 'border-primary bg-primary/10 text-primary'
+                                  : 'border-border bg-card text-muted-foreground hover:border-primary/50'
+                              )}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
                 <button
                   onClick={next}
                   className="w-full mt-4 py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm"
@@ -569,6 +624,7 @@ const CreateLob = () => {
                 validTimeOptions={validTimeOptions}
                 location={location}
                 resolvedDeadline={resolvedDeadline}
+                recurrence={recurrence || undefined}
                 onLob={send}
               />
             )}
