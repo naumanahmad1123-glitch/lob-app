@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, MapPin, Clock, Users, Plus, X, CalendarIcon, Timer } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
+import { ArrowLeft, MapPin, Clock, Users, Plus, X, CalendarIcon, Timer, ChevronUp, ArrowUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, addHours, setHours, setMinutes, startOfTomorrow } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -90,6 +90,137 @@ function resolveDeadlinePreset(key: DeadlinePreset): Date | null {
     case 'tomorrow': return setMinutes(setHours(startOfTomorrow(), 9), 0);
     default: return null;
   }
+}
+
+interface ReviewSwipeCardProps {
+  catConfig: { emoji: string; label: string; defaultQuorum: number } | null;
+  title: string;
+  groupName?: string;
+  useTimePoll: boolean;
+  validTimeOptions: TimeSlot[];
+  location: string;
+  resolvedDeadline: Date | null;
+  onLob: () => void;
+}
+
+function ReviewSwipeCard({
+  catConfig, title, groupName, useTimePoll, validTimeOptions, location, resolvedDeadline, onLob,
+}: ReviewSwipeCardProps) {
+  const dragY = useMotionValue(0);
+  const cardOpacity = useTransform(dragY, [0, -140], [1, 0.3]);
+  const cardScale = useTransform(dragY, [0, -140], [1, 0.92]);
+  const hintOp = useTransform(dragY, [0, -30], [1, 0]);
+  const [launched, setLaunched] = useState(false);
+
+  const handleDragEnd = useCallback((_: any, info: PanInfo) => {
+    if (info.offset.y < -70 || info.velocity.y < -300) {
+      setLaunched(true);
+      setTimeout(() => onLob(), 500);
+    }
+  }, [onLob]);
+
+  if (launched) {
+    return (
+      <div className="relative overflow-hidden" style={{ minHeight: 280 }}>
+        <motion.div
+          initial={{ y: 0, opacity: 1, scale: 1 }}
+          animate={{ y: -400, opacity: 0, scale: 0.7 }}
+          transition={{ duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
+        >
+          <div className="flex justify-center mb-2">
+            <motion.div
+              initial={{ y: 0, opacity: 1 }}
+              animate={{ y: -60, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ArrowUp className="w-6 h-6 text-primary" strokeWidth={2.5} />
+            </motion.div>
+          </div>
+          <div className="gradient-card rounded-2xl p-5 border border-border/50 space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">{catConfig?.emoji}</span>
+              <div>
+                <h3 className="font-bold text-foreground text-lg">{title}</h3>
+                <p className="text-sm text-muted-foreground">{groupName}</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="select-none">
+      <h2 className="text-lg font-bold text-foreground mb-4">Review your Lob</h2>
+
+      {/* Animated arrow hint */}
+      <div className="flex justify-center mb-2">
+        <motion.div
+          animate={{ y: [0, -6, 0] }}
+          transition={{ repeat: Infinity, duration: 1.2, ease: 'easeInOut' }}
+          style={{ opacity: hintOp }}
+        >
+          <ArrowUp className="w-6 h-6 text-primary" strokeWidth={2.5} />
+        </motion.div>
+      </div>
+
+      <motion.div
+        drag="y"
+        dragConstraints={{ top: -200, bottom: 0 }}
+        dragElastic={0.15}
+        dragMomentum={false}
+        onDragEnd={handleDragEnd}
+        style={{ y: dragY, opacity: cardOpacity, scale: cardScale }}
+        whileTap={{ cursor: 'grabbing' }}
+        className="gradient-card rounded-2xl p-5 border border-border/50 space-y-4 cursor-grab"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">{catConfig?.emoji}</span>
+          <div>
+            <h3 className="font-bold text-foreground text-lg">{title}</h3>
+            <p className="text-sm text-muted-foreground">{groupName}</p>
+          </div>
+        </div>
+        <div className="flex flex-col gap-2 text-sm">
+          <div className="flex items-start gap-2 text-muted-foreground">
+            <Clock className="w-4 h-4 mt-0.5 shrink-0" />
+            <div className="flex flex-col gap-1">
+              {useTimePoll && (
+                <span className="text-xs font-medium text-primary mb-0.5">⏱ Time Poll</span>
+              )}
+              {validTimeOptions.map((o, i) => (
+                <span key={i}>{format(o.date!, 'PPP')} at {o.time}</span>
+              ))}
+            </div>
+          </div>
+          {location && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <MapPin className="w-4 h-4" />
+              <span>{location}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Users className="w-4 h-4" />
+            <span>{catConfig?.defaultQuorum} to make it happen</span>
+          </div>
+          {resolvedDeadline && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Timer className="w-4 h-4" />
+              <span>Deadline: {format(resolvedDeadline, 'EEE, MMM d \'at\' h:mm a')}</span>
+            </div>
+          )}
+        </div>
+      </motion.div>
+
+      <motion.p
+        style={{ opacity: hintOp }}
+        className="text-center text-[11px] font-semibold text-muted-foreground mt-3 flex items-center justify-center gap-1"
+      >
+        <ChevronUp className="w-3.5 h-3.5" /> Swipe up to lob it
+      </motion.p>
+    </div>
+  );
 }
 
 const CreateLob = () => {
@@ -428,56 +559,18 @@ const CreateLob = () => {
               </div>
             )}
 
-            {/* Step 4: Review */}
+            {/* Step 4: Review — swipe up to lob */}
             {step === 4 && (
-              <div>
-                <h2 className="text-lg font-bold text-foreground mb-4">Review your Lob</h2>
-                <div className="gradient-card rounded-2xl p-5 border border-border/50 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">{catConfig?.emoji}</span>
-                    <div>
-                      <h3 className="font-bold text-foreground text-lg">{title}</h3>
-                      <p className="text-sm text-muted-foreground">{group?.name}</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-2 text-sm">
-                    <div className="flex items-start gap-2 text-muted-foreground">
-                      <Clock className="w-4 h-4 mt-0.5 shrink-0" />
-                      <div className="flex flex-col gap-1">
-                        {useTimePoll && (
-                          <span className="text-xs font-medium text-primary mb-0.5">⏱ Time Poll</span>
-                        )}
-                        {validTimeOptions.map((o, i) => (
-                          <span key={i}>{format(o.date!, 'PPP')} at {o.time}</span>
-                        ))}
-                      </div>
-                    </div>
-                    {location && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <MapPin className="w-4 h-4" />
-                        <span>{location}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Users className="w-4 h-4" />
-                      <span>{catConfig?.defaultQuorum} to make it happen</span>
-                    </div>
-                    {resolvedDeadline && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Timer className="w-4 h-4" />
-                        <span>Deadline: {format(resolvedDeadline, 'EEE, MMM d \'at\' h:mm a')}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={send}
-                  className="w-full mt-6 py-4 rounded-xl gradient-primary text-primary-foreground font-bold text-base shadow-glow animate-pulse-glow"
-                >
-                  🏐 Lob It!
-                </motion.button>
-              </div>
+              <ReviewSwipeCard
+                catConfig={catConfig}
+                title={title}
+                groupName={group?.name}
+                useTimePoll={useTimePoll}
+                validTimeOptions={validTimeOptions}
+                location={location}
+                resolvedDeadline={resolvedDeadline}
+                onLob={send}
+              />
             )}
           </motion.div>
         </AnimatePresence>
