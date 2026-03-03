@@ -374,7 +374,7 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
 
                       {/* Or use assisted flow */}
                       <button
-                        onClick={() => setStep('recipients')}
+                        onClick={() => { onClose(); navigate('/create'); }}
                         className="w-full flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border/50 text-sm text-muted-foreground mt-2"
                       >
                         <span>Build step by step instead</span>
