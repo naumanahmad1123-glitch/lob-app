@@ -2,6 +2,7 @@ export type LobStatus = 'draft' | 'voting' | 'confirmed' | 'cancelled' | 'comple
 export type ResponseType = 'in' | 'maybe' | 'out';
 export type LobCategory = 'sports' | 'dinner' | 'coffee' | 'gym' | 'chill' | 'travel' | 'padel' | 'other';
 export type CalendarPrivacy = 'free-busy' | 'details';
+export type RecurrenceType = 'weekly' | 'biweekly' | 'monthly';
 
 export interface User {
   id: string;
@@ -33,6 +34,13 @@ export interface LobResponse {
   comment?: string;
 }
 
+export interface LobComment {
+  id: string;
+  userId: string;
+  message: string;
+  createdAt: string;
+}
+
 export interface Lob {
   id: string;
   title: string;
@@ -46,7 +54,9 @@ export interface Lob {
   selectedTime?: string;
   quorum: number;
   capacity?: number;
-  deadline?: string; // ISO datetime for voting deadline
+  deadline?: string;
+  recurrence?: RecurrenceType;
+  comments?: LobComment[];
   status: LobStatus;
   responses: LobResponse[];
   createdAt: string;
@@ -60,7 +70,7 @@ export interface Trip {
   emoji: string;
   startDate: string;
   endDate: string;
-  notifyUserIds: string[]; // push to these contacts
+  notifyUserIds: string[];
   showOnProfile: boolean;
 }
 
@@ -82,3 +92,9 @@ export const CATEGORY_CONFIG: Record<LobCategory, { label: string; emoji: string
   padel: { label: 'Padel', emoji: '🎾', defaultQuorum: 4 },
   other: { label: 'Other', emoji: '📌', defaultQuorum: 2 },
 };
+
+export const RECURRENCE_OPTIONS: { key: RecurrenceType; label: string }[] = [
+  { key: 'weekly', label: 'Every week' },
+  { key: 'biweekly', label: 'Every 2 weeks' },
+  { key: 'monthly', label: 'Every month' },
+];

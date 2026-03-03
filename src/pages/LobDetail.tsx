@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowLeft, MapPin, Clock, Share2, MessageCircle, CheckCircle2, Check, Users } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  ArrowLeft, MapPin, Clock, Share2, MessageCircle, CheckCircle2, Check, Users,
+  Bell, MoreVertical, XCircle, Repeat, Send,
+} from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { lobs, users } from '@/data/seed';
-import { CATEGORY_CONFIG, ResponseType } from '@/data/types';
+import { lobs, users, groups } from '@/data/seed';
+import { CATEGORY_CONFIG, ResponseType, LobComment, RECURRENCE_OPTIONS } from '@/data/types';
 import { ResponseButtons } from '@/components/lob/ResponseButtons';
 import { QuorumRing } from '@/components/lob/QuorumRing';
 import { StatusPill } from '@/components/lob/StatusPill';
 import { LocationMap } from '@/components/lob/LocationMap';
 import { DeadlineCountdown } from '@/components/lob/DeadlineCountdown';
+import { toast } from 'sonner';
 
 const LobDetail = () => {
   const { id } = useParams();
@@ -21,6 +25,12 @@ const LobDetail = () => {
   const [votedTimeIds, setVotedTimeIds] = useState<string[]>(
     lob?.timeOptions.filter(t => t.votes.includes('u1')).map(t => t.id) || []
   );
+  const [lastNudgeTime, setLastNudgeTime] = useState<number | null>(null);
+  const [comments, setComments] = useState<LobComment[]>(lob?.comments || []);
+  const [newComment, setNewComment] = useState('');
+  const [showMenu, setShowMenu] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [isCancelled, setIsCancelled] = useState(lob?.status === 'cancelled');
 
   if (!lob) {
     return (
@@ -33,9 +43,15 @@ const LobDetail = () => {
   }
 
   const config = CATEGORY_CONFIG[lob.category];
+  const group = groups.find(g => g.id === lob.groupId);
+  const isCreator = lob.createdBy === 'u1';
   const inList = lob.responses.filter(r => r.response === 'in');
   const inCount = myResponse === 'in' ? inList.length + (inList.find(r => r.userId === 'u1') ? 0 : 1) : inList.length;
   const quorumReached = inCount >= lob.quorum;
+
+  const respondedUserIds = lob.responses.map(r => r.userId);
+  const groupMembers = group?.members || [];
+  const unrespondedCount = groupMembers.filter(m => !respondedUserIds.includes(m.id)).length;
 
   const timeStr = lob.selectedTime || lob.timeOptions[0]?.datetime;
   const formattedTime = timeStr
@@ -47,6 +63,42 @@ const LobDetail = () => {
   const getUserName = (userId: string) => users.find(u => u.id === userId)?.name || 'Unknown';
   const getUserAvatar = (userId: string) => users.find(u => u.id === userId)?.avatar || '👤';
 
+  const canNudge = !lastNudgeTime || (Date.now() - lastNudgeTime > 2 * 60 * 60 * 1000);
+
+  const handleNudge = () => {
+    if (!canNudge) {
+      toast.error('You can nudge again in 2 hours');
+      return;
+    }
+    setLastNudgeTime(Date.now());
+    toast.success(`Nudged ${unrespondedCount} people!`);
+  };
+
+  const handleAddComment = () => {
+    if (!newComment.trim()) return;
+    const comment: LobComment = {
+      id: `c-${Date.now()}`,
+      userId: 'u1',
+      message: newComment.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    setComments(prev => [...prev, comment]);
+    setNewComment('');
+  };
+
+  const handleCancel = () => {
+    setIsCancelled(true);
+    setShowCancelDialog(false);
+    setShowMenu(false);
+    toast.success('Plan cancelled. Everyone has been notified.');
+  };
+
+  const recurrenceLabel = lob.recurrence
+    ? RECURRENCE_OPTIONS.find(r => r.key === lob.recurrence)?.label
+    : null;
+
+  const effectiveStatus = isCancelled ? 'cancelled' : lob.status;
+
   return (
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
@@ -56,11 +108,94 @@ const LobDetail = () => {
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
           <div className="flex-1" />
-          <StatusPill status={lob.status} />
+          <StatusPill status={effectiveStatus} />
           <button className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
             <Share2 className="w-5 h-5 text-foreground" />
           </button>
+          {/* Three-dot menu (creator only) */}
+          {isCreator && (
+            <div className="relative">
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center"
+              >
+                <MoreVertical className="w-5 h-5 text-foreground" />
+              </button>
+              <AnimatePresence>
+                {showMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: -5 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: -5 }}
+                    className="absolute right-0 top-12 z-50 w-48 rounded-xl bg-card border border-border shadow-card overflow-hidden"
+                  >
+                    <button
+                      onClick={() => { setShowMenu(false); setShowCancelDialog(true); }}
+                      className="w-full flex items-center gap-2 px-4 py-3 text-sm text-destructive hover:bg-secondary/50 transition-colors"
+                    >
+                      <XCircle className="w-4 h-4" /> Cancel Plan
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
         </div>
+
+        {/* Cancel confirmation dialog */}
+        <AnimatePresence>
+          {showCancelDialog && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowCancelDialog(false)}
+                className="fixed inset-0 z-[80] bg-background/60 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[90] max-w-sm mx-auto bg-card rounded-2xl border border-border shadow-card p-6"
+              >
+                <h3 className="font-bold text-foreground text-lg mb-2">Cancel this plan?</h3>
+                <p className="text-sm text-muted-foreground mb-5">
+                  Are you sure you want to cancel this plan? Everyone will be notified.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowCancelDialog(false)}
+                    className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground font-semibold text-sm"
+                  >
+                    Keep it
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground font-semibold text-sm"
+                  >
+                    Cancel Plan
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Cancelled banner */}
+        {isCancelled && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="rounded-2xl p-4 bg-destructive/10 border border-destructive/30 mb-4 flex items-center gap-3"
+          >
+            <XCircle className="w-6 h-6 text-destructive" />
+            <div>
+              <p className="font-bold text-foreground text-sm">Plan cancelled</p>
+              <p className="text-xs text-muted-foreground">This plan has been cancelled by the creator</p>
+            </div>
+          </motion.div>
+        )}
 
         {/* Title */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
@@ -71,6 +206,13 @@ const LobDetail = () => {
               <p className="text-sm text-muted-foreground">{lob.groupName}</p>
             </div>
           </div>
+          {/* Recurrence badge */}
+          {recurrenceLabel && (
+            <div className="flex items-center gap-1.5 mt-2">
+              <Repeat className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs font-medium text-primary">{recurrenceLabel}</span>
+            </div>
+          )}
         </motion.div>
 
         {/* Details */}
@@ -92,11 +234,10 @@ const LobDetail = () => {
           )}
         </motion.div>
 
-        {/* Location Map */}
         {lob.location && <LocationMap location={lob.location} />}
 
         {/* Status Banner */}
-        {lob.status === 'voting' && (
+        {effectiveStatus === 'voting' && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -127,7 +268,7 @@ const LobDetail = () => {
         )}
 
         {/* Response Buttons */}
-        {lob.status === 'voting' && (
+        {effectiveStatus === 'voting' && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -138,7 +279,26 @@ const LobDetail = () => {
           </motion.div>
         )}
 
-        {/* Quorum Ring + Avatar Stacks */}
+        {/* Nudge button (creator only) */}
+        {isCreator && effectiveStatus === 'voting' && unrespondedCount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.17 }}
+            className="mb-4"
+          >
+            <button
+              onClick={handleNudge}
+              disabled={!canNudge}
+              className="w-full py-3 rounded-xl bg-primary/10 border border-primary/30 text-primary font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-40 transition-opacity hover:bg-primary/15"
+            >
+              <Bell className="w-4 h-4" />
+              Nudge {unrespondedCount}
+            </button>
+          </motion.div>
+        )}
+
+        {/* Attendance Ring */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -150,10 +310,10 @@ const LobDetail = () => {
         </motion.div>
 
         {/* Deadline Countdown */}
-        {lob.deadline && lob.status === 'voting' && (
+        {lob.deadline && effectiveStatus === 'voting' && (
           <DeadlineCountdown
             deadline={lob.deadline}
-            isCreator={lob.createdBy === 'u1'}
+            isCreator={isCreator}
             quorumReached={quorumReached}
           />
         )}
@@ -172,21 +332,16 @@ const LobDetail = () => {
                 const t = new Date(opt.datetime);
                 const iVoted = votedTimeIds.includes(opt.id);
                 const voteCount = opt.votes.length + (iVoted && !opt.votes.includes('u1') ? 1 : 0);
-
                 return (
                   <button
                     key={opt.id}
                     onClick={() => {
                       setVotedTimeIds(prev =>
-                        prev.includes(opt.id)
-                          ? prev.filter(id => id !== opt.id)
-                          : [...prev, opt.id]
+                        prev.includes(opt.id) ? prev.filter(x => x !== opt.id) : [...prev, opt.id]
                       );
                     }}
                     className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
-                      iVoted
-                        ? 'bg-primary/10 border-primary'
-                        : 'bg-secondary/50 border-border/50 hover:border-primary/40'
+                      iVoted ? 'bg-primary/10 border-primary' : 'bg-secondary/50 border-border/50 hover:border-primary/40'
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -216,11 +371,66 @@ const LobDetail = () => {
           </motion.div>
         )}
 
-        {/* Chat CTA */}
-        <button className="w-full py-3 rounded-xl bg-secondary text-foreground font-semibold text-sm flex items-center justify-center gap-2 mb-6">
-          <MessageCircle className="w-4 h-4" />
-          Open Chat
-        </button>
+        {/* Comments Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card mb-4"
+        >
+          <p className="text-xs font-semibold text-muted-foreground mb-3">
+            <MessageCircle className="w-3.5 h-3.5 inline mr-1" />
+            COMMENTS {comments.length > 0 && `(${comments.length})`}
+          </p>
+
+          {comments.length === 0 && (
+            <p className="text-xs text-muted-foreground mb-3">No comments yet. Start the conversation!</p>
+          )}
+
+          <div className="space-y-3 mb-3">
+            {comments.map(c => {
+              const timeDiff = Date.now() - new Date(c.createdAt).getTime();
+              const mins = Math.floor(timeDiff / 60000);
+              const timeAgo = mins < 1 ? 'just now' : mins < 60 ? `${mins}m ago` : mins < 1440 ? `${Math.floor(mins / 60)}h ago` : `${Math.floor(mins / 1440)}d ago`;
+
+              return (
+                <div key={c.id} className="flex items-start gap-2.5">
+                  <span className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-sm shrink-0 mt-0.5">
+                    {getUserAvatar(c.userId)}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xs font-semibold text-foreground">{getUserName(c.userId)}</span>
+                      <span className="text-[10px] text-muted-foreground">{timeAgo}</span>
+                    </div>
+                    <p className="text-sm text-foreground/90 mt-0.5">{c.message}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Add comment */}
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="Add a comment..."
+              value={newComment}
+              onChange={e => setNewComment(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAddComment()}
+              className="flex-1 p-2.5 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <button
+              onClick={handleAddComment}
+              disabled={!newComment.trim()}
+              className="w-9 h-9 rounded-full gradient-primary flex items-center justify-center disabled:opacity-40 transition-opacity shrink-0"
+            >
+              <Send className="w-4 h-4 text-primary-foreground" />
+            </button>
+          </div>
+        </motion.div>
+
+        <div className="h-6" />
       </div>
     </AppLayout>
   );

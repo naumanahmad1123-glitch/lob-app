@@ -69,6 +69,11 @@ export const lobs: Lob[] = [
     ],
     quorum: 6,
     deadline: '2026-03-06T18:00',
+    recurrence: 'weekly',
+    comments: [
+      { id: 'c1', userId: 'u2', message: 'Who\'s bringing the ball?', createdAt: '2026-03-01T11:00' },
+      { id: 'c2', userId: 'u4', message: 'I got it covered 🏀', createdAt: '2026-03-01T11:30' },
+    ],
     status: 'voting',
     responses: [
       { userId: 'u2', response: 'in' },
