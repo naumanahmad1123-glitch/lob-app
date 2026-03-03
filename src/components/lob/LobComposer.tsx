@@ -37,6 +37,39 @@ const CATEGORY_KEYWORDS: Record<string, LobCategory> = {
   padel: 'padel', tennis: 'padel',
 };
 
+function parseTimeToISO(timeStr: string, dayStr: string): string {
+  // Parse the time component
+  const timeMatch = timeStr.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
+  if (!timeMatch) return '';
+  let hours = parseInt(timeMatch[1], 10);
+  const minutes = parseInt(timeMatch[2] || '0', 10);
+  const meridiem = timeMatch[3].toLowerCase();
+  if (meridiem === 'pm' && hours < 12) hours += 12;
+  if (meridiem === 'am' && hours === 12) hours = 0;
+
+  // Parse the day component
+  const now = new Date();
+  let targetDate = new Date(now);
+
+  if (dayStr === 'tonight' || dayStr === 'today') {
+    // today
+  } else if (dayStr === 'tomorrow') {
+    targetDate.setDate(now.getDate() + 1);
+  } else {
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayIndex = dayNames.indexOf(dayStr);
+    if (dayIndex !== -1) {
+      const currentDay = now.getDay();
+      let daysUntil = dayIndex - currentDay;
+      if (daysUntil <= 0) daysUntil += 7;
+      targetDate.setDate(now.getDate() + daysUntil);
+    }
+  }
+
+  targetDate.setHours(hours, minutes, 0, 0);
+  return targetDate.toISOString();
+}
+
 function parseLobText(text: string): ParsedLob {
   const lower = text.toLowerCase();
   let category: LobCategory | '' = '';
@@ -44,9 +77,15 @@ function parseLobText(text: string): ParsedLob {
     if (lower.includes(keyword)) { category = cat; break; }
   }
 
-  // Extract time patterns like "8pm", "7:30pm", "tonight", "tomorrow"
+  // Extract time patterns like "8pm", "7:30pm"
   const timeMatch = lower.match(/(\d{1,2}(?::\d{2})?\s*(?:am|pm))/);
-  const time = timeMatch ? timeMatch[1] : '';
+  const rawTime = timeMatch ? timeMatch[1] : '';
+
+  // Extract day references
+  const dayMatch = lower.match(/(tonight|today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/);
+  const rawDay = dayMatch ? dayMatch[1] : 'today';
+
+  const time = rawTime ? parseTimeToISO(rawTime, rawDay) : '';
 
   // Use first group as default
   const groupId = groups[0]?.id || '';
