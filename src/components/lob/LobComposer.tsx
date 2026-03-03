@@ -3,7 +3,8 @@ import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from '
 import { X, MapPin, Clock, Users, ChevronRight, Sparkles, Send, User, Check, ChevronUp, ArrowUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { groups, users, currentUser } from '@/data/seed';
-import { CATEGORY_CONFIG, LobCategory } from '@/data/types';
+import { CATEGORY_CONFIG, LobCategory, Lob } from '@/data/types';
+import { lobStore } from '@/stores/lobStore';
 
 type ComposerStep = 'quick' | 'recipients' | 'category' | 'time' | 'location' | 'review';
 type RecipientType = 'group' | 'individuals';
@@ -156,9 +157,39 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
   }, [quickText]);
 
   const handleLobIt = useCallback(() => {
+    const category = (parsed.category || 'other') as LobCategory;
+    const catConfig = CATEGORY_CONFIG[category];
+    const timeIso = parsed.time || new Date().toISOString();
+    const groupIds = parsed.recipientType === 'group' && parsed.groupId
+      ? [parsed.groupId]
+      : [];
+    const selectedGroup = groups.find(g => g.id === parsed.groupId);
+
+    // Create a lob for each target group (or one if individuals)
+    const targets = groupIds.length > 0 ? groupIds : [''];
+    targets.forEach((gId, idx) => {
+      const group = groups.find(g => g.id === gId);
+      const newLob: Lob = {
+        id: `user-lob-${Date.now()}-${idx}`,
+        title: parsed.title,
+        category,
+        groupId: gId,
+        groupName: group?.name || 'Friends',
+        createdBy: currentUser.id,
+        location: parsed.location || undefined,
+        timeOptions: [{ id: `to-${Date.now()}-${idx}`, datetime: timeIso, votes: [currentUser.id] }],
+        quorum: catConfig.defaultQuorum,
+        status: 'voting',
+        responses: [{ userId: currentUser.id, response: 'in' }],
+        createdAt: new Date().toISOString(),
+      };
+      lobStore.addLob(newLob);
+    });
+
     onLobSent();
     onClose();
-  }, [onLobSent, onClose]);
+    navigate('/');
+  }, [parsed, onLobSent, onClose, navigate]);
 
   // Confirm-mode swipe: the whole sheet flies up
   const confirmDragY = useMotionValue(0);

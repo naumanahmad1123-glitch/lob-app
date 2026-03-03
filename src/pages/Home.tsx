@@ -4,8 +4,9 @@ import { Sparkles, Bell, List, CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LobCard } from '@/components/lob/LobCard';
-import { lobs, suggestedLobs } from '@/data/seed';
+import { lobs as seedLobs, suggestedLobs } from '@/data/seed';
 import { CATEGORY_CONFIG } from '@/data/types';
+import { useCreatedLobs } from '@/hooks/useCreatedLobs';
 
 type ViewMode = 'feed' | 'calendar';
 
@@ -22,6 +23,8 @@ function getCalendarDays(year: number, month: number) {
 
 const Home = () => {
   const navigate = useNavigate();
+  const createdLobs = useCreatedLobs();
+  const allLobs = useMemo(() => [...createdLobs, ...seedLobs], [createdLobs]);
   const [view, setView] = useState<ViewMode>('feed');
   const [calMonth, setCalMonth] = useState(() => {
     const now = new Date();
@@ -29,13 +32,13 @@ const Home = () => {
   });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
-  const activeLobs = lobs.filter(l => l.status === 'voting');
-  const confirmedLobs = lobs.filter(l => l.status === 'confirmed');
-  const allUpcoming = lobs.filter(l => l.status === 'voting' || l.status === 'confirmed');
+  const activeLobs = allLobs.filter(l => l.status === 'voting');
+  const confirmedLobs = allLobs.filter(l => l.status === 'confirmed');
+  const allUpcoming = allLobs.filter(l => l.status === 'voting' || l.status === 'confirmed');
 
   // Map day-of-month → lobs for the current calendar month
   const lobsByDay = useMemo(() => {
-    const map = new Map<number, typeof lobs>();
+    const map = new Map<number, typeof allLobs>();
     allUpcoming.forEach(lob => {
       const timeStr = lob.selectedTime || lob.timeOptions[0]?.datetime;
       if (!timeStr) return;
