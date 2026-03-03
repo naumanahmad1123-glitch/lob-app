@@ -9,6 +9,7 @@ import { format, addDays } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { lobs, users, groups } from '@/data/seed';
 import { CATEGORY_CONFIG, ResponseType, LobComment, RECURRENCE_OPTIONS, TimeOption } from '@/data/types';
+import { useCreatedLobs } from '@/hooks/useCreatedLobs';
 import { ResponseButtons } from '@/components/lob/ResponseButtons';
 import { QuorumRing } from '@/components/lob/QuorumRing';
 import { StatusPill } from '@/components/lob/StatusPill';
@@ -65,7 +66,8 @@ function parseTimeString(timeStr: string): { hours: number; minutes: number } | 
 const LobDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const lob = lobs.find(l => l.id === id);
+  const createdLobs = useCreatedLobs();
+  const lob = lobs.find(l => l.id === id) || createdLobs.find(l => l.id === id);
   const [myResponse, setMyResponse] = useState<ResponseType | undefined>(
     lob?.responses.find(r => r.userId === 'u1')?.response
   );
