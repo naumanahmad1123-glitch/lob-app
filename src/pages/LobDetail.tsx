@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, MapPin, Clock, Share2, MessageCircle, CheckCircle2, Check } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, Share2, MessageCircle, CheckCircle2, Check, Users } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { lobs, users } from '@/data/seed';
 import { CATEGORY_CONFIG, ResponseType } from '@/data/types';
@@ -95,18 +95,34 @@ const LobDetail = () => {
         {/* Location Map */}
         {lob.location && <LocationMap location={lob.location} />}
 
-        {/* Quorum Banner */}
-        {quorumReached && lob.status === 'voting' && (
+        {/* Status Banner */}
+        {lob.status === 'voting' && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="rounded-2xl p-4 bg-lob-confirmed/10 border border-lob-confirmed/30 mb-4 flex items-center gap-3"
+            className={`rounded-2xl p-4 mb-4 flex items-center gap-3 ${
+              quorumReached
+                ? 'bg-lob-confirmed/10 border border-lob-confirmed/30'
+                : 'bg-secondary/50 border border-border/50'
+            }`}
           >
-            <CheckCircle2 className="w-6 h-6 text-lob-confirmed" />
-            <div>
-              <p className="font-bold text-foreground text-sm">Quorum reached!</p>
-              <p className="text-xs text-muted-foreground">Ready to confirm this plan</p>
-            </div>
+            {quorumReached ? (
+              <>
+                <CheckCircle2 className="w-6 h-6 text-lob-confirmed" />
+                <div>
+                  <p className="font-bold text-foreground text-sm">It's on! 🎉</p>
+                  <p className="text-xs text-muted-foreground">Ready to confirm this plan</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <Users className="w-6 h-6 text-primary" />
+                <div>
+                  <p className="font-bold text-foreground text-sm">Waiting on {lob.quorum - inCount} more</p>
+                  <p className="text-xs text-muted-foreground">{inCount} of {lob.quorum} needed</p>
+                </div>
+              </>
+            )}
           </motion.div>
         )}
 

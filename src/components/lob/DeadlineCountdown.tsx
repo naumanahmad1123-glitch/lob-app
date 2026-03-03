@@ -51,7 +51,7 @@ export const DeadlineCountdown = ({ deadline, isCreator, quorumReached }: Deadli
           <Timer className="w-5 h-5 text-destructive" />
           <p className="font-bold text-foreground text-sm">Deadline expired</p>
         </div>
-        <p className="text-xs text-muted-foreground mb-3">Quorum wasn't reached in time.</p>
+        <p className="text-xs text-muted-foreground mb-3">Not enough people joined in time.</p>
 
         {isCreator && (
           <AnimatePresence mode="wait">

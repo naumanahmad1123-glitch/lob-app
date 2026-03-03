@@ -402,7 +402,7 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
                         )}
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Users className="w-4 h-4" />
-                          <span>Quorum: {catConfig?.defaultQuorum || 2} needed</span>
+                          <span>{catConfig?.defaultQuorum || 2} to make it happen</span>
                         </div>
                       </div>
 

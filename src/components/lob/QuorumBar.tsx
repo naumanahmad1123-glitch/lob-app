@@ -6,6 +6,7 @@ interface QuorumBarProps {
 export function QuorumBar({ current, target }: QuorumBarProps) {
   const pct = Math.min((current / target) * 100, 100);
   const reached = current >= target;
+  const remaining = Math.max(target - current, 0);
 
   return (
     <div className="flex items-center gap-2 flex-1 mr-2">
@@ -17,8 +18,8 @@ export function QuorumBar({ current, target }: QuorumBarProps) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className={`text-xs font-semibold tabular-nums ${reached ? 'text-lob-confirmed' : 'text-muted-foreground'}`}>
-        {current}/{target}
+      <span className={`text-xs font-semibold ${reached ? 'text-lob-confirmed' : 'text-muted-foreground'}`}>
+        {reached ? "It's on! 🎉" : `${remaining} to make it happen`}
       </span>
     </div>
   );
