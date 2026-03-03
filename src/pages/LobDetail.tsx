@@ -3,17 +3,64 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, MapPin, Clock, Share2, MessageCircle, CheckCircle2, Check, Users,
-  Bell, MoreVertical, XCircle, Repeat, Send,
+  Bell, MoreVertical, XCircle, Repeat, Send, Plus, CalendarIcon,
 } from 'lucide-react';
+import { format, addDays } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { lobs, users, groups } from '@/data/seed';
-import { CATEGORY_CONFIG, ResponseType, LobComment, RECURRENCE_OPTIONS } from '@/data/types';
+import { CATEGORY_CONFIG, ResponseType, LobComment, RECURRENCE_OPTIONS, TimeOption } from '@/data/types';
 import { ResponseButtons } from '@/components/lob/ResponseButtons';
 import { QuorumRing } from '@/components/lob/QuorumRing';
 import { StatusPill } from '@/components/lob/StatusPill';
 import { LocationMap } from '@/components/lob/LocationMap';
 import { DeadlineCountdown } from '@/components/lob/DeadlineCountdown';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+
+// ─── Day/Time chip helpers ───
+function generateDayChips(): { label: string; date: Date }[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = addDays(today, i);
+    let label: string;
+    if (i === 0) label = 'Today';
+    else if (i === 1) label = 'Tomorrow';
+    else label = format(d, 'EEE d');
+    return { label, date: d };
+  });
+}
+
+function generateTimeChips(): string[] {
+  const chips: string[] = [];
+  for (let h = 6; h <= 23; h++) {
+    for (const m of [0, 30]) {
+      const d = new Date();
+      d.setHours(h, m, 0, 0);
+      chips.push(format(d, 'h:mm a'));
+    }
+  }
+  return chips;
+}
+
+const DAY_CHIPS = generateDayChips();
+const TIME_CHIPS = generateTimeChips();
+
+function isSameDay(a: Date | undefined, b: Date): boolean {
+  if (!a) return false;
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function parseTimeString(timeStr: string): { hours: number; minutes: number } | null {
+  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!match) return null;
+  let hours = parseInt(match[1]);
+  const minutes = parseInt(match[2]);
+  const period = match[3].toUpperCase();
+  if (period === 'PM' && hours !== 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  return { hours, minutes };
+}
 
 const LobDetail = () => {
   const { id } = useParams();
@@ -32,6 +79,14 @@ const LobDetail = () => {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [isCancelled, setIsCancelled] = useState(lob?.status === 'cancelled');
 
+  // Time suggestion state
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [suggestDay, setSuggestDay] = useState<Date | undefined>(undefined);
+  const [suggestTime, setSuggestTime] = useState('');
+
+  // Dynamic time options (can be added to by creator)
+  const [extraTimeOptions, setExtraTimeOptions] = useState<TimeOption[]>([]);
+
   if (!lob) {
     return (
       <AppLayout>
@@ -41,6 +96,8 @@ const LobDetail = () => {
       </AppLayout>
     );
   }
+
+  const allTimeOptions = [...lob.timeOptions, ...extraTimeOptions];
 
   const config = CATEGORY_CONFIG[lob.category];
   const group = groups.find(g => g.id === lob.groupId);
@@ -86,6 +143,41 @@ const LobDetail = () => {
     setNewComment('');
   };
 
+  const handleSuggestTime = () => {
+    if (!suggestDay || !suggestTime) return;
+    const parsed = parseTimeString(suggestTime);
+    if (!parsed) return;
+    const dt = new Date(suggestDay);
+    dt.setHours(parsed.hours, parsed.minutes, 0, 0);
+    const comment: LobComment = {
+      id: `c-${Date.now()}`,
+      userId: 'u1',
+      message: '',
+      createdAt: new Date().toISOString(),
+      suggestedTime: dt.toISOString(),
+    };
+    setComments(prev => [...prev, comment]);
+    setShowTimePicker(false);
+    setSuggestDay(undefined);
+    setSuggestTime('');
+    toast.success('Time suggestion posted!');
+  };
+
+  const handleAddToPoll = (suggestedTime: string) => {
+    const alreadyExists = allTimeOptions.some(t => t.datetime === suggestedTime);
+    if (alreadyExists) {
+      toast.error('This time is already in the poll');
+      return;
+    }
+    const newOption: TimeOption = {
+      id: `to-${Date.now()}`,
+      datetime: suggestedTime,
+      votes: [],
+    };
+    setExtraTimeOptions(prev => [...prev, newOption]);
+    toast.success('Time added to poll!');
+  };
+
   const handleCancel = () => {
     setIsCancelled(true);
     setShowCancelDialog(false);
@@ -112,7 +204,6 @@ const LobDetail = () => {
           <button className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
             <Share2 className="w-5 h-5 text-foreground" />
           </button>
-          {/* Three-dot menu (creator only) */}
           {isCreator && (
             <div className="relative">
               <button
@@ -206,7 +297,6 @@ const LobDetail = () => {
               <p className="text-sm text-muted-foreground">{lob.groupName}</p>
             </div>
           </div>
-          {/* Recurrence badge */}
           {recurrenceLabel && (
             <div className="flex items-center gap-1.5 mt-2">
               <Repeat className="w-3.5 h-3.5 text-primary" />
@@ -319,7 +409,7 @@ const LobDetail = () => {
         )}
 
         {/* Time Poll */}
-        {lob.timeOptions.length > 1 && (
+        {allTimeOptions.length > 1 && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -328,7 +418,7 @@ const LobDetail = () => {
           >
             <p className="text-xs font-semibold text-muted-foreground mb-3">⏱ TIME POLL — tap to vote</p>
             <div className="space-y-2">
-              {lob.timeOptions.map(opt => {
+              {allTimeOptions.map(opt => {
                 const t = new Date(opt.datetime);
                 const iVoted = votedTimeIds.includes(opt.id);
                 const voteCount = opt.votes.length + (iVoted && !opt.votes.includes('u1') ? 1 : 0);
@@ -393,6 +483,49 @@ const LobDetail = () => {
               const mins = Math.floor(timeDiff / 60000);
               const timeAgo = mins < 1 ? 'just now' : mins < 60 ? `${mins}m ago` : mins < 1440 ? `${Math.floor(mins / 60)}h ago` : `${Math.floor(mins / 1440)}d ago`;
 
+              // Time suggestion card
+              if (c.suggestedTime) {
+                const suggestedDate = new Date(c.suggestedTime);
+                const alreadyInPoll = allTimeOptions.some(t => t.datetime === c.suggestedTime);
+                return (
+                  <div key={c.id} className="flex items-start gap-2.5">
+                    <span className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-sm shrink-0 mt-0.5">
+                      {getUserAvatar(c.userId)}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-xs font-semibold text-foreground">{getUserName(c.userId)}</span>
+                        <span className="text-[10px] text-muted-foreground">{timeAgo}</span>
+                      </div>
+                      <div className="mt-1.5 p-3 rounded-xl bg-primary/5 border border-primary/20">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Clock className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-semibold text-foreground">
+                            {suggestedDate.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mb-2">Suggested time</p>
+                        {isCreator && !alreadyInPoll && (
+                          <button
+                            onClick={() => handleAddToPoll(c.suggestedTime!)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/30 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
+                          >
+                            <Plus className="w-3 h-3" />
+                            Add to poll
+                          </button>
+                        )}
+                        {alreadyInPoll && (
+                          <span className="flex items-center gap-1 text-[11px] text-primary/70">
+                            <Check className="w-3 h-3" /> Added to poll
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              // Regular comment
               return (
                 <div key={c.id} className="flex items-start gap-2.5">
                   <span className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-sm shrink-0 mt-0.5">
@@ -410,8 +543,96 @@ const LobDetail = () => {
             })}
           </div>
 
-          {/* Add comment */}
+          {/* Time picker inline */}
+          <AnimatePresence>
+            {showTimePicker && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden mb-3"
+              >
+                <div className="p-3 rounded-xl bg-secondary/50 border border-border/50 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-foreground">Suggest a time</p>
+                    <button onClick={() => setShowTimePicker(false)} className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center">
+                      <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                    </button>
+                  </div>
+
+                  <div>
+                    <p className="text-[11px] font-medium text-muted-foreground mb-1.5">Day</p>
+                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+                      {DAY_CHIPS.map(c => (
+                        <button
+                          key={c.label}
+                          onClick={() => setSuggestDay(c.date)}
+                          className={cn(
+                            'shrink-0 px-3 py-2 rounded-xl text-xs font-medium border transition-all',
+                            isSameDay(suggestDay, c.date)
+                              ? 'border-primary bg-primary/15 text-primary'
+                              : 'border-border bg-card text-muted-foreground hover:border-primary/50'
+                          )}
+                        >
+                          {c.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[11px] font-medium text-muted-foreground mb-1.5">Time</p>
+                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+                      {TIME_CHIPS.map(t => (
+                        <button
+                          key={t}
+                          onClick={() => setSuggestTime(t)}
+                          className={cn(
+                            'shrink-0 px-3 py-2 rounded-xl text-xs font-medium border transition-all',
+                            suggestTime === t
+                              ? 'border-primary bg-primary/15 text-primary'
+                              : 'border-border bg-card text-muted-foreground hover:border-primary/50'
+                          )}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {suggestDay && suggestTime && (
+                    <div className="flex items-center gap-2 text-xs text-primary">
+                      <Clock className="w-3 h-3" />
+                      {format(suggestDay, 'EEE, MMM d')} at {suggestTime}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleSuggestTime}
+                    disabled={!suggestDay || !suggestTime}
+                    className="w-full py-2.5 rounded-xl gradient-primary text-primary-foreground font-semibold text-xs disabled:opacity-40 transition-opacity"
+                  >
+                    Post suggestion
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Add comment + suggest time */}
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowTimePicker(!showTimePicker)}
+              className={cn(
+                'w-9 h-9 rounded-full flex items-center justify-center shrink-0 border transition-colors',
+                showTimePicker
+                  ? 'bg-primary/15 border-primary text-primary'
+                  : 'bg-secondary border-border text-muted-foreground hover:border-primary/50'
+              )}
+              title="Suggest a time"
+            >
+              <CalendarIcon className="w-4 h-4" />
+            </button>
             <input
               type="text"
               placeholder="Add a comment..."
