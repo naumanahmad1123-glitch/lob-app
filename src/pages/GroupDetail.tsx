@@ -1,15 +1,21 @@
+import { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { groups, lobs } from '@/data/seed';
+import { groups, lobs as seedLobs } from '@/data/seed';
 import { LobCard } from '@/components/lob/LobCard';
+import { useCreatedLobs } from '@/hooks/useCreatedLobs';
 
 const GroupDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const group = groups.find(g => g.id === id);
-  const groupLobs = lobs.filter(l => l.groupId === id);
+  const createdLobs = useCreatedLobs();
+  const groupLobs = useMemo(() => {
+    const all = [...createdLobs, ...seedLobs];
+    return all.filter(l => l.groupId === id);
+  }, [createdLobs, id]);
 
   if (!group) {
     return (

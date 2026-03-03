@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
-import { MapPin, Clock, ChevronRight, Repeat } from 'lucide-react';
+import { MapPin, Clock, ChevronRight, Repeat, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Lob, CATEGORY_CONFIG, RECURRENCE_OPTIONS } from '@/data/types';
+import { currentUser } from '@/data/seed';
 import { QuorumBar } from './QuorumBar';
 import { StatusPill } from './StatusPill';
 
@@ -13,6 +14,7 @@ interface LobCardProps {
 export function LobCard({ lob, index = 0 }: LobCardProps) {
   const navigate = useNavigate();
   const config = CATEGORY_CONFIG[lob.category];
+  const isYours = lob.createdBy === currentUser.id;
   const inCount = lob.responses.filter(r => r.response === 'in').length;
   const timeStr = lob.selectedTime || lob.timeOptions[0]?.datetime;
   const formattedTime = timeStr
@@ -36,9 +38,21 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2.5">
-          <span className="text-2xl">{config.emoji}</span>
+          <span className="relative text-2xl">
+            {config.emoji}
+            {isYours && (
+              <Crown className="absolute -top-1.5 -right-1.5 w-3 h-3 text-primary fill-primary" />
+            )}
+          </span>
           <div>
-            <h3 className="font-semibold text-foreground text-[15px] leading-tight">{lob.title}</h3>
+            <div className="flex items-center gap-1.5">
+              <h3 className="font-semibold text-foreground text-[15px] leading-tight">{lob.title}</h3>
+              {isYours && (
+                <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full leading-none">
+                  Yours
+                </span>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground mt-0.5">{lob.groupName}</p>
           </div>
         </div>
