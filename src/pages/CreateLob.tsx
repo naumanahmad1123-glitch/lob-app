@@ -119,6 +119,30 @@ const QUICK_TEMPLATES = [
   { label: '🚶 Walk', title: 'Walk', category: 'other' as LobCategory },
 ];
 
+const VIBE_KEYWORDS: Record<string, string[]> = {
+  Hoops: ['hoop', 'basketball', 'bball', 'pickup'],
+  Coffee: ['coffee', 'café', 'cafe', 'latte', 'espresso'],
+  Dinner: ['dinner', 'lunch', 'brunch', 'eat', 'food', 'sushi', 'pizza', 'taco', 'bbq', 'restaurant', 'meal'],
+  Padel: ['padel', 'paddle'],
+  Gym: ['gym', 'workout', 'lift', 'crossfit', 'exercise', 'training', 'fitness'],
+  Drinks: ['drink', 'bar', 'pub', 'beer', 'wine', 'cocktail', 'happy hour'],
+  'Movie night': ['movie', 'film', 'netflix', 'cinema', 'watch'],
+  Walk: ['walk', 'stroll', 'hike'],
+};
+
+function detectVibe(text: string): string | null {
+  const lower = text.toLowerCase().trim();
+  if (!lower) return null;
+  // Exact template match
+  const exact = QUICK_TEMPLATES.find(t => t.title.toLowerCase() === lower);
+  if (exact) return exact.title;
+  // Keyword match
+  for (const [vibeTitle, keywords] of Object.entries(VIBE_KEYWORDS)) {
+    if (keywords.some(kw => lower.includes(kw))) return vibeTitle;
+  }
+  return null;
+}
+
 // ─── Review Swipe Card ───
 interface ReviewSwipeCardProps {
   title: string;
@@ -268,6 +292,8 @@ const CreateLob = () => {
   // Step 0: What?
   const [title, setTitle] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<LobCategory | ''>('');
+  const [manualVibe, setManualVibe] = useState(false);
+  const [selectedVibe, setSelectedVibe] = useState('');
 
   // Step 1: Who?
   const [whoMode, setWhoMode] = useState<'group' | 'people'>('group');
@@ -397,7 +423,23 @@ const CreateLob = () => {
                   type="text"
                   placeholder="What are you thinking?"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setTitle(val);
+                    if (!manualVibe) {
+                      const detected = detectVibe(val);
+                      if (detected) {
+                        const tmpl = QUICK_TEMPLATES.find(t => t.title === detected);
+                        if (tmpl) {
+                          setSelectedVibe(tmpl.title);
+                          setSelectedCategory(tmpl.category);
+                        }
+                      } else {
+                        setSelectedVibe('');
+                        setSelectedCategory('');
+                      }
+                    }
+                  }}
                   className="w-full p-3 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   autoFocus
                 />
@@ -406,10 +448,14 @@ const CreateLob = () => {
                   {QUICK_TEMPLATES.map((t) => (
                     <button
                       key={t.title}
-                      onClick={() => { setTitle(t.title); setSelectedCategory(t.category); }}
+                      onClick={() => {
+                        setManualVibe(true);
+                        setSelectedVibe(t.title);
+                        setSelectedCategory(t.category);
+                      }}
                       className={cn(
                         'px-3 py-2 rounded-xl text-sm font-medium border transition-all',
-                        title === t.title && selectedCategory === t.category
+                        selectedVibe === t.title
                           ? 'border-primary bg-primary/15 text-primary'
                           : 'border-border bg-card text-muted-foreground hover:border-primary/50'
                       )}
