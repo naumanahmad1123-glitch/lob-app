@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { format, addDays, addHours, setHours, setMinutes, startOfTomorrow } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { groups, users } from '@/data/seed';
-import { CATEGORY_CONFIG, LobCategory, RecurrenceType, RECURRENCE_OPTIONS } from '@/data/types';
+import { CATEGORY_CONFIG, LobCategory, RecurrenceType, RECURRENCE_OPTIONS, WhenMode, FlexibleWindow, FLEXIBLE_WINDOW_OPTIONS } from '@/data/types';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -124,6 +124,8 @@ interface ReviewSwipeCardProps {
   peopleName?: string;
   validTimeOptions: TimeSlot[];
   useTimePoll: boolean;
+  whenMode: WhenMode;
+  flexibleWindow: FlexibleWindow | '';
   location: string;
   quorum: number;
   resolvedDeadline: Date | null;
@@ -133,7 +135,7 @@ interface ReviewSwipeCardProps {
 }
 
 function ReviewSwipeCard({
-  title, category, groupName, peopleName, validTimeOptions, useTimePoll, location, quorum, resolvedDeadline, recurrence, onLob, onEdit,
+  title, category, groupName, peopleName, validTimeOptions, useTimePoll, whenMode, flexibleWindow, location, quorum, resolvedDeadline, recurrence, onLob, onEdit,
 }: ReviewSwipeCardProps) {
   const dragY = useMotionValue(0);
   const cardOpacity = useTransform(dragY, [0, -140], [1, 0.3]);
@@ -216,10 +218,19 @@ function ReviewSwipeCard({
         <div className="flex flex-col gap-2">
           <Row icon={Clock} step={2}>
             <div className="flex flex-col gap-0.5">
-              {useTimePoll && <span className="text-xs font-medium text-primary">⏱ Time Poll</span>}
-              {validTimeOptions.map((o, i) => (
-                <span key={i}>{o.date ? format(o.date, 'EEE, MMM d') : ''} at {o.time}</span>
-              ))}
+              {whenMode === 'tbd' && <span>Time TBD</span>}
+              {whenMode === 'flexible' && flexibleWindow && (
+                <span>{FLEXIBLE_WINDOW_OPTIONS.find(o => o.key === flexibleWindow)?.displayLabel}</span>
+              )}
+              {whenMode === 'flexible' && !flexibleWindow && <span>Flexible timing</span>}
+              {whenMode === 'specific' && (
+                <>
+                  {useTimePoll && <span className="text-xs font-medium text-primary">⏱ Time Poll</span>}
+                  {validTimeOptions.length > 0 ? validTimeOptions.map((o, i) => (
+                    <span key={i}>{o.date ? format(o.date, 'EEE, MMM d') : ''} at {o.time}</span>
+                  )) : <span>No time set</span>}
+                </>
+              )}
             </div>
           </Row>
           {location && <Row icon={MapPin} step={3}>{location}</Row>}
@@ -262,6 +273,7 @@ const CreateLob = () => {
   const [peopleSearch, setPeopleSearch] = useState('');
 
   // Step 2: When?
+  const [whenMode, setWhenMode] = useState<WhenMode>('flexible');
   const [fixedTime, setFixedTime] = useState<TimeSlot>({ date: undefined, time: '' });
   const [useTimePoll, setUseTimePoll] = useState(false);
   const [pollOptions, setPollOptions] = useState<TimeSlot[]>([
@@ -271,6 +283,7 @@ const CreateLob = () => {
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
   const [showCustomTimePicker, setShowCustomTimePicker] = useState(false);
   const [customTimeInput, setCustomTimeInput] = useState('');
+  const [flexibleWindow, setFlexibleWindow] = useState<FlexibleWindow | ''>('');
 
   // Step 3: Where?
   const [location, setLocation] = useState('');
@@ -310,13 +323,13 @@ const CreateLob = () => {
     switch (step) {
       case 0: return !!title.trim() && !!selectedCategory;
       case 1: return whoMode === 'group' ? !!selectedGroup : selectedPeople.length > 0;
-      case 2: return validTimeOptions.length > 0;
+      case 2: return true; // fully optional
       case 3: return true; // optional
       case 4: return true; // optional
       case 5: return true; // optional
       default: return false;
     }
-  }, [step, title, selectedCategory, whoMode, selectedGroup, selectedPeople, validTimeOptions]);
+  }, [step, title, selectedCategory, whoMode, selectedGroup, selectedPeople]);
 
   const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1));
   const back = () => {
@@ -325,8 +338,8 @@ const CreateLob = () => {
   };
   const send = () => navigate('/');
 
-  const isOptional = step >= 3 && step <= 5;
-  const buttonLabel = step === TOTAL_STEPS - 2 ? 'Review' : isOptional ? 'Skip' : 'Next';
+  const isOptional = step >= 2 && step <= 5;
+  const buttonLabel = step === TOTAL_STEPS - 2 ? 'Review' : isOptional && !canProceed ? 'Skip' : 'Next';
 
   const updatePollOption = (i: number, s: TimeSlot) => {
     const updated = [...pollOptions];
@@ -527,145 +540,214 @@ const CreateLob = () => {
             {/* ── Step 2: When? ── */}
             {step === 2 && (
               <div>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {useTimePoll ? 'Add up to 3 options for the group to vote on' : 'Pick a day & time'}
-                </p>
-
-                {!useTimePoll ? (
-                  <>
-                    <p className="text-xs font-medium text-muted-foreground mb-2">Day</p>
-                    <ChipRow
-                      items={DAY_CHIPS.map(c => ({ label: c.label, value: c.date.toISOString() }))}
-                      selected={fixedTime.date ? DAY_CHIPS.find(c => isSameDay(fixedTime.date, c.date))?.date.toISOString() || '' : ''}
-                      onSelect={(v) => setFixedTime({ ...fixedTime, date: new Date(v) })}
-                      onPickCustom={() => setShowCustomDatePicker(true)}
-                    />
-
-                    {showCustomDatePicker && (
-                      <Popover open={showCustomDatePicker} onOpenChange={setShowCustomDatePicker}>
-                        <PopoverTrigger asChild>
-                          <button className="w-full mt-2 p-3 rounded-xl border border-primary bg-primary/10 text-sm text-primary text-center">
-                            {fixedTime.date ? format(fixedTime.date, 'PPP') : 'Pick a custom date'}
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="center">
-                          <Calendar
-                            mode="single"
-                            selected={fixedTime.date}
-                            onSelect={(d) => { setFixedTime({ ...fixedTime, date: d }); setShowCustomDatePicker(false); }}
-                            disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
-                            initialFocus
-                            className={cn('p-3 pointer-events-auto')}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    )}
-
-                    <p className="text-xs font-medium text-muted-foreground mb-2 mt-4">Time</p>
-                    <ChipRow
-                      items={TIME_CHIPS.map(t => ({ label: t, value: t }))}
-                      selected={fixedTime.time}
-                      onSelect={(v) => setFixedTime({ ...fixedTime, time: v })}
-                      onPickCustom={() => setShowCustomTimePicker(true)}
-                    />
-
-                    {showCustomTimePicker && (
-                      <div className="mt-2 flex gap-2 items-center">
-                        <input
-                          type="time"
-                          value={customTimeInput}
-                          onChange={(e) => {
-                            setCustomTimeInput(e.target.value);
-                            if (e.target.value) {
-                              const [h, m] = e.target.value.split(':').map(Number);
-                              const d = new Date();
-                              d.setHours(h, m, 0, 0);
-                              setFixedTime({ ...fixedTime, time: format(d, 'h:mm a') });
-                            }
-                          }}
-                          className="flex-1 p-3 rounded-xl bg-input border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:dark]"
-                        />
-                        <button onClick={() => setShowCustomTimePicker(false)} className="text-xs text-primary font-medium">Done</button>
-                      </div>
-                    )}
-
-                    {fixedTime.date && fixedTime.time && (
-                      <div className="mt-4 p-3 rounded-xl bg-primary/10 border border-primary/20 text-sm text-primary flex items-center gap-2">
-                        <Clock className="w-4 h-4" />
-                        {format(fixedTime.date, 'EEE, MMM d')} at {fixedTime.time}
-                      </div>
-                    )}
-
+                {/* Mode selector */}
+                <div className="flex gap-2 mb-5">
+                  {([
+                    { key: 'flexible' as WhenMode, label: '🌊 Flexible', desc: 'Loose window' },
+                    { key: 'specific' as WhenMode, label: '📌 Specific', desc: 'Exact time' },
+                    { key: 'tbd' as WhenMode, label: '🤷 TBD', desc: 'Decide later' },
+                  ]).map((m) => (
                     <button
-                      onClick={() => {
-                        setUseTimePoll(true);
-                        if (fixedTime.date || fixedTime.time) {
-                          setPollOptions([{ ...fixedTime }, { date: undefined, time: '' }]);
-                        }
-                      }}
-                      className="w-full mt-4 py-2.5 rounded-xl border border-dashed border-border text-sm text-muted-foreground flex items-center justify-center gap-2 hover:border-primary/50 transition-colors"
+                      key={m.key}
+                      onClick={() => setWhenMode(m.key)}
+                      className={cn(
+                        'flex-1 flex flex-col items-center gap-0.5 py-3 rounded-xl border transition-all',
+                        whenMode === m.key
+                          ? 'border-primary bg-primary/15 text-primary'
+                          : 'border-border bg-card text-muted-foreground hover:border-primary/50'
+                      )}
                     >
-                      <Plus className="w-4 h-4" />
-                      Add more time options
+                      <span className="text-sm font-semibold">{m.label}</span>
+                      <span className="text-[10px]">{m.desc}</span>
                     </button>
-                  </>
-                ) : (
-                  <>
-                    <div className="space-y-4">
-                      {pollOptions.map((opt, i) => (
-                        <div key={i} className="p-3 rounded-xl border border-border bg-card/50">
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs font-medium text-muted-foreground">Option {i + 1}</p>
-                            {pollOptions.length > 2 && (
-                              <button onClick={() => removePollOption(i)} className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center">
-                                <X className="w-3 h-3 text-muted-foreground" />
-                              </button>
-                            )}
-                          </div>
-                          <p className="text-xs font-medium text-muted-foreground mb-1.5">Day</p>
-                          <ChipRow
-                            items={DAY_CHIPS.map(c => ({ label: c.label, value: c.date.toISOString() }))}
-                            selected={opt.date ? DAY_CHIPS.find(c => isSameDay(opt.date, c.date))?.date.toISOString() || '' : ''}
-                            onSelect={(v) => updatePollOption(i, { ...opt, date: new Date(v) })}
-                            onPickCustom={() => {}}
-                          />
-                          <p className="text-xs font-medium text-muted-foreground mb-1.5 mt-3">Time</p>
-                          <ChipRow
-                            items={TIME_CHIPS.map(t => ({ label: t, value: t }))}
-                            selected={opt.time}
-                            onSelect={(v) => updatePollOption(i, { ...opt, time: v })}
-                            onPickCustom={() => {}}
-                          />
-                          {opt.date && opt.time && (
-                            <div className="mt-2 text-xs text-primary flex items-center gap-1.5">
-                              <Clock className="w-3 h-3" />
-                              {format(opt.date, 'EEE, MMM d')} at {opt.time}
-                            </div>
+                  ))}
+                </div>
+
+                {/* Flexible mode */}
+                {whenMode === 'flexible' && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-3">Pick a rough timeframe</p>
+                    <div className="flex flex-wrap gap-2">
+                      {FLEXIBLE_WINDOW_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.key}
+                          onClick={() => setFlexibleWindow(prev => prev === opt.key ? '' : opt.key)}
+                          className={cn(
+                            'px-4 py-2.5 rounded-xl text-sm font-medium border transition-all',
+                            flexibleWindow === opt.key
+                              ? 'border-primary bg-primary/15 text-primary'
+                              : 'border-border bg-card text-muted-foreground hover:border-primary/50'
                           )}
-                        </div>
+                        >
+                          {opt.label}
+                        </button>
                       ))}
                     </div>
-                    {pollOptions.length < 3 && (
-                      <button
-                        onClick={addPollOption}
-                        className="w-full mt-3 py-2.5 rounded-xl border border-dashed border-border text-sm text-muted-foreground flex items-center justify-center gap-2 hover:border-primary/50 transition-colors"
-                      >
-                        <Plus className="w-4 h-4" /> Add option {pollOptions.length + 1}
-                      </button>
+                    {flexibleWindow && (
+                      <div className="mt-4 p-3 rounded-xl bg-primary/10 border border-primary/20 text-sm text-primary flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        {FLEXIBLE_WINDOW_OPTIONS.find(o => o.key === flexibleWindow)?.displayLabel}
+                      </div>
                     )}
-                    <button
-                      onClick={() => setUseTimePoll(false)}
-                      className="w-full mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors text-center py-1"
-                    >
-                      Switch to a single fixed time
-                    </button>
-                  </>
+                  </div>
+                )}
+
+                {/* Specific mode */}
+                {whenMode === 'specific' && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {useTimePoll ? 'Add up to 3 options for the group to vote on' : 'Pick a day & time'}
+                    </p>
+
+                    {!useTimePoll ? (
+                      <>
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Day</p>
+                        <ChipRow
+                          items={DAY_CHIPS.map(c => ({ label: c.label, value: c.date.toISOString() }))}
+                          selected={fixedTime.date ? DAY_CHIPS.find(c => isSameDay(fixedTime.date, c.date))?.date.toISOString() || '' : ''}
+                          onSelect={(v) => setFixedTime({ ...fixedTime, date: new Date(v) })}
+                          onPickCustom={() => setShowCustomDatePicker(true)}
+                        />
+
+                        {showCustomDatePicker && (
+                          <Popover open={showCustomDatePicker} onOpenChange={setShowCustomDatePicker}>
+                            <PopoverTrigger asChild>
+                              <button className="w-full mt-2 p-3 rounded-xl border border-primary bg-primary/10 text-sm text-primary text-center">
+                                {fixedTime.date ? format(fixedTime.date, 'PPP') : 'Pick a custom date'}
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="center">
+                              <Calendar
+                                mode="single"
+                                selected={fixedTime.date}
+                                onSelect={(d) => { setFixedTime({ ...fixedTime, date: d }); setShowCustomDatePicker(false); }}
+                                disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
+                                initialFocus
+                                className={cn('p-3 pointer-events-auto')}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        )}
+
+                        <p className="text-xs font-medium text-muted-foreground mb-2 mt-4">Time</p>
+                        <ChipRow
+                          items={TIME_CHIPS.map(t => ({ label: t, value: t }))}
+                          selected={fixedTime.time}
+                          onSelect={(v) => setFixedTime({ ...fixedTime, time: v })}
+                          onPickCustom={() => setShowCustomTimePicker(true)}
+                        />
+
+                        {showCustomTimePicker && (
+                          <div className="mt-2 flex gap-2 items-center">
+                            <input
+                              type="time"
+                              value={customTimeInput}
+                              onChange={(e) => {
+                                setCustomTimeInput(e.target.value);
+                                if (e.target.value) {
+                                  const [h, m] = e.target.value.split(':').map(Number);
+                                  const d = new Date();
+                                  d.setHours(h, m, 0, 0);
+                                  setFixedTime({ ...fixedTime, time: format(d, 'h:mm a') });
+                                }
+                              }}
+                              className="flex-1 p-3 rounded-xl bg-input border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:dark]"
+                            />
+                            <button onClick={() => setShowCustomTimePicker(false)} className="text-xs text-primary font-medium">Done</button>
+                          </div>
+                        )}
+
+                        {fixedTime.date && fixedTime.time && (
+                          <div className="mt-4 p-3 rounded-xl bg-primary/10 border border-primary/20 text-sm text-primary flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            {format(fixedTime.date, 'EEE, MMM d')} at {fixedTime.time}
+                          </div>
+                        )}
+
+                        <button
+                          onClick={() => {
+                            setUseTimePoll(true);
+                            if (fixedTime.date || fixedTime.time) {
+                              setPollOptions([{ ...fixedTime }, { date: undefined, time: '' }]);
+                            }
+                          }}
+                          className="w-full mt-4 py-2.5 rounded-xl border border-dashed border-border text-sm text-muted-foreground flex items-center justify-center gap-2 hover:border-primary/50 transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Add more time options
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="space-y-4">
+                          {pollOptions.map((opt, i) => (
+                            <div key={i} className="p-3 rounded-xl border border-border bg-card/50">
+                              <div className="flex items-center justify-between mb-2">
+                                <p className="text-xs font-medium text-muted-foreground">Option {i + 1}</p>
+                                {pollOptions.length > 2 && (
+                                  <button onClick={() => removePollOption(i)} className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center">
+                                    <X className="w-3 h-3 text-muted-foreground" />
+                                  </button>
+                                )}
+                              </div>
+                              <p className="text-xs font-medium text-muted-foreground mb-1.5">Day</p>
+                              <ChipRow
+                                items={DAY_CHIPS.map(c => ({ label: c.label, value: c.date.toISOString() }))}
+                                selected={opt.date ? DAY_CHIPS.find(c => isSameDay(opt.date, c.date))?.date.toISOString() || '' : ''}
+                                onSelect={(v) => updatePollOption(i, { ...opt, date: new Date(v) })}
+                                onPickCustom={() => {}}
+                              />
+                              <p className="text-xs font-medium text-muted-foreground mb-1.5 mt-3">Time</p>
+                              <ChipRow
+                                items={TIME_CHIPS.map(t => ({ label: t, value: t }))}
+                                selected={opt.time}
+                                onSelect={(v) => updatePollOption(i, { ...opt, time: v })}
+                                onPickCustom={() => {}}
+                              />
+                              {opt.date && opt.time && (
+                                <div className="mt-2 text-xs text-primary flex items-center gap-1.5">
+                                  <Clock className="w-3 h-3" />
+                                  {format(opt.date, 'EEE, MMM d')} at {opt.time}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        {pollOptions.length < 3 && (
+                          <button
+                            onClick={addPollOption}
+                            className="w-full mt-3 py-2.5 rounded-xl border border-dashed border-border text-sm text-muted-foreground flex items-center justify-center gap-2 hover:border-primary/50 transition-colors"
+                          >
+                            <Plus className="w-4 h-4" /> Add option {pollOptions.length + 1}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setUseTimePoll(false)}
+                          className="w-full mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors text-center py-1"
+                        >
+                          Switch to a single fixed time
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* TBD mode */}
+                {whenMode === 'tbd' && (
+                  <div className="text-center py-6">
+                    <span className="text-4xl mb-3 block">🤷</span>
+                    <p className="text-sm text-muted-foreground mb-1">Figure it out later</p>
+                    <p className="text-xs text-muted-foreground/70">Members can suggest times in the comments after the lob is created.</p>
+                    <div className="mt-4 p-3 rounded-xl bg-secondary border border-border/50 text-sm text-muted-foreground flex items-center justify-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      Time TBD
+                    </div>
+                  </div>
                 )}
 
                 <button
                   onClick={next}
-                  disabled={!canProceed}
-                  className="w-full mt-6 py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-40 transition-opacity"
+                  className="w-full mt-6 py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm"
                 >
                   Next
                 </button>
@@ -859,6 +941,8 @@ const CreateLob = () => {
                 peopleName={selectedPeopleNames || undefined}
                 validTimeOptions={validTimeOptions}
                 useTimePoll={useTimePoll}
+                whenMode={whenMode}
+                flexibleWindow={flexibleWindow}
                 location={location}
                 quorum={quorum}
                 resolvedDeadline={resolvedDeadline}

@@ -3,6 +3,8 @@ export type ResponseType = 'in' | 'maybe' | 'out';
 export type LobCategory = 'sports' | 'dinner' | 'coffee' | 'gym' | 'chill' | 'travel' | 'padel' | 'other';
 export type CalendarPrivacy = 'free-busy' | 'details';
 export type RecurrenceType = 'weekly' | 'biweekly' | 'monthly';
+export type WhenMode = 'specific' | 'flexible' | 'tbd';
+export type FlexibleWindow = 'today' | 'this-week' | 'this-weekend' | 'next-week' | 'this-month';
 
 export interface User {
   id: string;
@@ -58,6 +60,8 @@ export interface Lob {
   deadline?: string;
   recurrence?: RecurrenceType;
   comments?: LobComment[];
+  whenMode?: WhenMode;
+  flexibleWindow?: FlexibleWindow;
   status: LobStatus;
   responses: LobResponse[];
   createdAt: string;
@@ -98,4 +102,12 @@ export const RECURRENCE_OPTIONS: { key: RecurrenceType; label: string }[] = [
   { key: 'weekly', label: 'Every week' },
   { key: 'biweekly', label: 'Every 2 weeks' },
   { key: 'monthly', label: 'Every month' },
+];
+
+export const FLEXIBLE_WINDOW_OPTIONS: { key: FlexibleWindow; label: string; displayLabel: string }[] = [
+  { key: 'today', label: '📅 Today', displayLabel: 'Sometime today' },
+  { key: 'this-week', label: '🗓️ This week', displayLabel: 'Sometime this week' },
+  { key: 'this-weekend', label: '🌅 This weekend', displayLabel: 'Sometime this weekend' },
+  { key: 'next-week', label: '📆 Next week', displayLabel: 'Sometime next week' },
+  { key: 'this-month', label: '📋 This month', displayLabel: 'Sometime this month' },
 ];
