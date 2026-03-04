@@ -6,6 +6,7 @@ export const currentUser: User = {
   avatar: '🙂',
   interests: ['sports', 'dinner', 'coffee'],
   city: 'New York',
+  isPro: false,
 };
 
 export const users: User[] = [

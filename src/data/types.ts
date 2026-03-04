@@ -12,6 +12,7 @@ export interface User {
   avatar: string;
   interests: string[];
   city?: string;
+  isPro?: boolean;
 }
 
 export interface Group {
@@ -64,6 +65,30 @@ export interface Lob {
   flexibleWindow?: FlexibleWindow;
   status: LobStatus;
   responses: LobResponse[];
+  createdAt: string;
+  // Open Invite
+  openInviteEnabled?: boolean;
+  openInviteMaxGuests?: number;
+  openInviteUsedGuests?: number;
+  // Fill a Seat
+  fillASeatActive?: boolean;
+  fillASeatSpots?: number;
+}
+
+export interface GuestInvite {
+  id: string;
+  lobId: string;
+  invitedBy: string;
+  invitedUserId: string;
+  status: 'pending' | 'accepted' | 'declined';
+  createdAt: string;
+}
+
+export interface FillASeatRequest {
+  id: string;
+  lobId: string;
+  requesterId: string;
+  status: 'pending' | 'accepted' | 'declined';
   createdAt: string;
 }
 

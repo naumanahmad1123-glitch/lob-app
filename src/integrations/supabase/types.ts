@@ -14,7 +14,364 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      fill_a_seat_requests: {
+        Row: {
+          created_at: string
+          id: string
+          lob_id: string
+          requester_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lob_id: string
+          requester_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lob_id?: string
+          requester_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fill_a_seat_requests_lob_id_fkey"
+            columns: ["lob_id"]
+            isOneToOne: false
+            referencedRelation: "lobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_members: {
+        Row: {
+          group_id: string
+          id: string
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          emoji: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          emoji?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          emoji?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      lob_comments: {
+        Row: {
+          created_at: string
+          id: string
+          lob_id: string
+          message: string
+          suggested_time: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lob_id: string
+          message?: string
+          suggested_time?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lob_id?: string
+          message?: string
+          suggested_time?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lob_comments_lob_id_fkey"
+            columns: ["lob_id"]
+            isOneToOne: false
+            referencedRelation: "lobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lob_guest_invites: {
+        Row: {
+          created_at: string
+          id: string
+          invited_by: string
+          invited_user_id: string
+          lob_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_by: string
+          invited_user_id: string
+          lob_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_by?: string
+          invited_user_id?: string
+          lob_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lob_guest_invites_lob_id_fkey"
+            columns: ["lob_id"]
+            isOneToOne: false
+            referencedRelation: "lobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lob_responses: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          lob_id: string
+          response: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          lob_id: string
+          response: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          lob_id?: string
+          response?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lob_responses_lob_id_fkey"
+            columns: ["lob_id"]
+            isOneToOne: false
+            referencedRelation: "lobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lob_time_options: {
+        Row: {
+          created_at: string
+          datetime: string
+          id: string
+          lob_id: string
+        }
+        Insert: {
+          created_at?: string
+          datetime: string
+          id?: string
+          lob_id: string
+        }
+        Update: {
+          created_at?: string
+          datetime?: string
+          id?: string
+          lob_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lob_time_options_lob_id_fkey"
+            columns: ["lob_id"]
+            isOneToOne: false
+            referencedRelation: "lobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lob_time_votes: {
+        Row: {
+          id: string
+          time_option_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          time_option_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          time_option_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lob_time_votes_time_option_id_fkey"
+            columns: ["time_option_id"]
+            isOneToOne: false
+            referencedRelation: "lob_time_options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lobs: {
+        Row: {
+          capacity: number | null
+          category: string
+          created_at: string
+          created_by: string
+          deadline: string | null
+          description: string | null
+          fill_a_seat_active: boolean
+          fill_a_seat_spots: number
+          flexible_window: string | null
+          group_id: string | null
+          group_name: string | null
+          id: string
+          location: string | null
+          open_invite_enabled: boolean
+          open_invite_max_guests: number
+          open_invite_used_guests: number
+          quorum: number
+          recurrence: string | null
+          selected_time: string | null
+          status: string
+          title: string
+          when_mode: string
+        }
+        Insert: {
+          capacity?: number | null
+          category?: string
+          created_at?: string
+          created_by: string
+          deadline?: string | null
+          description?: string | null
+          fill_a_seat_active?: boolean
+          fill_a_seat_spots?: number
+          flexible_window?: string | null
+          group_id?: string | null
+          group_name?: string | null
+          id?: string
+          location?: string | null
+          open_invite_enabled?: boolean
+          open_invite_max_guests?: number
+          open_invite_used_guests?: number
+          quorum?: number
+          recurrence?: string | null
+          selected_time?: string | null
+          status?: string
+          title: string
+          when_mode?: string
+        }
+        Update: {
+          capacity?: number | null
+          category?: string
+          created_at?: string
+          created_by?: string
+          deadline?: string | null
+          description?: string | null
+          fill_a_seat_active?: boolean
+          fill_a_seat_spots?: number
+          flexible_window?: string | null
+          group_id?: string | null
+          group_name?: string | null
+          id?: string
+          location?: string | null
+          open_invite_enabled?: boolean
+          open_invite_max_guests?: number
+          open_invite_used_guests?: number
+          quorum?: number
+          recurrence?: string | null
+          selected_time?: string | null
+          status?: string
+          title?: string
+          when_mode?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lobs_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar: string
+          city: string | null
+          created_at: string
+          id: string
+          interests: string[]
+          is_pro: boolean
+          name: string
+        }
+        Insert: {
+          avatar?: string
+          city?: string | null
+          created_at?: string
+          id: string
+          interests?: string[]
+          is_pro?: boolean
+          name?: string
+        }
+        Update: {
+          avatar?: string
+          city?: string | null
+          created_at?: string
+          id?: string
+          interests?: string[]
+          is_pro?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
