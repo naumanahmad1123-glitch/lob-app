@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, HelpCircle, ChevronRight, Zap } from 'lucide-react';
@@ -20,8 +20,31 @@ const UserProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [showRateTooltip, setShowRateTooltip] = useState(false);
+  const [showAllMutuals, setShowAllMutuals] = useState(false);
 
   const user = users.find(u => u.id === id);
+
+  // Shared groups: groups where both currentUser and this user are members
+  const sharedGroups = useMemo(() => {
+    if (!user) return [];
+    return groups.filter(
+      g => g.members.some(m => m.id === currentUser.id) && g.members.some(m => m.id === user.id)
+    );
+  }, [user]);
+
+  // Mutual connections: users in at least one group with both currentUser and this user
+  const mutualConnections = useMemo(() => {
+    if (!user) return [];
+    const mutualIds = new Set<string>();
+    for (const g of sharedGroups) {
+      for (const m of g.members) {
+        if (m.id !== currentUser.id && m.id !== user.id) {
+          mutualIds.add(m.id);
+        }
+      }
+    }
+    return users.filter(u => mutualIds.has(u.id));
+  }, [sharedGroups, user]);
 
   if (!user) {
     return (
@@ -32,11 +55,6 @@ const UserProfile = () => {
       </AppLayout>
     );
   }
-
-  // Shared groups: groups where both currentUser and this user are members
-  const sharedGroups = groups.filter(
-    g => g.members.some(m => m.id === currentUser.id) && g.members.some(m => m.id === user.id)
-  );
 
   // Privacy check: does this user share calendar details with currentUser?
   const calShare = calendarShares.find(
@@ -147,7 +165,35 @@ const UserProfile = () => {
           </section>
         )}
 
-        {/* Upcoming (only if full details shared) */}
+        {/* Mutual Connections */}
+        {mutualConnections.length > 0 && (
+          <section className="mb-6">
+            <h3 className="text-sm font-bold text-foreground mb-2">
+              Mutual Connections · {mutualConnections.length}
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {(showAllMutuals ? mutualConnections : mutualConnections.slice(0, 5)).map(mc => (
+                <button
+                  key={mc.id}
+                  onClick={() => navigate(`/user/${mc.id}`)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-secondary border border-border/50 active:scale-95 transition-transform"
+                >
+                  <span className="text-base">{mc.avatar}</span>
+                  <span className="text-xs font-medium text-foreground">{mc.name}</span>
+                </button>
+              ))}
+              {!showAllMutuals && mutualConnections.length > 5 && (
+                <button
+                  onClick={() => setShowAllMutuals(true)}
+                  className="flex items-center px-3 py-1.5 rounded-full bg-secondary/60 border border-border/50 text-xs font-medium text-muted-foreground active:scale-95 transition-transform"
+                >
+                  +{mutualConnections.length - 5} more
+                </button>
+              )}
+            </div>
+          </section>
+        )}
+
         {showFullDetails && upcomingPlans.length > 0 && (
           <section className="mb-6">
             <h3 className="text-sm font-bold text-foreground mb-2">Upcoming</h3>
