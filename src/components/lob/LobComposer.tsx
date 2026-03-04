@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { X, MapPin, Clock, Users, ChevronRight, Sparkles, Send, User, Check, ChevronUp, ArrowUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { groups, users, currentUser } from '@/data/seed';
 import { CATEGORY_CONFIG, LobCategory, Lob } from '@/data/types';
 import { lobStore } from '@/stores/lobStore';
+import { usePersonalizedVibes, detectVibeFromChips } from '@/hooks/usePersonalizedVibes';
 
 type ComposerStep = 'quick' | 'recipients' | 'category' | 'time' | 'location' | 'review';
 type RecipientType = 'group' | 'individuals';
@@ -19,12 +20,12 @@ interface ParsedLob {
   selectedUserIds: string[];
 }
 
-const TEMPLATES = [
-  { text: 'Hoops tonight 8pm', emoji: '🏀' },
-  { text: 'Coffee tomorrow 4pm', emoji: '☕' },
-  { text: 'Dinner Friday 7pm', emoji: '🍽️' },
-  { text: 'Padel Saturday 10am', emoji: '🎾' },
-  { text: 'Gym session 6pm', emoji: '💪' },
+const DEFAULT_TEMPLATES = [
+  { text: 'Hoops', emoji: '🏀' },
+  { text: 'Coffee', emoji: '☕' },
+  { text: 'Dinner', emoji: '🍽️' },
+  { text: 'Drinks', emoji: '🍹' },
+  { text: 'Gym', emoji: '💪' },
 ];
 
 const CATEGORY_KEYWORDS: Record<string, LobCategory> = {
@@ -166,6 +167,16 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
   const [quickText, setQuickText] = useState('');
   const [parsed, setParsed] = useState<ParsedLob>({ title: '', category: '', time: '', location: '', groupId: groups[0]?.id || '', recipientType: 'group', selectedUserIds: [] });
   const [showConfirm, setShowConfirm] = useState(false);
+
+  // Personalized vibes & templates
+  const vibeChips = usePersonalizedVibes(currentUser.id);
+  const templates = useMemo(() => {
+    if (vibeChips.length === 0) return DEFAULT_TEMPLATES;
+    return vibeChips.slice(0, 5).map(c => ({
+      text: c.title,
+      emoji: c.label.split(' ')[0] || '📌',
+    }));
+  }, [vibeChips]);
 
   // Drag to dismiss
   const y = useMotionValue(0);
@@ -364,10 +375,20 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
                           <Sparkles className="w-3 h-3" /> Quick templates
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {TEMPLATES.map(t => (
+                          {templates.map(t => (
                             <button
                               key={t.text}
-                              onClick={() => { setQuickText(t.text); }}
+                              onClick={() => {
+                                setQuickText(t.text);
+                                // Auto-detect category from the template text
+                                const detected = detectVibeFromChips(t.text, vibeChips);
+                                if (detected) {
+                                  const chip = vibeChips.find(c => c.title === detected);
+                                  if (chip) {
+                                    setParsed(p => ({ ...p, category: chip.category }));
+                                  }
+                                }
+                              }}
                               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-secondary/80 border border-border/50 text-sm text-foreground hover:border-primary/50 transition-colors"
                             >
                               <span>{t.emoji}</span>
