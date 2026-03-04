@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { MapPin, Clock, ChevronRight, Repeat, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Lob, CATEGORY_CONFIG, RECURRENCE_OPTIONS } from '@/data/types';
+import { Lob, CATEGORY_CONFIG, RECURRENCE_OPTIONS, FLEXIBLE_WINDOW_OPTIONS } from '@/data/types';
 import { currentUser } from '@/data/seed';
 import { QuorumBar } from './QuorumBar';
 import { StatusPill } from './StatusPill';
@@ -17,13 +17,20 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
   const isYours = lob.createdBy === currentUser.id;
   const inCount = lob.responses.filter(r => r.response === 'in').length;
   const timeStr = lob.selectedTime || lob.timeOptions[0]?.datetime;
-  const formattedTime = timeStr
-    ? new Date(timeStr).toLocaleString('en-US', {
+  const formattedTime = (() => {
+    if (lob.whenMode === 'tbd') return 'Time TBD';
+    if (lob.whenMode === 'flexible' && lob.flexibleWindow) {
+      return FLEXIBLE_WINDOW_OPTIONS.find(o => o.key === lob.flexibleWindow)?.displayLabel || 'Flexible';
+    }
+    if (timeStr) {
+      return new Date(timeStr).toLocaleString('en-US', {
         weekday: 'short',
         hour: 'numeric',
         minute: '2-digit',
-      })
-    : 'TBD';
+      });
+    }
+    return 'TBD';
+  })();
   const recurrenceLabel = lob.recurrence
     ? RECURRENCE_OPTIONS.find(r => r.key === lob.recurrence)?.label
     : null;
