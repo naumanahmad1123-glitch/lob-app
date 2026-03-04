@@ -109,11 +109,14 @@ function resolveDeadlinePreset(key: DeadlinePreset): Date | null {
 }
 
 const QUICK_TEMPLATES = [
-  { label: '🏀 Hoops tonight', title: 'Hoops tonight', category: 'sports' as LobCategory },
-  { label: '☕ Coffee tomorrow', title: 'Coffee tomorrow', category: 'coffee' as LobCategory },
-  { label: '🍽️ Dinner this week', title: 'Dinner this week', category: 'dinner' as LobCategory },
-  { label: '🎾 Padel match', title: 'Padel match', category: 'padel' as LobCategory },
-  { label: '💪 Gym session', title: 'Gym session', category: 'gym' as LobCategory },
+  { label: '🏀 Hoops', title: 'Hoops', category: 'sports' as LobCategory },
+  { label: '☕ Coffee', title: 'Coffee', category: 'coffee' as LobCategory },
+  { label: '🍜 Dinner', title: 'Dinner', category: 'dinner' as LobCategory },
+  { label: '🎾 Padel', title: 'Padel', category: 'padel' as LobCategory },
+  { label: '💪 Gym', title: 'Gym', category: 'gym' as LobCategory },
+  { label: '🍹 Drinks', title: 'Drinks', category: 'other' as LobCategory },
+  { label: '🎬 Movie night', title: 'Movie night', category: 'chill' as LobCategory },
+  { label: '🚶 Walk', title: 'Walk', category: 'other' as LobCategory },
 ];
 
 // ─── Review Swipe Card ───
@@ -388,13 +391,13 @@ const CreateLob = () => {
                 <p className="text-sm text-muted-foreground mb-3">Name your plan</p>
                 <input
                   type="text"
-                  placeholder="e.g. Friday Hoops"
+                  placeholder="What are you thinking?"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full p-3 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   autoFocus
                 />
-                <p className="text-xs font-medium text-muted-foreground mt-4 mb-2">Quick templates</p>
+                <p className="text-xs font-medium text-muted-foreground mt-4 mb-2">What's the vibe?</p>
                 <div className="flex flex-wrap gap-2">
                   {QUICK_TEMPLATES.map((t) => (
                     <button
