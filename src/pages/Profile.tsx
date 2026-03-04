@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, ChevronRight, Bell, Calendar, Shield, Crown, LogOut, Plane, Users, HelpCircle } from 'lucide-react';
+import { Settings, ChevronRight, Bell, Calendar, Shield, Crown, LogOut, Plane, Users, HelpCircle, Eye, EyeOff, User, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { currentUser, trips } from '@/data/seed';
+import { currentUser, trips, calendarShares, users, groups } from '@/data/seed';
+import { CalendarPrivacy } from '@/data/types';
+import { TappableAvatar } from '@/components/TappableAvatar';
 
 const menuItems = [
   { icon: Bell, label: 'Notifications', desc: 'Manage alerts' },
@@ -15,7 +17,18 @@ const menuItems = [
 const Profile = () => {
   const navigate = useNavigate();
   const [showRateTooltip, setShowRateTooltip] = useState(false);
+  const [showSharingPrivacy, setShowSharingPrivacy] = useState(false);
+  const [showPrivacyInfo, setShowPrivacyInfo] = useState(false);
+  const [localShares, setLocalShares] = useState(calendarShares);
   const activeTrips = trips.filter(t => t.userId === currentUser.id && t.showOnProfile);
+
+  const togglePrivacy = (shareId: string) => {
+    setLocalShares(prev => prev.map(s =>
+      s.id === shareId
+        ? { ...s, privacy: (s.privacy === 'details' ? 'free-busy' : 'details') as CalendarPrivacy }
+        : s
+    ));
+  };
 
   return (
     <AppLayout>
@@ -81,7 +94,7 @@ const Profile = () => {
               {activeTrips.map(trip => (
                 <button
                   key={trip.id}
-                  onClick={() => navigate('/sharing')}
+                  onClick={() => navigate(`/trips/${trip.id}`)}
                   className="flex items-center gap-2 mx-auto px-3 py-1.5 rounded-full bg-accent/10 border border-accent/20"
                 >
                   <Plane className="w-3.5 h-3.5 text-accent" />
@@ -99,7 +112,7 @@ const Profile = () => {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           onClick={() => navigate('/groups')}
-          className="w-full flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-secondary transition-all mb-6"
+          className="w-full flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-secondary transition-all mb-4"
         >
           <Users className="w-5 h-5 text-primary" />
           <div className="flex-1 text-left">
@@ -108,6 +121,125 @@ const Profile = () => {
           </div>
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
         </motion.button>
+
+        {/* Sharing & Privacy */}
+        <motion.button
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={() => setShowSharingPrivacy(!showSharingPrivacy)}
+          className="w-full flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-secondary transition-all mb-6"
+        >
+          <Eye className="w-5 h-5 text-primary" />
+          <div className="flex-1 text-left">
+            <p className="text-sm font-semibold text-foreground">Sharing & Privacy</p>
+            <p className="text-xs text-muted-foreground">Calendar sharing & privacy levels</p>
+          </div>
+          <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${showSharingPrivacy ? 'rotate-90' : ''}`} />
+        </motion.button>
+
+        <AnimatePresence>
+          {showSharingPrivacy && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden mb-6 -mt-4"
+            >
+              <div className="pt-2 space-y-2 px-1">
+                {localShares.map((share, i) => {
+                  const isUser = share.targetType === 'user';
+                  const target = isUser
+                    ? users.find(u => u.id === share.targetId)
+                    : groups.find(g => g.id === share.targetId);
+                  if (!target) return null;
+
+                  return (
+                    <motion.div
+                      key={share.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card"
+                    >
+                      {isUser ? (
+                        <TappableAvatar userId={share.targetId} emoji={(target as any).avatar}>
+                          <span className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg">
+                            {(target as any).avatar}
+                          </span>
+                        </TappableAvatar>
+                      ) : (
+                        <span className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg">
+                          {(target as any).emoji}
+                        </span>
+                      )}
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-foreground">{(target as any).name}</p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          {isUser ? (
+                            <User className="w-3 h-3 text-muted-foreground" />
+                          ) : (
+                            <Users className="w-3 h-3 text-muted-foreground" />
+                          )}
+                          <span className="text-[11px] text-muted-foreground capitalize">{share.targetType}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => togglePrivacy(share.id)}
+                        className="active:scale-95 transition-transform"
+                      >
+                        <PrivacyBadge privacy={share.privacy} />
+                      </button>
+                    </motion.div>
+                  );
+                })}
+
+                {/* Privacy info */}
+                <div className="mt-3 px-1">
+                  <button
+                    onClick={() => setShowPrivacyInfo(!showPrivacyInfo)}
+                    className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    What do privacy tiers mean?
+                  </button>
+                  <AnimatePresence>
+                    {showPrivacyInfo && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="mt-3 p-4 rounded-xl border border-border bg-card space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-bold text-foreground">Privacy Tiers</h4>
+                            <button onClick={() => setShowPrivacyInfo(false)} className="text-muted-foreground">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <div className="flex items-start gap-2.5">
+                            <EyeOff className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+                            <div>
+                              <p className="text-xs font-semibold text-foreground">Free / Busy</p>
+                              <p className="text-[11px] text-muted-foreground">Others only see when you're available — no plan details</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2.5">
+                            <Eye className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                            <div>
+                              <p className="text-xs font-semibold text-foreground">Full Details</p>
+                              <p className="text-[11px] text-muted-foreground">Others can see plan names, locations, and times</p>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Interests */}
         <section className="mb-6">
@@ -156,5 +288,22 @@ const Profile = () => {
     </AppLayout>
   );
 };
+
+function PrivacyBadge({ privacy }: { privacy: CalendarPrivacy }) {
+  if (privacy === 'details') {
+    return (
+      <span className="flex items-center gap-1 text-[10px] font-semibold text-primary px-2.5 py-1 rounded-full bg-primary/10">
+        <Eye className="w-3 h-3" />
+        Details
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-1 text-[10px] font-semibold text-accent px-2.5 py-1 rounded-full bg-accent/10">
+      <EyeOff className="w-3 h-3" />
+      Free/Busy
+    </span>
+  );
+}
 
 export default Profile;

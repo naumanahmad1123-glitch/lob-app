@@ -10,7 +10,9 @@ import CreateLob from "./pages/CreateLob";
 import LobDetail from "./pages/LobDetail";
 import Explore from "./pages/Explore";
 import Profile from "./pages/Profile";
-import Sharing from "./pages/Sharing";
+import Trips from "./pages/Trips";
+import TripDetail from "./pages/TripDetail";
+import FriendTripDetail from "./pages/FriendTripDetail";
 import NotFound from "./pages/NotFound";
 import Notifications from "./pages/Notifications";
 import CreateGroup from "./pages/CreateGroup";
@@ -32,7 +34,9 @@ const App = () => (
           <Route path="/create-group" element={<CreateGroup />} />
           <Route path="/lob/:id" element={<LobDetail />} />
           <Route path="/explore" element={<Explore />} />
-          <Route path="/sharing" element={<Sharing />} />
+          <Route path="/trips" element={<Trips />} />
+          <Route path="/trips/:id" element={<TripDetail />} />
+          <Route path="/trips/:id/friend" element={<FriendTripDetail />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/user/:id" element={<UserProfile />} />
           <Route path="/profile" element={<Profile />} />
