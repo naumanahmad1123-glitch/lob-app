@@ -6,13 +6,8 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { currentUser, trips, calendarShares, users, groups } from '@/data/seed';
 import { CalendarPrivacy } from '@/data/types';
 import { TappableAvatar } from '@/components/TappableAvatar';
-
-const menuItems = [
-  { icon: Bell, label: 'Notifications', desc: 'Manage alerts' },
-  { icon: Calendar, label: 'Calendar Sync', desc: 'Connect calendars' },
-  { icon: Shield, label: 'Privacy', desc: 'Control your data' },
-  { icon: Crown, label: 'Upgrade to Pro', desc: 'Unlock advanced features', highlight: true },
-];
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -20,6 +15,7 @@ const Profile = () => {
   const [showSharingPrivacy, setShowSharingPrivacy] = useState(false);
   const [showPrivacyInfo, setShowPrivacyInfo] = useState(false);
   const [localShares, setLocalShares] = useState(calendarShares);
+  const [showComingSoon, setShowComingSoon] = useState<string | null>(null);
   const activeTrips = trips.filter(t => t.userId === currentUser.id && t.showOnProfile);
 
   const togglePrivacy = (shareId: string) => {
@@ -30,15 +26,61 @@ const Profile = () => {
     ));
   };
 
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error('Failed to sign out');
+    } else {
+      toast.success('Signed out');
+      navigate('/');
+    }
+  };
+
+  const handleMenuTap = (label: string) => {
+    if (label === 'Notifications') {
+      navigate('/notifications');
+    } else {
+      setShowComingSoon(label);
+      setTimeout(() => setShowComingSoon(null), 2000);
+    }
+  };
+
+  const menuItems = [
+    { icon: Bell, label: 'Notifications', desc: 'Manage alerts' },
+    { icon: Calendar, label: 'Calendar Sync', desc: 'Connect calendars' },
+    { icon: Shield, label: 'Privacy', desc: 'Control your data' },
+    { icon: Crown, label: 'Upgrade to Pro', desc: 'Unlock advanced features', highlight: true },
+  ];
+
   return (
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
         <div className="flex items-center justify-between pt-12 pb-6">
           <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Profile</h1>
-          <button className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+          <button
+            onClick={() => {
+              setShowComingSoon('Settings');
+              setTimeout(() => setShowComingSoon(null), 2000);
+            }}
+            className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center"
+          >
             <Settings className="w-5 h-5 text-foreground" />
           </button>
         </div>
+
+        {/* Coming soon toast */}
+        <AnimatePresence>
+          {showComingSoon && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-4 py-2.5 rounded-xl bg-card border border-border shadow-card"
+            >
+              <p className="text-sm font-medium text-foreground">{showComingSoon} — coming soon ✨</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Profile Card */}
         <motion.div
@@ -263,6 +305,7 @@ const Profile = () => {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 + i * 0.05 }}
+                onClick={() => handleMenuTap(item.label)}
                 className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all ${
                   item.highlight
                     ? 'border-primary/50 bg-primary/5'
@@ -280,7 +323,10 @@ const Profile = () => {
           })}
         </div>
 
-        <button className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-destructive/10 text-destructive font-semibold text-sm mb-8">
+        <button
+          onClick={handleSignOut}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-destructive/10 text-destructive font-semibold text-sm mb-8"
+        >
           <LogOut className="w-4 h-4" />
           Sign Out
         </button>

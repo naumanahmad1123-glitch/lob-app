@@ -1,19 +1,23 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Plane, Plus, ChevronRight, Sparkles, Globe, Lock, MapPin } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plane, Plus, ChevronRight, Sparkles, Globe, Lock, MapPin, X, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { trips, users, currentUser } from '@/data/seed';
+import { trips as seedTrips, users, currentUser } from '@/data/seed';
 import { TappableAvatar } from '@/components/TappableAvatar';
+import { toast } from 'sonner';
 
 const Trips = () => {
   const navigate = useNavigate();
-  const myTrips = trips.filter(t => t.userId === currentUser.id);
-  const friendTrips = trips.filter(t => t.userId !== currentUser.id && t.notifyUserIds.includes(currentUser.id));
+  const [showAddTrip, setShowAddTrip] = useState(false);
+  const [newTrip, setNewTrip] = useState({ city: '', country: '', startDate: '', endDate: '', showOnProfile: true });
 
-  // Detect city overlaps: friends in same city at same time based on visible trips
+  const myTrips = seedTrips.filter(t => t.userId === currentUser.id);
+  const friendTrips = seedTrips.filter(t => t.userId !== currentUser.id && t.notifyUserIds.includes(currentUser.id));
+
+  // Detect city overlaps
   const myTripDates = myTrips.filter(t => t.showOnProfile);
-  const allVisibleFriendTrips = trips.filter(t => t.userId !== currentUser.id && t.showOnProfile);
+  const allVisibleFriendTrips = seedTrips.filter(t => t.userId !== currentUser.id && t.showOnProfile);
 
   const overlappingTrips = allVisibleFriendTrips.filter(ft => {
     return myTripDates.some(mt => {
@@ -21,12 +25,19 @@ const Trips = () => {
       const overlap = new Date(mt.startDate) <= new Date(ft.endDate) && new Date(mt.endDate) >= new Date(ft.startDate);
       return sameCity && overlap;
     });
-  }).filter(ft => !friendTrips.some(f => f.id === ft.id)); // exclude already-shared ones
+  }).filter(ft => !friendTrips.some(f => f.id === ft.id));
 
-  const allFriendTrips = [
-    ...friendTrips,
-    ...overlappingTrips,
-  ];
+  const allFriendTrips = [...friendTrips, ...overlappingTrips];
+
+  const handleAddTrip = () => {
+    if (!newTrip.city.trim() || !newTrip.startDate || !newTrip.endDate) {
+      toast.error('Please fill in city, start and end dates');
+      return;
+    }
+    toast.success(`Trip to ${newTrip.city} added!`);
+    setShowAddTrip(false);
+    setNewTrip({ city: '', country: '', startDate: '', endDate: '', showOnProfile: true });
+  };
 
   return (
     <AppLayout>
@@ -36,11 +47,105 @@ const Trips = () => {
             <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Trips</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Travel plans & friend visits</p>
           </div>
-          <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/10 text-primary text-xs font-semibold">
+          <button
+            onClick={() => setShowAddTrip(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/10 text-primary text-xs font-semibold"
+          >
             <Plus className="w-3.5 h-3.5" />
             Add Trip
           </button>
         </div>
+
+        {/* Add Trip Sheet */}
+        <AnimatePresence>
+          {showAddTrip && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowAddTrip(false)}
+                className="fixed inset-0 z-[60] bg-background/60 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                className="fixed bottom-0 left-0 right-0 z-[70] max-w-lg mx-auto"
+              >
+                <div className="bg-card rounded-t-3xl border border-border/50 shadow-card px-5 pb-8 pt-4">
+                  <div className="flex justify-center mb-3">
+                    <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+                  </div>
+                  <div className="flex items-center justify-between mb-5">
+                    <h2 className="text-lg font-extrabold text-foreground">✈️ Add Trip</h2>
+                    <button onClick={() => setShowAddTrip(false)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                      <X className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="City (e.g. London)"
+                      value={newTrip.city}
+                      onChange={e => setNewTrip(p => ({ ...p, city: e.target.value }))}
+                      className="w-full p-3 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      autoFocus
+                    />
+                    <input
+                      type="text"
+                      placeholder="Country (e.g. UK)"
+                      value={newTrip.country}
+                      onChange={e => setNewTrip(p => ({ ...p, country: e.target.value }))}
+                      className="w-full p-3 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Start</label>
+                        <input
+                          type="date"
+                          value={newTrip.startDate}
+                          onChange={e => setNewTrip(p => ({ ...p, startDate: e.target.value }))}
+                          className="w-full p-3 rounded-xl bg-input border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:dark]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">End</label>
+                        <input
+                          type="date"
+                          value={newTrip.endDate}
+                          onChange={e => setNewTrip(p => ({ ...p, endDate: e.target.value }))}
+                          className="w-full p-3 rounded-xl bg-input border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:dark]"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setNewTrip(p => ({ ...p, showOnProfile: !p.showOnProfile }))}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card"
+                    >
+                      {newTrip.showOnProfile ? (
+                        <Globe className="w-4 h-4 text-accent" />
+                      ) : (
+                        <Lock className="w-4 h-4 text-muted-foreground" />
+                      )}
+                      <span className="text-sm font-medium text-foreground flex-1 text-left">
+                        {newTrip.showOnProfile ? 'Visible on profile' : 'Private trip'}
+                      </span>
+                    </button>
+                    <button
+                      onClick={handleAddTrip}
+                      className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm"
+                    >
+                      Add Trip
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* Your Trips */}
         <section className="mb-8">
