@@ -3,22 +3,28 @@ import { Plus, ChevronRight, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { groups } from '@/data/seed';
+import { useCreatedGroups } from '@/hooks/useCreatedGroups';
 
 const Groups = () => {
   const navigate = useNavigate();
+  const createdGroups = useCreatedGroups();
+  const allGroups = [...createdGroups, ...groups];
 
   return (
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
         <div className="flex items-center justify-between pt-12 pb-6">
           <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Groups</h1>
-          <button className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+          <button
+            onClick={() => navigate('/create-group')}
+            className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center"
+          >
             <Plus className="w-5 h-5 text-foreground" />
           </button>
         </div>
 
         <div className="space-y-3">
-          {groups.map((group, i) => (
+          {allGroups.map((group, i) => (
             <motion.div
               key={group.id}
               initial={{ opacity: 0, y: 12 }}

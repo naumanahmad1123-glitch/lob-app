@@ -6,11 +6,13 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { groups, lobs as seedLobs } from '@/data/seed';
 import { LobCard } from '@/components/lob/LobCard';
 import { useCreatedLobs } from '@/hooks/useCreatedLobs';
+import { useCreatedGroups } from '@/hooks/useCreatedGroups';
 
 const GroupDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const group = groups.find(g => g.id === id);
+  const createdGroups = useCreatedGroups();
+  const group = groups.find(g => g.id === id) || createdGroups.find(g => g.id === id);
   const createdLobs = useCreatedLobs();
   const groupLobs = useMemo(() => {
     const all = [...createdLobs, ...seedLobs];

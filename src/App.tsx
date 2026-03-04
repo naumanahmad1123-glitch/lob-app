@@ -13,6 +13,7 @@ import Profile from "./pages/Profile";
 import Sharing from "./pages/Sharing";
 import NotFound from "./pages/NotFound";
 import Notifications from "./pages/Notifications";
+import CreateGroup from "./pages/CreateGroup";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/groups" element={<Groups />} />
           <Route path="/groups/:id" element={<GroupDetail />} />
           <Route path="/create" element={<CreateLob />} />
+          <Route path="/create-group" element={<CreateGroup />} />
           <Route path="/lob/:id" element={<LobDetail />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/sharing" element={<Sharing />} />
