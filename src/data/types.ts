@@ -4,7 +4,7 @@ export type LobCategory = 'sports' | 'dinner' | 'coffee' | 'gym' | 'chill' | 'tr
 export type CalendarPrivacy = 'free-busy' | 'details';
 export type RecurrenceType = 'weekly' | 'biweekly' | 'monthly';
 export type WhenMode = 'specific' | 'flexible' | 'tbd';
-export type FlexibleWindow = 'today' | 'this-week' | 'this-weekend' | 'next-week' | 'this-month';
+export type FlexibleWindow = 'today' | 'tomorrow' | 'this-week' | 'this-weekend' | 'next-week' | 'this-month';
 
 export interface User {
   id: string;
@@ -131,6 +131,7 @@ export const RECURRENCE_OPTIONS: { key: RecurrenceType; label: string }[] = [
 
 export const FLEXIBLE_WINDOW_OPTIONS: { key: FlexibleWindow; label: string; displayLabel: string }[] = [
   { key: 'today', label: '📅 Today', displayLabel: 'Sometime today' },
+  { key: 'tomorrow', label: '📆 Tomorrow', displayLabel: 'Sometime tomorrow' },
   { key: 'this-week', label: '🗓️ This week', displayLabel: 'Sometime this week' },
   { key: 'this-weekend', label: '🌅 This weekend', displayLabel: 'Sometime this weekend' },
   { key: 'next-week', label: '📆 Next week', displayLabel: 'Sometime next week' },
