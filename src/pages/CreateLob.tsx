@@ -1,14 +1,15 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { ArrowLeft, MapPin, Clock, Users, Plus, X, CalendarIcon, Timer, ChevronUp, ArrowUp, Repeat, Search, Minus, Edit2, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, addDays, addHours, setHours, setMinutes, startOfTomorrow } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { groups, users } from '@/data/seed';
+import { groups, users, currentUser } from '@/data/seed';
 import { CATEGORY_CONFIG, LobCategory, RecurrenceType, RECURRENCE_OPTIONS, WhenMode, FlexibleWindow, FLEXIBLE_WINDOW_OPTIONS } from '@/data/types';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { usePersonalizedVibes, detectVibeFromChips } from '@/hooks/usePersonalizedVibes';
 
 const STEP_LABELS = ['What?', 'Who?', 'When?', 'Where?', 'How many?', 'Deadline?', 'Confirm'];
 const TOTAL_STEPS = STEP_LABELS.length;
@@ -108,40 +109,8 @@ function resolveDeadlinePreset(key: DeadlinePreset): Date | null {
   }
 }
 
-const QUICK_TEMPLATES = [
-  { label: '🏀 Hoops', title: 'Hoops', category: 'sports' as LobCategory },
-  { label: '☕ Coffee', title: 'Coffee', category: 'coffee' as LobCategory },
-  { label: '🍜 Dinner', title: 'Dinner', category: 'dinner' as LobCategory },
-  { label: '🎾 Padel', title: 'Padel', category: 'padel' as LobCategory },
-  { label: '💪 Gym', title: 'Gym', category: 'gym' as LobCategory },
-  { label: '🍹 Drinks', title: 'Drinks', category: 'other' as LobCategory },
-  { label: '🎬 Movie night', title: 'Movie night', category: 'chill' as LobCategory },
-  { label: '🚶 Walk', title: 'Walk', category: 'other' as LobCategory },
-];
 
-const VIBE_KEYWORDS: Record<string, string[]> = {
-  Hoops: ['hoop', 'basketball', 'bball', 'pickup'],
-  Coffee: ['coffee', 'café', 'cafe', 'latte', 'espresso'],
-  Dinner: ['dinner', 'lunch', 'brunch', 'eat', 'food', 'sushi', 'pizza', 'taco', 'bbq', 'restaurant', 'meal'],
-  Padel: ['padel', 'paddle'],
-  Gym: ['gym', 'workout', 'lift', 'crossfit', 'exercise', 'training', 'fitness'],
-  Drinks: ['drink', 'bar', 'pub', 'beer', 'wine', 'cocktail', 'happy hour'],
-  'Movie night': ['movie', 'film', 'netflix', 'cinema', 'watch'],
-  Walk: ['walk', 'stroll', 'hike'],
-};
 
-function detectVibe(text: string): string | null {
-  const lower = text.toLowerCase().trim();
-  if (!lower) return null;
-  // Exact template match
-  const exact = QUICK_TEMPLATES.find(t => t.title.toLowerCase() === lower);
-  if (exact) return exact.title;
-  // Keyword match
-  for (const [vibeTitle, keywords] of Object.entries(VIBE_KEYWORDS)) {
-    if (keywords.some(kw => lower.includes(kw))) return vibeTitle;
-  }
-  return null;
-}
 
 // ─── Review Swipe Card ───
 interface ReviewSwipeCardProps {
@@ -288,12 +257,15 @@ function ReviewSwipeCard({
 const CreateLob = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const vibeChips = usePersonalizedVibes(currentUser.id);
+  const customVibeRef = useRef<HTMLInputElement>(null);
 
   // Step 0: What?
   const [title, setTitle] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<LobCategory | ''>('');
   const [manualVibe, setManualVibe] = useState(false);
-  const [selectedVibe, setSelectedVibe] = useState('');
+  const [selectedVibe, setSelectedVibe] = useState(''); // chip title or '__other__'
+  const [customVibeText, setCustomVibeText] = useState('');
 
   // Step 1: Who?
   const [whoMode, setWhoMode] = useState<'group' | 'people'>('group');
@@ -354,15 +326,19 @@ const CreateLob = () => {
 
   const canProceed = useMemo(() => {
     switch (step) {
-      case 0: return !!title.trim() && !!selectedCategory;
+      case 0: {
+        if (!title.trim()) return false;
+        if (selectedVibe === '__other__') return !!customVibeText.trim();
+        return !!selectedCategory;
+      }
       case 1: return whoMode === 'group' ? !!selectedGroup : selectedPeople.length > 0;
-      case 2: return true; // fully optional
-      case 3: return true; // optional
-      case 4: return true; // optional
-      case 5: return true; // optional
+      case 2: return true;
+      case 3: return true;
+      case 4: return true;
+      case 5: return true;
       default: return false;
     }
-  }, [step, title, selectedCategory, whoMode, selectedGroup, selectedPeople]);
+  }, [step, title, selectedCategory, selectedVibe, customVibeText, whoMode, selectedGroup, selectedPeople]);
 
   const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1));
   const back = () => {
@@ -427,16 +403,23 @@ const CreateLob = () => {
                     const val = e.target.value;
                     setTitle(val);
                     if (!manualVibe) {
-                      const detected = detectVibe(val);
+                      const detected = detectVibeFromChips(val, vibeChips);
                       if (detected) {
-                        const tmpl = QUICK_TEMPLATES.find(t => t.title === detected);
-                        if (tmpl) {
-                          setSelectedVibe(tmpl.title);
-                          setSelectedCategory(tmpl.category);
+                        const chip = vibeChips.find(c => c.title === detected);
+                        if (chip) {
+                          setSelectedVibe(chip.title);
+                          setSelectedCategory(chip.category);
+                          setCustomVibeText('');
                         }
+                      } else if (val.trim()) {
+                        setSelectedVibe('__other__');
+                        setSelectedCategory('other');
+                        setCustomVibeText('');
+                        setTimeout(() => customVibeRef.current?.focus(), 50);
                       } else {
                         setSelectedVibe('');
                         setSelectedCategory('');
+                        setCustomVibeText('');
                       }
                     }
                   }}
@@ -445,25 +428,53 @@ const CreateLob = () => {
                 />
                 <p className="text-xs font-medium text-muted-foreground mt-4 mb-2">What's the vibe?</p>
                 <div className="flex flex-wrap gap-2">
-                  {QUICK_TEMPLATES.map((t) => (
+                  {vibeChips.map((chip) => (
                     <button
-                      key={t.title}
+                      key={chip.title}
                       onClick={() => {
                         setManualVibe(true);
-                        setSelectedVibe(t.title);
-                        setSelectedCategory(t.category);
+                        setSelectedVibe(chip.title);
+                        setSelectedCategory(chip.category);
+                        setCustomVibeText('');
                       }}
                       className={cn(
                         'px-3 py-2 rounded-xl text-sm font-medium border transition-all',
-                        selectedVibe === t.title
+                        selectedVibe === chip.title
                           ? 'border-primary bg-primary/15 text-primary'
                           : 'border-border bg-card text-muted-foreground hover:border-primary/50'
                       )}
                     >
-                      {t.label}
+                      {chip.label}
                     </button>
                   ))}
+                  <button
+                    onClick={() => {
+                      setManualVibe(true);
+                      setSelectedVibe('__other__');
+                      setSelectedCategory('other');
+                      setTimeout(() => customVibeRef.current?.focus(), 50);
+                    }}
+                    className={cn(
+                      'px-3 py-2 rounded-xl text-sm font-medium border transition-all',
+                      selectedVibe === '__other__'
+                        ? 'border-primary bg-primary/15 text-primary'
+                        : 'border-border bg-card text-muted-foreground hover:border-primary/50'
+                    )}
+                  >
+                    📌 Other
+                  </button>
                 </div>
+
+                {selectedVibe === '__other__' && (
+                  <input
+                    ref={customVibeRef}
+                    type="text"
+                    placeholder="Type your vibe…"
+                    value={customVibeText}
+                    onChange={(e) => setCustomVibeText(e.target.value)}
+                    className="w-full mt-3 p-3 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                )}
 
 
                 <button
