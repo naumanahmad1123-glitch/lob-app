@@ -419,24 +419,6 @@ const CreateLob = () => {
                   ))}
                 </div>
 
-                <p className="text-xs font-medium text-muted-foreground mt-5 mb-2">Category</p>
-                <div className="grid grid-cols-4 gap-2">
-                  {(Object.entries(CATEGORY_CONFIG) as [LobCategory, typeof CATEGORY_CONFIG[LobCategory]][]).map(([key, val]) => (
-                    <button
-                      key={key}
-                      onClick={() => setSelectedCategory(key)}
-                      className={cn(
-                        'flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all text-center',
-                        selectedCategory === key
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border bg-card hover:border-primary/50'
-                      )}
-                    >
-                      <span className="text-lg">{val.emoji}</span>
-                      <span className="text-[11px] font-medium text-foreground">{val.label}</span>
-                    </button>
-                  ))}
-                </div>
 
                 <button
                   onClick={next}
