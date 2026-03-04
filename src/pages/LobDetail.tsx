@@ -583,9 +583,12 @@ const LobDetail = () => {
                 const alreadyInPoll = allTimeOptions.some(t => t.datetime === c.suggestedTime);
                 return (
                   <div key={c.id} className="flex items-start gap-2.5">
-                    <span className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-sm shrink-0 mt-0.5">
+                    <button
+                      onClick={() => navigate(c.userId === 'u1' ? '/profile' : `/user/${c.userId}`)}
+                      className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-sm shrink-0 mt-0.5 active:scale-90 transition-transform"
+                    >
                       {getUserAvatar(c.userId)}
-                    </span>
+                    </button>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2">
                         <span className="text-xs font-semibold text-foreground">{getUserName(c.userId)}</span>
@@ -622,9 +625,12 @@ const LobDetail = () => {
               // Regular comment
               return (
                 <div key={c.id} className="flex items-start gap-2.5">
-                  <span className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-sm shrink-0 mt-0.5">
+                  <button
+                    onClick={() => navigate(c.userId === 'u1' ? '/profile' : `/user/${c.userId}`)}
+                    className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-sm shrink-0 mt-0.5 active:scale-90 transition-transform"
+                  >
                     {getUserAvatar(c.userId)}
-                  </span>
+                  </button>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2">
                       <span className="text-xs font-semibold text-foreground">{getUserName(c.userId)}</span>

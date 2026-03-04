@@ -53,12 +53,16 @@ const GroupDetail = () => {
         {/* Members */}
         <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 mb-4">
           {group.members.map(m => (
-            <div key={m.id} className="flex flex-col items-center gap-1 min-w-[56px]">
+            <button
+              key={m.id}
+              onClick={() => navigate(m.id === 'u1' ? '/profile' : `/user/${m.id}`)}
+              className="flex flex-col items-center gap-1 min-w-[56px] active:scale-95 transition-transform"
+            >
               <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-xl">
                 {m.avatar}
               </div>
               <span className="text-[10px] text-muted-foreground font-medium">{m.name}</span>
-            </div>
+            </button>
           ))}
         </div>
 
