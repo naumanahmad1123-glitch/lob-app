@@ -82,9 +82,7 @@ const Home = () => {
             className="relative w-10 h-10 rounded-full bg-secondary flex items-center justify-center"
           >
             <Bell className="w-5 h-5 text-foreground" />
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
-              3
-            </span>
+            {/* Badge hidden until real notifications exist */}
           </button>
         </div>
 
