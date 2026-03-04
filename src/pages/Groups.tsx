@@ -58,12 +58,16 @@ const Groups = () => {
               {/* Member avatars */}
               <div className="flex items-center gap-1 mt-3">
                 {group.members.slice(0, 5).map((m) => (
-                  <div
+                  <button
                     key={m.id}
-                    className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(m.id === 'u1' ? '/profile' : `/user/${m.id}`);
+                    }}
+                    className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-sm active:scale-90 transition-transform"
                   >
                     {m.avatar}
-                  </div>
+                  </button>
                 ))}
                 {group.members.length > 5 && (
                   <span className="text-xs text-muted-foreground ml-1">

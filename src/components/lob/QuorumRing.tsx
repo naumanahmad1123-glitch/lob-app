@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { users } from '@/data/seed';
 import { LobResponse } from '@/data/types';
@@ -14,38 +15,26 @@ const getAvatar = (userId: string) => users.find(u => u.id === userId)?.avatar |
 
 function AvatarWithTooltip({ userId, bgClass }: { userId: string; bgClass: string }) {
   const [show, setShow] = useState(false);
-  const user = users.find(u => u.id === userId);
-  const response = show ? user : null; // just to gate rendering
+  const navigate = useNavigate();
 
   return (
     <div className="relative" onMouseLeave={() => setShow(false)}>
       <button
-        onClick={() => setShow(s => !s)}
+        onClick={(e) => {
+          e.stopPropagation();
+          navigate(userId === 'u1' ? '/profile' : `/user/${userId}`);
+        }}
         className={`w-7 h-7 rounded-full ${bgClass} border-2 border-card flex items-center justify-center text-sm transition-transform active:scale-90`}
       >
         {getAvatar(userId)}
       </button>
-      <AnimatePresence>
-        {show && (
-          <motion.div
-            initial={{ opacity: 0, y: 4, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4, scale: 0.9 }}
-            transition={{ duration: 0.15 }}
-            className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 whitespace-nowrap"
-          >
-            <div className="bg-card border border-border rounded-lg px-3 py-1.5 shadow-card text-center">
-              <p className="text-xs font-semibold text-foreground">{getName(userId)}</p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
 
 export function QuorumRing({ current, target, responses }: QuorumRingProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const navigate = useNavigate();
   const pct = Math.min(current / target, 1);
   const reached = current >= target;
   const isEmpty = responses.length === 0;
@@ -57,7 +46,7 @@ export function QuorumRing({ current, target, responses }: QuorumRingProps) {
   const maybeList = responses.filter(r => r.response === 'maybe');
   const outList = responses.filter(r => r.response === 'out');
 
-  const sections: { key: string; label: string; emoji: string; list: LobResponse[]; colorClass: string; bgClass: string }[] = [
+  const sections = [
     { key: 'in', label: 'Going', emoji: '✅', list: inList, colorClass: 'text-lob-in', bgClass: 'bg-lob-in/20' },
     { key: 'maybe', label: 'On the fence', emoji: '🤔', list: maybeList, colorClass: 'text-lob-maybe', bgClass: 'bg-lob-maybe/20' },
     { key: 'out', label: "Can't make it", emoji: '❌', list: outList, colorClass: 'text-lob-out', bgClass: 'bg-lob-out/20' },
@@ -100,22 +89,9 @@ export function QuorumRing({ current, target, responses }: QuorumRingProps) {
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               {reached ? (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', delay: 0.5 }}
-                  className="text-2xl"
-                >
-                  🎉
-                </motion.span>
+                <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', delay: 0.5 }} className="text-2xl">🎉</motion.span>
               ) : isEmpty ? (
-                <motion.span
-                  animate={{ opacity: [0.4, 1, 0.4] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                  className="text-[10px] font-medium text-muted-foreground text-center px-2"
-                >
-                  Waiting…
-                </motion.span>
+                <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }} className="text-[10px] font-medium text-muted-foreground text-center px-2">Waiting…</motion.span>
               ) : (
                 <>
                   <span className="text-2xl font-extrabold text-foreground">{current}</span>
@@ -196,12 +172,19 @@ export function QuorumRing({ current, target, responses }: QuorumRingProps) {
                       </p>
                       <div className="space-y-2">
                         {sec.list.map(r => (
-                          <div key={r.userId} className="flex items-center gap-3 py-1.5">
+                          <button
+                            key={r.userId}
+                            onClick={() => {
+                              setSheetOpen(false);
+                              navigate(r.userId === 'u1' ? '/profile' : `/user/${r.userId}`);
+                            }}
+                            className="w-full flex items-center gap-3 py-1.5 active:scale-[0.98] transition-transform"
+                          >
                             <span className={`w-9 h-9 rounded-full ${sec.bgClass} flex items-center justify-center text-lg`}>
                               {getAvatar(r.userId)}
                             </span>
                             <span className="text-sm font-medium text-foreground">{getName(r.userId)}</span>
-                          </div>
+                          </button>
                         ))}
                       </div>
                     </div>
