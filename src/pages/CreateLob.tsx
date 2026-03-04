@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
-import { ArrowLeft, MapPin, Clock, Users, Plus, X, CalendarIcon, Timer, ChevronUp, ArrowUp, Repeat, Search, Minus, Edit2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, Users, Plus, X, CalendarIcon, Timer, ChevronUp, ArrowUp, Repeat, Search, Minus, Edit2, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, addDays, addHours, setHours, setMinutes, startOfTomorrow } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -301,6 +301,10 @@ const CreateLob = () => {
 
   // Recurrence (lives on Where step)
   const [recurrence, setRecurrence] = useState<RecurrenceType | ''>('');
+
+  // Open Invite
+  const [openInviteEnabled, setOpenInviteEnabled] = useState(false);
+  const [openInviteMaxGuests, setOpenInviteMaxGuests] = useState(3);
 
   const group = groups.find((g) => g.id === selectedGroup);
 
@@ -823,6 +827,55 @@ const CreateLob = () => {
                               {opt.label}
                             </button>
                           ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Open Invite toggle */}
+                <div className="mt-4 pt-4 border-t border-border/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <UserPlus className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-semibold text-foreground">Open Invite</span>
+                    </div>
+                    <button
+                      onClick={() => setOpenInviteEnabled(!openInviteEnabled)}
+                      className={cn(
+                        'text-xs font-medium px-3 py-1 rounded-full transition-colors',
+                        openInviteEnabled ? 'bg-primary/15 text-primary' : 'bg-secondary text-muted-foreground'
+                      )}
+                    >
+                      {openInviteEnabled ? 'On' : 'Off'}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mb-2">Let confirmed attendees invite guests outside the group</p>
+                  <AnimatePresence>
+                    {openInviteEnabled && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50 border border-border/50">
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">Max guests:</span>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => setOpenInviteMaxGuests(Math.max(1, openInviteMaxGuests - 1))}
+                              className="w-8 h-8 rounded-full border border-border bg-card flex items-center justify-center"
+                            >
+                              <Minus className="w-3.5 h-3.5 text-foreground" />
+                            </button>
+                            <span className="text-lg font-bold text-primary tabular-nums w-6 text-center">{openInviteMaxGuests}</span>
+                            <button
+                              onClick={() => setOpenInviteMaxGuests(Math.min(10, openInviteMaxGuests + 1))}
+                              className="w-8 h-8 rounded-full border border-border bg-card flex items-center justify-center"
+                            >
+                              <Plus className="w-3.5 h-3.5 text-foreground" />
+                            </button>
+                          </div>
                         </div>
                       </motion.div>
                     )}

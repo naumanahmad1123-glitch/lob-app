@@ -3,11 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, MapPin, Clock, Share2, MessageCircle, CheckCircle2, Check, Users,
-  Bell, MoreVertical, XCircle, Repeat, Send, Plus, CalendarIcon,
+  Bell, MoreVertical, XCircle, Repeat, Send, Plus, CalendarIcon, UserPlus, Minus,
+  Megaphone, Crown, Sparkles,
 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { lobs, users, groups } from '@/data/seed';
+import { lobs, users, groups, currentUser } from '@/data/seed';
 import { CATEGORY_CONFIG, ResponseType, LobComment, RECURRENCE_OPTIONS, TimeOption } from '@/data/types';
 import { useCreatedLobs } from '@/hooks/useCreatedLobs';
 import { lobStore } from '@/stores/lobStore';
@@ -95,6 +96,19 @@ const LobDetail = () => {
   const [editDay, setEditDay] = useState<Date | undefined>(undefined);
   const [editTime, setEditTime] = useState('');
   const [overriddenTime, setOverriddenTime] = useState<string | null>(null);
+
+  // Open Invite state
+  const [openInviteEnabled, setOpenInviteEnabled] = useState(lob?.openInviteEnabled || false);
+  const [openInviteMaxGuests, setOpenInviteMaxGuests] = useState(lob?.openInviteMaxGuests || 3);
+  const [openInviteUsedGuests, setOpenInviteUsedGuests] = useState(lob?.openInviteUsedGuests || 0);
+  const [showInviteGuest, setShowInviteGuest] = useState(false);
+  const [guestSearch, setGuestSearch] = useState('');
+
+  // Fill a Seat state
+  const [fillASeatActive, setFillASeatActive] = useState(lob?.fillASeatActive || false);
+  const [fillASeatSpots, setFillASeatSpots] = useState(lob?.fillASeatSpots || 1);
+  const [showFillASeat, setShowFillASeat] = useState(false);
+  const [showProUpgrade, setShowProUpgrade] = useState(false);
 
   if (!lob) {
     return (
@@ -501,6 +515,291 @@ const LobDetail = () => {
             quorumReached={quorumReached}
           />
         )}
+
+        {/* Open Invite Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.22 }}
+          className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card mb-4"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <UserPlus className="w-4 h-4 text-primary" />
+              <p className="text-xs font-semibold text-muted-foreground">OPEN INVITE</p>
+            </div>
+            {isCreator && (
+              <button
+                onClick={() => {
+                  setOpenInviteEnabled(!openInviteEnabled);
+                  toast.success(openInviteEnabled ? 'Open invite disabled' : 'Open invite enabled');
+                }}
+                className={cn(
+                  'text-xs font-medium px-3 py-1 rounded-full transition-colors',
+                  openInviteEnabled ? 'bg-primary/15 text-primary' : 'bg-secondary text-muted-foreground'
+                )}
+              >
+                {openInviteEnabled ? 'On' : 'Off'}
+              </button>
+            )}
+          </div>
+
+          {openInviteEnabled ? (
+            <div className="space-y-3">
+              {isCreator && (
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground">Max guests:</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setOpenInviteMaxGuests(Math.max(1, openInviteMaxGuests - 1))}
+                      className="w-7 h-7 rounded-full border border-border bg-card flex items-center justify-center"
+                    >
+                      <Minus className="w-3 h-3 text-foreground" />
+                    </button>
+                    <span className="text-sm font-bold text-primary tabular-nums">{openInviteMaxGuests}</span>
+                    <button
+                      onClick={() => setOpenInviteMaxGuests(Math.min(10, openInviteMaxGuests + 1))}
+                      className="w-7 h-7 rounded-full border border-border bg-card flex items-center justify-center"
+                    >
+                      <Plus className="w-3 h-3 text-foreground" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-secondary/50 border border-border/50">
+                <Users className="w-4 h-4 text-primary" />
+                <span className="text-xs text-foreground font-medium">
+                  {openInviteMaxGuests - openInviteUsedGuests} guest spot{openInviteMaxGuests - openInviteUsedGuests !== 1 ? 's' : ''} remaining
+                </span>
+                <span className="text-[10px] text-muted-foreground ml-auto">
+                  {openInviteUsedGuests}/{openInviteMaxGuests} used
+                </span>
+              </div>
+
+              {/* Invite a guest button — shown to confirmed attendees */}
+              {myResponse === 'in' && openInviteUsedGuests < openInviteMaxGuests && (
+                <>
+                  <button
+                    onClick={() => setShowInviteGuest(!showInviteGuest)}
+                    className="w-full py-2.5 rounded-xl bg-primary/10 border border-primary/30 text-primary font-semibold text-sm flex items-center justify-center gap-2 hover:bg-primary/15 transition-colors"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Invite a guest
+                  </button>
+                  <AnimatePresence>
+                    {showInviteGuest && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="p-3 rounded-xl bg-secondary/50 border border-border/50 space-y-2">
+                          <input
+                            type="text"
+                            placeholder="Search people..."
+                            value={guestSearch}
+                            onChange={e => setGuestSearch(e.target.value)}
+                            className="w-full p-2.5 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                          />
+                          <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                            {users
+                              .filter(u => u.id !== 'u1' && !lob.responses.some(r => r.userId === u.id) && u.name.toLowerCase().includes(guestSearch.toLowerCase()))
+                              .slice(0, 5)
+                              .map(u => (
+                                <button
+                                  key={u.id}
+                                  onClick={() => {
+                                    setOpenInviteUsedGuests(prev => prev + 1);
+                                    setShowInviteGuest(false);
+                                    setGuestSearch('');
+                                    toast.success(`Invited ${u.name}! They'll see the activity, time, and location.`);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 p-2.5 rounded-xl border border-border bg-card hover:border-primary/50 transition-all"
+                                >
+                                  <span className="text-lg">{u.avatar}</span>
+                                  <span className="text-sm font-medium text-foreground">{u.name}</span>
+                                  <span className="ml-auto text-[10px] text-muted-foreground">Invite</span>
+                                </button>
+                              ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {isCreator ? 'Turn on to let confirmed attendees bring guests' : 'Guest invites are currently disabled'}
+            </p>
+          )}
+        </motion.div>
+
+        {/* Fill a Seat — Pro feature */}
+        {isCreator && effectiveStatus === 'voting' && !quorumReached && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.23 }}
+            className="mb-4"
+          >
+            {fillASeatActive ? (
+              <div className="gradient-card rounded-2xl p-4 border border-primary/30 shadow-card">
+                <div className="flex items-center gap-2 mb-2">
+                  <Megaphone className="w-4 h-4 text-primary" />
+                  <p className="text-xs font-semibold text-primary">FILL A SEAT — ACTIVE</p>
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Broadcasting to nearby users with matching interests. {fillASeatSpots} spot{fillASeatSpots !== 1 ? 's' : ''} open.
+                </p>
+                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-primary/5 border border-primary/20">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span className="text-xs text-foreground">Waiting for requests from nearby users...</span>
+                </div>
+                <button
+                  onClick={() => {
+                    setFillASeatActive(false);
+                    toast.success('Fill a Seat broadcast stopped');
+                  }}
+                  className="w-full mt-3 py-2 rounded-xl bg-secondary text-muted-foreground text-sm font-medium"
+                >
+                  Stop broadcast
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  if (currentUser.isPro) {
+                    setShowFillASeat(true);
+                  } else {
+                    setShowProUpgrade(true);
+                  }
+                }}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30 text-primary font-semibold text-sm flex items-center justify-center gap-2 hover:from-primary/25 hover:to-primary/15 transition-all"
+              >
+                <Megaphone className="w-4 h-4" />
+                Fill a Seat
+                {!currentUser.isPro && (
+                  <span className="text-[10px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">PRO</span>
+                )}
+              </button>
+            )}
+          </motion.div>
+        )}
+
+        {/* Fill a Seat setup dialog */}
+        <AnimatePresence>
+          {showFillASeat && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowFillASeat(false)}
+                className="fixed inset-0 z-[80] bg-background/60 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[90] max-w-sm mx-auto bg-card rounded-2xl border border-border shadow-card p-6"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <Megaphone className="w-5 h-5 text-primary" />
+                  <h3 className="font-bold text-foreground text-lg">Fill a Seat</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-5">
+                  Broadcast to nearby users who are into {config.label.toLowerCase()}. They can request to join and you approve.
+                </p>
+                <div className="flex items-center justify-center gap-4 mb-5">
+                  <button
+                    onClick={() => setFillASeatSpots(Math.max(1, fillASeatSpots - 1))}
+                    className="w-10 h-10 rounded-full border border-border bg-secondary flex items-center justify-center"
+                  >
+                    <Minus className="w-4 h-4 text-foreground" />
+                  </button>
+                  <div className="text-center">
+                    <span className="text-4xl font-extrabold text-primary tabular-nums">{fillASeatSpots}</span>
+                    <p className="text-[11px] text-muted-foreground">spot{fillASeatSpots !== 1 ? 's' : ''} to fill</p>
+                  </div>
+                  <button
+                    onClick={() => setFillASeatSpots(Math.min(lob.quorum - inCount, fillASeatSpots + 1))}
+                    className="w-10 h-10 rounded-full border border-border bg-secondary flex items-center justify-center"
+                  >
+                    <Plus className="w-4 h-4 text-foreground" />
+                  </button>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowFillASeat(false)}
+                    className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground font-semibold text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      setFillASeatActive(true);
+                      setShowFillASeat(false);
+                      toast.success(`Broadcasting ${fillASeatSpots} open spot${fillASeatSpots !== 1 ? 's' : ''} to nearby users!`);
+                    }}
+                    className="flex-1 py-2.5 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm"
+                  >
+                    Broadcast
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Pro Upgrade Prompt */}
+        <AnimatePresence>
+          {showProUpgrade && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowProUpgrade(false)}
+                className="fixed inset-0 z-[80] bg-background/60 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[90] max-w-sm mx-auto bg-card rounded-2xl border border-border shadow-card p-6 text-center"
+              >
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <Crown className="w-8 h-8 text-primary" />
+                </div>
+                <h3 className="font-bold text-foreground text-lg mb-2">Upgrade to Lob Pro</h3>
+                <p className="text-sm text-muted-foreground mb-5">
+                  Fill a Seat lets you broadcast open spots to nearby users who match your activity. Upgrade to Pro to unlock this and more.
+                </p>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => {
+                      setShowProUpgrade(false);
+                      toast('Pro upgrade coming soon! 🚀');
+                    }}
+                    className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm"
+                  >
+                    Upgrade to Pro
+                  </button>
+                  <button
+                    onClick={() => setShowProUpgrade(false)}
+                    className="w-full py-2 text-sm text-muted-foreground"
+                  >
+                    Maybe later
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* Time Poll */}
         {allTimeOptions.length > 1 && (
