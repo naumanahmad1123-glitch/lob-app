@@ -273,7 +273,7 @@ const Trips = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          openComposer();
+                          openComposer({ prefillUserIds: [trip.userId] });
                         }}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-full gradient-primary text-xs font-semibold text-primary-foreground shrink-0 ml-2"
                       >

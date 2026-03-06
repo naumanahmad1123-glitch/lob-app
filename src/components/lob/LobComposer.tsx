@@ -112,9 +112,10 @@ interface LobComposerProps {
   onClose: () => void;
   onLobSent: () => void;
   prefillText?: string;
+  prefillUserIds?: string[];
 }
 
-export function LobComposer({ open, onClose, onLobSent, prefillText }: LobComposerProps) {
+export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUserIds }: LobComposerProps) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<ComposerStep>('quick');
@@ -141,13 +142,22 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
       setStep('quick');
       const initial = prefillText || '';
       setQuickText(initial);
-      setParsed({ title: '', category: '', time: '', location: '', groupId: groups[0]?.id || '', recipientType: 'group', selectedUserIds: [] });
+      const hasPrefillUsers = prefillUserIds && prefillUserIds.length > 0;
+      setParsed({
+        title: '',
+        category: '',
+        time: '',
+        location: '',
+        groupId: hasPrefillUsers ? '' : (groups[0]?.id || ''),
+        recipientType: hasPrefillUsers ? 'individuals' : 'group',
+        selectedUserIds: hasPrefillUsers ? prefillUserIds : [],
+      });
       setShowConfirm(false);
       setLobLaunched(false);
       confirmDragY.set(0);
       setTimeout(() => inputRef.current?.focus(), 300);
     }
-  }, [open, prefillText]);
+  }, [open, prefillText, prefillUserIds]);
 
   const handleQuickSubmit = useCallback(() => {
     if (!quickText.trim()) return;

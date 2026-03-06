@@ -3,11 +3,11 @@ import { BottomTabs } from './BottomTabs';
 import { LobComposer } from '@/components/lob/LobComposer';
 import { LobSentToast } from '@/components/lob/LobSentToast';
 import { LobSentAnimation } from '@/components/lob/LobSentAnimation';
-import { ComposerContext } from '@/hooks/useComposer';
+import { ComposerContext, type ComposerOptions } from '@/hooks/useComposer';
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const [composerOpen, setComposerOpen] = useState(false);
-  const [prefillText, setPrefillText] = useState<string | undefined>();
+  const [composerOptions, setComposerOptions] = useState<ComposerOptions>({});
   const [showToast, setShowToast] = useState(false);
   const [showAnimation, setShowAnimation] = useState(false);
 
@@ -18,8 +18,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
     setTimeout(() => setShowToast(false), 2500);
   }, []);
 
-  const openComposer = useCallback((text?: string) => {
-    setPrefillText(text);
+  const openComposer = useCallback((options?: ComposerOptions) => {
+    setComposerOptions(options || {});
     setComposerOpen(true);
   }, []);
 
@@ -35,7 +35,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
           open={composerOpen}
           onClose={() => setComposerOpen(false)}
           onLobSent={handleLobSent}
-          prefillText={prefillText}
+          prefillText={composerOptions.prefillText}
+          prefillUserIds={composerOptions.prefillUserIds}
         />
         <LobSentToast show={showToast} />
         <LobSentAnimation show={showAnimation} />
