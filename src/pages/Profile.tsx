@@ -13,6 +13,7 @@ import { useCreatedLobs } from '@/hooks/useCreatedLobs';
 import { useCreatedGroups } from '@/hooks/useCreatedGroups';
 
 const Profile = () => {
+  const navigate = useNavigate();
   const createdLobs = useCreatedLobs();
   const createdGroups = useCreatedGroups();
   const totalPlans = useMemo(() => {
