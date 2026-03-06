@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useComposer } from '@/hooks/useComposer';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -11,6 +12,7 @@ import { useCreatedGroups } from '@/hooks/useCreatedGroups';
 const GroupDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { openComposer } = useComposer();
   const createdGroups = useCreatedGroups();
   const group = groups.find(g => g.id === id) || createdGroups.find(g => g.id === id);
   const createdLobs = useCreatedLobs();
@@ -43,7 +45,7 @@ const GroupDetail = () => {
             <p className="text-xs text-muted-foreground">{group.members.length} members</p>
           </div>
           <button
-            onClick={() => navigate('/create')}
+            onClick={() => openComposer()}
             className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center"
           >
             <Plus className="w-5 h-5 text-primary-foreground" />

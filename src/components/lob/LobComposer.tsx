@@ -6,6 +6,7 @@ import { groups, users, currentUser } from '@/data/seed';
 import { CATEGORY_CONFIG, LobCategory, Lob } from '@/data/types';
 import { lobStore } from '@/stores/lobStore';
 import { usePersonalizedVibes, detectVibeFromChips } from '@/hooks/usePersonalizedVibes';
+import { CATEGORY_KEYWORDS, parseTimeToISO, detectCategory } from '@/lib/lob-utils';
 
 type ComposerStep = 'quick' | 'recipients' | 'category' | 'time' | 'location' | 'review';
 type RecipientType = 'group' | 'individuals';
@@ -28,55 +29,9 @@ const DEFAULT_TEMPLATES = [
   { text: 'Gym', emoji: '💪' },
 ];
 
-const CATEGORY_KEYWORDS: Record<string, LobCategory> = {
-  hoops: 'sports', basketball: 'sports', soccer: 'sports', football: 'sports',
-  dinner: 'dinner', sushi: 'dinner', brunch: 'dinner', lunch: 'dinner', eat: 'dinner',
-  coffee: 'coffee', cafe: 'coffee', cowork: 'coffee',
-  gym: 'gym', workout: 'gym', lift: 'gym',
-  chill: 'chill', hang: 'chill', hangout: 'chill', movie: 'chill',
-  travel: 'travel', trip: 'travel', road: 'travel',
-  padel: 'padel', tennis: 'padel',
-};
-
-function parseTimeToISO(timeStr: string, dayStr: string): string {
-  // Parse the time component
-  const timeMatch = timeStr.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
-  if (!timeMatch) return '';
-  let hours = parseInt(timeMatch[1], 10);
-  const minutes = parseInt(timeMatch[2] || '0', 10);
-  const meridiem = timeMatch[3].toLowerCase();
-  if (meridiem === 'pm' && hours < 12) hours += 12;
-  if (meridiem === 'am' && hours === 12) hours = 0;
-
-  // Parse the day component
-  const now = new Date();
-  let targetDate = new Date(now);
-
-  if (dayStr === 'tonight' || dayStr === 'today') {
-    // today
-  } else if (dayStr === 'tomorrow') {
-    targetDate.setDate(now.getDate() + 1);
-  } else {
-    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const dayIndex = dayNames.indexOf(dayStr);
-    if (dayIndex !== -1) {
-      const currentDay = now.getDay();
-      let daysUntil = dayIndex - currentDay;
-      if (daysUntil <= 0) daysUntil += 7;
-      targetDate.setDate(now.getDate() + daysUntil);
-    }
-  }
-
-  targetDate.setHours(hours, minutes, 0, 0);
-  return targetDate.toISOString();
-}
-
 function parseLobText(text: string): ParsedLob {
   const lower = text.toLowerCase();
-  let category: LobCategory | '' = '';
-  for (const [keyword, cat] of Object.entries(CATEGORY_KEYWORDS)) {
-    if (lower.includes(keyword)) { category = cat; break; }
-  }
+  const category = detectCategory(text);
 
   // Extract time patterns like "8pm", "7:30pm"
   const timeMatch = lower.match(/(\d{1,2}(?::\d{2})?\s*(?:am|pm))/);
@@ -88,7 +43,6 @@ function parseLobText(text: string): ParsedLob {
 
   const time = rawTime ? parseTimeToISO(rawTime, rawDay) : '';
 
-  // Use first group as default
   const groupId = groups[0]?.id || '';
 
   return { title: text, category, time, location: '', groupId, recipientType: 'group' as RecipientType, selectedUserIds: [] };
@@ -213,9 +167,7 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
     const groupIds = parsed.recipientType === 'group' && parsed.groupId
       ? [parsed.groupId]
       : [];
-    const selectedGroup = groups.find(g => g.id === parsed.groupId);
 
-    // Create a lob for each target group (or one if individuals)
     const targets = groupIds.length > 0 ? groupIds : [''];
     targets.forEach((gId, idx) => {
       const group = groups.find(g => g.id === gId);
@@ -241,7 +193,7 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
     navigate('/');
   }, [parsed, onLobSent, onClose, navigate]);
 
-  // Confirm-mode swipe: the whole sheet flies up
+  // Confirm-mode swipe
   const confirmDragY = useMotionValue(0);
   const confirmOpacity = useTransform(confirmDragY, [0, -120], [1, 0.3]);
   const confirmScale = useTransform(confirmDragY, [0, -120], [1, 0.92]);
@@ -257,7 +209,6 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
       }, 500);
     }
   }, [handleLobIt]);
-
 
   const selectedGroup = parsed.recipientType === 'group' ? groups.find(g => g.id === parsed.groupId) : null;
   const otherUsers = users.filter(u => u.id !== currentUser.id);
@@ -379,7 +330,6 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
                               key={t.text}
                               onClick={() => {
                                 setQuickText(t.text);
-                                // Auto-detect category from the template text
                                 const detected = detectVibeFromChips(t.text, vibeChips);
                                 if (detected) {
                                   const chip = vibeChips.find(c => c.title === detected);
@@ -461,15 +411,6 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
                           )}
                         </div>
                       </div>
-
-                      {/* Or use assisted flow */}
-                      <button
-                        onClick={() => { onClose(); navigate('/create'); }}
-                        className="w-full flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border/50 text-sm text-muted-foreground mt-2"
-                      >
-                        <span>Build step by step instead</span>
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
                     </motion.div>
                   )}
 
@@ -513,7 +454,6 @@ export function LobComposer({ open, onClose, onLobSent, prefillText }: LobCompos
                       </motion.p>
                     </motion.div>
                   )}
-
 
                   {/* ASSISTED: Category */}
                   {step === 'category' && (

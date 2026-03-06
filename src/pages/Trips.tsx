@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plane, Plus, ChevronRight, Sparkles, Globe, Lock, MapPin, X, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useComposer } from '@/hooks/useComposer';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { trips as seedTrips, users, currentUser } from '@/data/seed';
 import { TappableAvatar } from '@/components/TappableAvatar';
@@ -9,6 +10,7 @@ import { toast } from 'sonner';
 
 const Trips = () => {
   const navigate = useNavigate();
+  const { openComposer } = useComposer();
   const [showAddTrip, setShowAddTrip] = useState(false);
   const [newTrip, setNewTrip] = useState({ city: '', country: '', startDate: '', endDate: '', showOnProfile: true });
 
@@ -271,7 +273,7 @@ const Trips = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate('/create');
+                          openComposer();
                         }}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-full gradient-primary text-xs font-semibold text-primary-foreground shrink-0 ml-2"
                       >

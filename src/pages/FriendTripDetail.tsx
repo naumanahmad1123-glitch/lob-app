@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useComposer } from '@/hooks/useComposer';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Sparkles, MapPin } from 'lucide-react';
 import { trips, users, currentUser } from '@/data/seed';
@@ -7,6 +8,7 @@ import { TappableAvatar } from '@/components/TappableAvatar';
 const FriendTripDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { openComposer } = useComposer();
   const trip = trips.find(t => t.id === id);
 
   if (!trip) {
@@ -42,7 +44,7 @@ const FriendTripDetail = () => {
         <motion.button
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          onClick={() => navigate('/create')}
+          onClick={() => openComposer()}
           className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm shadow-glow mb-6"
         >
           <Sparkles className="w-4 h-4" />

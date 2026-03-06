@@ -6,6 +6,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { users, currentUser, groups, lobs, calendarShares } from '@/data/seed';
 import { CATEGORY_CONFIG } from '@/data/types';
 import { ShowRateBadge } from '@/components/lob/ShowRateBadge';
+import { useComposer } from '@/hooks/useComposer';
 
 const INTEREST_LABELS: Record<string, string> = {
   sports: '🏀 Sports',
@@ -20,6 +21,7 @@ const INTEREST_LABELS: Record<string, string> = {
 const UserProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { openComposer } = useComposer();
   const [showRateTooltip, setShowRateTooltip] = useState(false);
   const [showAllMutuals, setShowAllMutuals] = useState(false);
 
@@ -82,7 +84,7 @@ const UserProfile = () => {
           </button>
           <div className="flex-1" />
           <button
-            onClick={() => navigate('/create')}
+            onClick={() => openComposer()}
             className="px-4 py-2 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold flex items-center gap-1.5"
           >
             <Zap className="w-4 h-4" /> Lob them
