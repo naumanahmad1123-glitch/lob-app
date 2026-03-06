@@ -5,6 +5,9 @@ export type CalendarPrivacy = 'free-busy' | 'details';
 export type RecurrenceType = 'weekly' | 'biweekly' | 'monthly';
 export type WhenMode = 'specific' | 'flexible' | 'tbd';
 export type FlexibleWindow = 'today' | 'tomorrow' | 'this-week' | 'this-weekend' | 'next-week' | 'this-month';
+export type TripPlanningMode = 'defined' | 'dates-open' | 'fully-open';
+export type TripVibe = 'beach' | 'city' | 'adventure' | 'ski' | 'cultural' | 'roadtrip';
+export type TripPlanningPhase = 'voting-destination' | 'voting-dates' | 'confirmed';
 
 export interface User {
   id: string;
