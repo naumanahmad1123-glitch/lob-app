@@ -114,6 +114,8 @@ const LobDetail = () => {
   // Bail state
   const [showBailSheet, setShowBailSheet] = useState(false);
   const [hasBailed, setHasBailed] = useState(false);
+  const [autoExpiredMaybes, setAutoExpiredMaybes] = useState<string[]>([]);
+  const autoExpiryFired = useRef(false);
 
   if (!lob) {
     return (
