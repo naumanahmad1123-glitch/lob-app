@@ -516,22 +516,34 @@ const LobDetail = () => {
           </motion.div>
         )}
 
-        {/* Nudge button (creator only) */}
-        {isCreator && effectiveStatus === 'voting' && unrespondedCount > 0 && (
+        {/* Nudge buttons (creator only) — separate for maybes and non-responders */}
+        {isCreator && effectiveStatus === 'voting' && (maybeCount > 0 || unrespondedCount > 0) && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.17 }}
-            className="mb-4"
+            className="mb-4 space-y-2"
           >
-            <button
-              onClick={handleNudge}
-              disabled={!canNudge}
-              className="w-full py-3 rounded-xl bg-primary/10 border border-primary/30 text-primary font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-40 transition-opacity hover:bg-primary/15"
-            >
-              <Bell className="w-4 h-4" />
-              Nudge {unrespondedCount}
-            </button>
+            {maybeCount > 0 && (
+              <button
+                onClick={handleNudgeMaybes}
+                disabled={!canNudge}
+                className="w-full py-3 rounded-xl bg-lob-maybe/10 border border-lob-maybe/30 text-lob-maybe font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-40 transition-opacity hover:bg-lob-maybe/15"
+              >
+                <Bell className="w-4 h-4" />
+                Nudge {maybeCount} maybe{maybeCount !== 1 ? 's' : ''} — "In or out?"
+              </button>
+            )}
+            {unrespondedCount > 0 && (
+              <button
+                onClick={handleNudgeNonResponders}
+                disabled={!canNudge}
+                className="w-full py-3 rounded-xl bg-primary/10 border border-primary/30 text-primary font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-40 transition-opacity hover:bg-primary/15"
+              >
+                <Bell className="w-4 h-4" />
+                Nudge {unrespondedCount} non-responder{unrespondedCount !== 1 ? 's' : ''}
+              </button>
+            )}
           </motion.div>
         )}
 
@@ -574,7 +586,7 @@ const LobDetail = () => {
           className="gradient-card rounded-2xl p-5 border border-border/50 shadow-card mb-4"
         >
           <p className="text-xs font-semibold text-muted-foreground mb-4">ATTENDANCE</p>
-          <QuorumRing current={inCount} target={lob.quorum} responses={lob.responses} />
+          <QuorumRing current={inCount} target={lob.quorum} responses={lob.responses} groupMembers={groupMembers} />
         </motion.div>
 
         {/* Deadline Countdown */}
