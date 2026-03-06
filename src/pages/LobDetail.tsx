@@ -633,11 +633,14 @@ const LobDetail = () => {
 
         {/* Deadline Countdown */}
         {lob.deadline && effectiveStatus === 'voting' && (
-          <DeadlineCountdown
-            deadline={lob.deadline}
-            isCreator={isCreator}
-            quorumReached={quorumReached}
-          />
+          <div className="mb-4">
+            <DeadlineCountdown
+              deadline={lob.deadline}
+              isCreator={isCreator}
+              quorumReached={quorumReached}
+              isMaybe={myResponse === 'maybe'}
+            />
+          </div>
         )}
 
         {/* Open Invite Section */}
