@@ -8,7 +8,7 @@ import Groups from "./pages/Groups";
 import GroupDetail from "./pages/GroupDetail";
 import CreateLob from "./pages/CreateLob";
 import LobDetail from "./pages/LobDetail";
-import Explore from "./pages/Explore";
+
 import Profile from "./pages/Profile";
 import Trips from "./pages/Trips";
 import TripDetail from "./pages/TripDetail";
@@ -33,7 +33,7 @@ const App = () => (
           <Route path="/create" element={<CreateLob />} />
           <Route path="/create-group" element={<CreateGroup />} />
           <Route path="/lob/:id" element={<LobDetail />} />
-          <Route path="/explore" element={<Explore />} />
+          
           <Route path="/trips" element={<Trips />} />
           <Route path="/trips/:id" element={<TripDetail />} />
           <Route path="/trips/:id/friend" element={<FriendTripDetail />} />

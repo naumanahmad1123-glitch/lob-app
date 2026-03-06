@@ -12,10 +12,9 @@ const tabs = [
 
 interface BottomTabsProps {
   onLobTap: () => void;
-  notificationCount?: number;
 }
 
-export function BottomTabs({ onLobTap, notificationCount = 3 }: BottomTabsProps) {
+export function BottomTabs({ onLobTap }: BottomTabsProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const dragY = useMotionValue(0);

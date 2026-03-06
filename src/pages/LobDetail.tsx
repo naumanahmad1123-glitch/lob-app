@@ -322,7 +322,17 @@ const LobDetail = () => {
           </button>
           <div className="flex-1" />
           <StatusPill status={effectiveStatus} />
-          <button className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+          <button
+            onClick={() => {
+              if (navigator.share) {
+                navigator.share({ title: lob.title, url: window.location.href });
+              } else {
+                navigator.clipboard.writeText(window.location.href);
+                toast.success('Link copied!');
+              }
+            }}
+            className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center"
+          >
             <Share2 className="w-5 h-5 text-foreground" />
           </button>
           {isCreator && (
