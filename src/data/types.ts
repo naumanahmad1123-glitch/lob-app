@@ -1,6 +1,6 @@
 export type LobStatus = 'draft' | 'voting' | 'confirmed' | 'cancelled' | 'completed';
 export type ResponseType = 'in' | 'maybe' | 'out';
-export type LobCategory = 'sports' | 'dinner' | 'coffee' | 'gym' | 'chill' | 'travel' | 'padel' | 'other';
+export type LobCategory = 'sports' | 'dinner' | 'coffee' | 'gym' | 'chill' | 'travel' | 'padel' | 'group-trip' | 'other';
 export type CalendarPrivacy = 'free-busy' | 'details';
 export type RecurrenceType = 'weekly' | 'biweekly' | 'monthly';
 export type WhenMode = 'specific' | 'flexible' | 'tbd';
@@ -73,6 +73,10 @@ export interface Lob {
   // Fill a Seat
   fillASeatActive?: boolean;
   fillASeatSpots?: number;
+  // Group Trip fields
+  destination?: string;
+  tripStartDate?: string;
+  tripEndDate?: string;
 }
 
 export interface GuestInvite {
@@ -120,6 +124,7 @@ export const CATEGORY_CONFIG: Record<LobCategory, { label: string; emoji: string
   chill: { label: 'Chill', emoji: '😎', defaultQuorum: 2 },
   travel: { label: 'Travel', emoji: '✈️', defaultQuorum: 2 },
   padel: { label: 'Padel', emoji: '🎾', defaultQuorum: 4 },
+  'group-trip': { label: 'Group Trip', emoji: '🌍', defaultQuorum: 4 },
   other: { label: 'Other', emoji: '📌', defaultQuorum: 2 },
 };
 

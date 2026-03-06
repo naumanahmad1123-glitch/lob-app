@@ -9,8 +9,9 @@ export const CATEGORY_KEYWORDS: Record<string, LobCategory> = {
   coffee: 'coffee', cafe: 'coffee', cowork: 'coffee',
   gym: 'gym', workout: 'gym', lift: 'gym',
   chill: 'chill', hang: 'chill', hangout: 'chill', movie: 'chill',
-  travel: 'travel', trip: 'travel', road: 'travel',
+  travel: 'travel', road: 'travel',
   padel: 'padel', tennis: 'padel',
+  'group trip': 'group-trip', 'group-trip': 'group-trip',
 };
 
 // ─── Day chips ───
