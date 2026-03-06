@@ -1,17 +1,25 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, ChevronRight, Bell, Calendar, Shield, LogOut, Plane, Users, HelpCircle, Eye, EyeOff, User, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { currentUser, trips, calendarShares, users, groups } from '@/data/seed';
+import { currentUser, trips, calendarShares, users, groups, lobs } from '@/data/seed';
 import { CalendarPrivacy } from '@/data/types';
 import { TappableAvatar } from '@/components/TappableAvatar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ShowRateBadge } from '@/components/lob/ShowRateBadge';
+import { useCreatedLobs } from '@/hooks/useCreatedLobs';
+import { useCreatedGroups } from '@/hooks/useCreatedGroups';
 
 const Profile = () => {
-  const navigate = useNavigate();
+  const createdLobs = useCreatedLobs();
+  const createdGroups = useCreatedGroups();
+  const totalPlans = useMemo(() => {
+    const seedCount = lobs.filter(l => l.createdBy === currentUser.id).length;
+    return seedCount + createdLobs.length;
+  }, [createdLobs]);
+  const totalGroups = groups.length + createdGroups.length;
   const [showRateTooltip, setShowRateTooltip] = useState(false);
   const [showSharingPrivacy, setShowSharingPrivacy] = useState(false);
   const [showPrivacyInfo, setShowPrivacyInfo] = useState(false);
@@ -97,11 +105,11 @@ const Profile = () => {
           {/* Stats */}
           <div className="flex justify-center gap-8 mt-5">
             <div>
-              <p className="text-xl font-bold text-foreground">12</p>
+              <p className="text-xl font-bold text-foreground">{totalPlans}</p>
               <p className="text-[11px] text-muted-foreground">Plans Made</p>
             </div>
             <div>
-              <p className="text-xl font-bold text-foreground">4</p>
+              <p className="text-xl font-bold text-foreground">{totalGroups}</p>
               <p className="text-[11px] text-muted-foreground">Groups</p>
             </div>
             <div className="relative">
