@@ -10,6 +10,8 @@ interface DeadlineCountdownProps {
   deadline: string;
   isCreator: boolean;
   quorumReached: boolean;
+  /** Whether the current user is in 'maybe' state — shows a targeted warning */
+  isMaybe?: boolean;
 }
 
 function getTimeLeft(deadline: string) {
@@ -21,7 +23,7 @@ function getTimeLeft(deadline: string) {
   return { hours, minutes, seconds, total: diff };
 }
 
-export const DeadlineCountdown = ({ deadline, isCreator, quorumReached }: DeadlineCountdownProps) => {
+export const DeadlineCountdown = ({ deadline, isCreator, quorumReached, isMaybe }: DeadlineCountdownProps) => {
   const [timeLeft, setTimeLeft] = useState(getTimeLeft(deadline));
   const [expired, setExpired] = useState(!getTimeLeft(deadline));
   const [showExtend, setShowExtend] = useState(false);
@@ -131,24 +133,40 @@ export const DeadlineCountdown = ({ deadline, isCreator, quorumReached }: Deadli
   const isUrgent = timeLeft.total < 2 * 60 * 60 * 1000; // < 2 hours
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={cn(
-        'rounded-2xl p-4 border mb-4 flex items-center gap-3',
-        isUrgent
-          ? 'bg-destructive/5 border-destructive/20'
-          : 'bg-secondary/50 border-border/50'
+    <div className="space-y-2">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={cn(
+          'rounded-2xl p-4 border flex items-center gap-3',
+          isUrgent
+            ? 'bg-destructive/5 border-destructive/20'
+            : 'bg-secondary/50 border-border/50'
+        )}
+      >
+        <Timer className={cn('w-5 h-5', isUrgent ? 'text-destructive' : 'text-primary')} />
+        <div className="flex-1">
+          <p className="text-xs font-medium text-muted-foreground">Deadline</p>
+          <p className={cn('font-bold text-sm tabular-nums', isUrgent ? 'text-destructive' : 'text-foreground')}>
+            {timeLeft.hours > 0 && `${timeLeft.hours}h `}
+            {timeLeft.minutes}m {timeLeft.seconds}s left
+          </p>
+        </div>
+      </motion.div>
+
+      {/* Maybe auto-expiry warning */}
+      {isMaybe && isUrgent && (
+        <motion.div
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl p-3 bg-lob-maybe/10 border border-lob-maybe/30 flex items-center gap-2"
+        >
+          <span className="text-base">⏰</span>
+          <p className="text-xs font-medium text-foreground">
+            You're still a maybe — confirm or you'll be marked out when the deadline passes.
+          </p>
+        </motion.div>
       )}
-    >
-      <Timer className={cn('w-5 h-5', isUrgent ? 'text-destructive' : 'text-primary')} />
-      <div className="flex-1">
-        <p className="text-xs font-medium text-muted-foreground">Deadline</p>
-        <p className={cn('font-bold text-sm tabular-nums', isUrgent ? 'text-destructive' : 'text-foreground')}>
-          {timeLeft.hours > 0 && `${timeLeft.hours}h `}
-          {timeLeft.minutes}m {timeLeft.seconds}s left
-        </p>
-      </div>
-    </motion.div>
+    </div>
   );
 };

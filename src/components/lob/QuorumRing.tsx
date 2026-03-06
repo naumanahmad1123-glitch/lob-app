@@ -2,13 +2,15 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { users } from '@/data/seed';
-import { LobResponse } from '@/data/types';
+import { LobResponse, User } from '@/data/types';
 import { ShowRateBadge } from '@/components/lob/ShowRateBadge';
 
 interface QuorumRingProps {
   current: number;
   target: number;
   responses: LobResponse[];
+  /** All members of the group — used to derive "no response" bucket */
+  groupMembers?: User[];
 }
 
 const getName = (userId: string) => users.find(u => u.id === userId)?.name || 'Unknown';
@@ -20,11 +22,10 @@ const getShowRate = (userId: string) => {
 };
 
 function AvatarWithTooltip({ userId, bgClass }: { userId: string; bgClass: string }) {
-  const [show, setShow] = useState(false);
   const navigate = useNavigate();
 
   return (
-    <div className="relative" onMouseLeave={() => setShow(false)}>
+    <div className="relative">
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -38,7 +39,7 @@ function AvatarWithTooltip({ userId, bgClass }: { userId: string; bgClass: strin
   );
 }
 
-export function QuorumRing({ current, target, responses }: QuorumRingProps) {
+export function QuorumRing({ current, target, responses, groupMembers = [] }: QuorumRingProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const navigate = useNavigate();
   const pct = Math.min(current / target, 1);
@@ -52,10 +53,15 @@ export function QuorumRing({ current, target, responses }: QuorumRingProps) {
   const maybeList = responses.filter(r => r.response === 'maybe');
   const outList = responses.filter(r => r.response === 'out');
 
+  // Derive "no response" from group members who haven't responded
+  const respondedIds = new Set(responses.map(r => r.userId));
+  const noResponseList = groupMembers.filter(m => !respondedIds.has(m.id));
+
   const sections = [
-    { key: 'in', label: 'Going', emoji: '✅', list: inList, colorClass: 'text-lob-in', bgClass: 'bg-lob-in/20' },
-    { key: 'maybe', label: 'On the fence', emoji: '🤔', list: maybeList, colorClass: 'text-lob-maybe', bgClass: 'bg-lob-maybe/20' },
-    { key: 'out', label: "Can't make it", emoji: '❌', list: outList, colorClass: 'text-lob-out', bgClass: 'bg-lob-out/20' },
+    { key: 'in', label: 'In', sublabel: 'Counts toward quorum', emoji: '✅', list: inList.map(r => r.userId), colorClass: 'text-lob-in', bgClass: 'bg-lob-in/20' },
+    { key: 'maybe', label: 'Maybe', sublabel: 'Interested, not committed', emoji: '🤔', list: maybeList.map(r => r.userId), colorClass: 'text-lob-maybe', bgClass: 'bg-lob-maybe/20' },
+    { key: 'no-response', label: 'No response', sublabel: 'Haven\'t responded yet', emoji: '⏳', list: noResponseList.map(m => m.id), colorClass: 'text-muted-foreground', bgClass: 'bg-secondary' },
+    { key: 'out', label: "Can't make it", sublabel: '', emoji: '❌', list: outList.map(r => r.userId), colorClass: 'text-lob-out', bgClass: 'bg-lob-out/20' },
   ];
 
   return (
@@ -107,7 +113,7 @@ export function QuorumRing({ current, target, responses }: QuorumRingProps) {
             </div>
           </div>
 
-          {/* Avatar stacks */}
+          {/* Avatar stacks — 3 buckets */}
           <div className="flex-1 space-y-2.5">
             {inList.length > 0 && (
               <div className="flex items-center gap-2">
@@ -116,7 +122,7 @@ export function QuorumRing({ current, target, responses }: QuorumRingProps) {
                     <AvatarWithTooltip key={r.userId} userId={r.userId} bgClass="bg-lob-in/20" />
                   ))}
                 </div>
-                <span className="text-xs font-semibold text-lob-in">{inList.length} going</span>
+                <span className="text-xs font-semibold text-lob-in">{inList.length} in</span>
               </div>
             )}
             {maybeList.length > 0 && (
@@ -126,20 +132,20 @@ export function QuorumRing({ current, target, responses }: QuorumRingProps) {
                     <AvatarWithTooltip key={r.userId} userId={r.userId} bgClass="bg-lob-maybe/20" />
                   ))}
                 </div>
-                <span className="text-xs font-semibold text-lob-maybe">{maybeList.length} on the fence</span>
+                <span className="text-xs font-semibold text-lob-maybe">{maybeList.length} maybe</span>
               </div>
             )}
-            {outList.length > 0 && (
+            {noResponseList.length > 0 && (
               <div className="flex items-center gap-2">
                 <div className="flex -space-x-2">
-                  {outList.slice(0, 5).map(r => (
-                    <AvatarWithTooltip key={r.userId} userId={r.userId} bgClass="bg-lob-out/20" />
+                  {noResponseList.slice(0, 5).map(m => (
+                    <AvatarWithTooltip key={m.id} userId={m.id} bgClass="bg-secondary" />
                   ))}
                 </div>
-                <span className="text-xs font-semibold text-lob-out">{outList.length} can't make it</span>
+                <span className="text-xs font-semibold text-muted-foreground">{noResponseList.length} no response</span>
               </div>
             )}
-            {isEmpty && (
+            {isEmpty && noResponseList.length === 0 && (
               <p className="text-xs text-muted-foreground">No responses yet — be the first!</p>
             )}
           </div>
@@ -175,23 +181,24 @@ export function QuorumRing({ current, target, responses }: QuorumRingProps) {
                     <div key={sec.key} className="mb-5 last:mb-0">
                       <p className={`text-xs font-semibold ${sec.colorClass} mb-2.5`}>
                         {sec.emoji} {sec.label} ({sec.list.length})
+                        {sec.sublabel && <span className="font-normal text-muted-foreground ml-1">— {sec.sublabel}</span>}
                       </p>
                       <div className="space-y-2">
-                        {sec.list.map(r => (
+                        {sec.list.map(userId => (
                           <button
-                            key={r.userId}
+                            key={userId}
                             onClick={() => {
                               setSheetOpen(false);
-                              navigate(r.userId === 'u1' ? '/profile' : `/user/${r.userId}`);
+                              navigate(userId === 'u1' ? '/profile' : `/user/${userId}`);
                             }}
                             className="w-full flex items-center gap-3 py-1.5 active:scale-[0.98] transition-transform"
                           >
                             <span className={`w-9 h-9 rounded-full ${sec.bgClass} flex items-center justify-center text-lg`}>
-                              {getAvatar(r.userId)}
+                              {getAvatar(userId)}
                             </span>
-                            <span className="text-sm font-medium text-foreground flex-1">{getName(r.userId)}</span>
-                            {(() => {
-                              const sr = getShowRate(r.userId);
+                            <span className="text-sm font-medium text-foreground flex-1">{getName(userId)}</span>
+                            {sec.key !== 'no-response' && (() => {
+                              const sr = getShowRate(userId);
                               return <ShowRateBadge total={sr.total} showed={sr.showed} compact />;
                             })()}
                           </button>
@@ -201,7 +208,7 @@ export function QuorumRing({ current, target, responses }: QuorumRingProps) {
                   )
                 ))}
 
-                {isEmpty && (
+                {isEmpty && noResponseList.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-8">No one has responded yet</p>
                 )}
               </div>

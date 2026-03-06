@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -114,6 +114,47 @@ const LobDetail = () => {
   // Bail state
   const [showBailSheet, setShowBailSheet] = useState(false);
   const [hasBailed, setHasBailed] = useState(false);
+  const [autoExpiredMaybes, setAutoExpiredMaybes] = useState<string[]>([]);
+  const autoExpiryFired = useRef(false);
+
+  const getUserName = (userId: string) => users.find(u => u.id === userId)?.name || 'Unknown';
+
+  // Auto-expiry: move maybes to out after deadline + 30min grace
+  const GRACE_WINDOW_MS = 30 * 60 * 1000;
+  useEffect(() => {
+    if (!lob) return;
+    if (!lob.deadline || autoExpiryFired.current) return;
+    const deadlineMs = new Date(lob.deadline).getTime();
+    const expiryMs = deadlineMs + GRACE_WINDOW_MS;
+    const now = Date.now();
+
+    const expireMaybes = () => {
+      autoExpiryFired.current = true;
+      const maybes = lob.responses.filter(r => r.response === 'maybe');
+      if (maybes.length > 0) {
+        setAutoExpiredMaybes(maybes.map(r => r.userId));
+        const sysComments = maybes.map(r => ({
+          id: `c-autoexpiry-${r.userId}-${Date.now()}`,
+          userId: r.userId,
+          message: `${getUserName(r.userId)} was moved to Out after the deadline passed.`,
+          createdAt: new Date().toISOString(),
+        }));
+        setComments(prev => [...prev, ...sysComments]);
+        if (myResponse === 'maybe') {
+          setMyResponse('out');
+          toast('You were moved to Out — the deadline has passed.', { icon: '⏰' });
+        }
+      }
+    };
+
+    if (now >= expiryMs) {
+      expireMaybes();
+      return;
+    }
+
+    const timeout = setTimeout(expireMaybes, expiryMs - now);
+    return () => clearTimeout(timeout);
+  }, [lob?.deadline, lob?.responses, myResponse]);
 
   if (!lob) {
     return (
@@ -131,12 +172,16 @@ const LobDetail = () => {
   const group = groups.find(g => g.id === lob.groupId);
   const isCreator = lob.createdBy === 'u1';
   const inList = lob.responses.filter(r => r.response === 'in');
+  const maybeList = lob.responses.filter(r => r.response === 'maybe');
+  // Maybe does NOT count toward quorum — only 'in' does
   const inCount = myResponse === 'in' ? inList.length + (inList.find(r => r.userId === 'u1') ? 0 : 1) : inList.length;
   const quorumReached = inCount >= lob.quorum;
 
   const respondedUserIds = lob.responses.map(r => r.userId);
   const groupMembers = group?.members || [];
-  const unrespondedCount = groupMembers.filter(m => !respondedUserIds.includes(m.id)).length;
+  const unrespondedMembers = groupMembers.filter(m => !respondedUserIds.includes(m.id));
+  const unrespondedCount = unrespondedMembers.length;
+  const maybeCount = maybeList.length;
 
   const timeStr = overriddenTime || lob.selectedTime || lob.timeOptions[0]?.datetime;
   const parsedDate = timeStr ? new Date(timeStr) : null;
@@ -160,18 +205,26 @@ const LobDetail = () => {
     toast.success('Date updated!');
   };
 
-  const getUserName = (userId: string) => users.find(u => u.id === userId)?.name || 'Unknown';
   const getUserAvatar = (userId: string) => users.find(u => u.id === userId)?.avatar || '👤';
 
   const canNudge = !lastNudgeTime || (Date.now() - lastNudgeTime > 2 * 60 * 60 * 1000);
 
-  const handleNudge = () => {
+  const handleNudgeMaybes = () => {
     if (!canNudge) {
       toast.error('You can nudge again in 2 hours');
       return;
     }
     setLastNudgeTime(Date.now());
-    toast.success(`Nudged ${unrespondedCount} people!`);
+    toast.success(`Nudged ${maybeCount} maybe${maybeCount !== 1 ? 's' : ''} — "Are you in or out?"`);
+  };
+
+  const handleNudgeNonResponders = () => {
+    if (!canNudge) {
+      toast.error('You can nudge again in 2 hours');
+      return;
+    }
+    setLastNudgeTime(Date.now());
+    toast.success(`Nudged ${unrespondedCount} who haven't responded yet`);
   };
 
   const handleAddComment = () => {
@@ -484,7 +537,9 @@ const LobDetail = () => {
                 <Users className="w-6 h-6 text-primary" />
                 <div>
                   <p className="font-bold text-foreground text-sm">Waiting on {lob.quorum - inCount} more</p>
-                  <p className="text-xs text-muted-foreground">{inCount} of {lob.quorum} needed</p>
+                  <p className="text-xs text-muted-foreground">
+                    {inCount} in · {maybeCount} maybe · {unrespondedCount} no response
+                  </p>
                 </div>
               </>
             )}
@@ -503,22 +558,34 @@ const LobDetail = () => {
           </motion.div>
         )}
 
-        {/* Nudge button (creator only) */}
-        {isCreator && effectiveStatus === 'voting' && unrespondedCount > 0 && (
+        {/* Nudge buttons (creator only) — separate for maybes and non-responders */}
+        {isCreator && effectiveStatus === 'voting' && (maybeCount > 0 || unrespondedCount > 0) && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.17 }}
-            className="mb-4"
+            className="mb-4 space-y-2"
           >
-            <button
-              onClick={handleNudge}
-              disabled={!canNudge}
-              className="w-full py-3 rounded-xl bg-primary/10 border border-primary/30 text-primary font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-40 transition-opacity hover:bg-primary/15"
-            >
-              <Bell className="w-4 h-4" />
-              Nudge {unrespondedCount}
-            </button>
+            {maybeCount > 0 && (
+              <button
+                onClick={handleNudgeMaybes}
+                disabled={!canNudge}
+                className="w-full py-3 rounded-xl bg-lob-maybe/10 border border-lob-maybe/30 text-lob-maybe font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-40 transition-opacity hover:bg-lob-maybe/15"
+              >
+                <Bell className="w-4 h-4" />
+                Nudge {maybeCount} maybe{maybeCount !== 1 ? 's' : ''} — "In or out?"
+              </button>
+            )}
+            {unrespondedCount > 0 && (
+              <button
+                onClick={handleNudgeNonResponders}
+                disabled={!canNudge}
+                className="w-full py-3 rounded-xl bg-primary/10 border border-primary/30 text-primary font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-40 transition-opacity hover:bg-primary/15"
+              >
+                <Bell className="w-4 h-4" />
+                Nudge {unrespondedCount} non-responder{unrespondedCount !== 1 ? 's' : ''}
+              </button>
+            )}
           </motion.div>
         )}
 
@@ -561,16 +628,19 @@ const LobDetail = () => {
           className="gradient-card rounded-2xl p-5 border border-border/50 shadow-card mb-4"
         >
           <p className="text-xs font-semibold text-muted-foreground mb-4">ATTENDANCE</p>
-          <QuorumRing current={inCount} target={lob.quorum} responses={lob.responses} />
+          <QuorumRing current={inCount} target={lob.quorum} responses={lob.responses} groupMembers={groupMembers} />
         </motion.div>
 
         {/* Deadline Countdown */}
         {lob.deadline && effectiveStatus === 'voting' && (
-          <DeadlineCountdown
-            deadline={lob.deadline}
-            isCreator={isCreator}
-            quorumReached={quorumReached}
-          />
+          <div className="mb-4">
+            <DeadlineCountdown
+              deadline={lob.deadline}
+              isCreator={isCreator}
+              quorumReached={quorumReached}
+              isMaybe={myResponse === 'maybe'}
+            />
+          </div>
         )}
 
         {/* Open Invite Section */}
