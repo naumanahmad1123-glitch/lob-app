@@ -249,6 +249,22 @@ export const lobs: Lob[] = [
   },
 ];
 
+// Historical lobs for u1 — used by Lobster Suggests to derive patterns
+export const lobHistory: Lob[] = [
+  // Hoops on Saturday mornings (pattern: Saturday morning)
+  { id: 'h1', title: 'Saturday Hoops', category: 'sports', groupId: 'g1', groupName: 'Hoop Squad', createdBy: 'u1', location: 'Sunset Park Courts', timeOptions: [{ id: 'th1', datetime: '2026-02-08T10:00', votes: ['u1','u2'] }], quorum: 6, status: 'completed', responses: [{ userId: 'u1', response: 'in' }], createdAt: '2026-02-06T10:00' },
+  { id: 'h2', title: 'Saturday Hoops', category: 'sports', groupId: 'g1', groupName: 'Hoop Squad', createdBy: 'u1', location: 'Sunset Park Courts', timeOptions: [{ id: 'th2', datetime: '2026-02-15T10:30', votes: ['u1','u4'] }], quorum: 6, status: 'completed', responses: [{ userId: 'u1', response: 'in' }], createdAt: '2026-02-13T10:00' },
+  { id: 'h3', title: 'Saturday Hoops', category: 'sports', groupId: 'g1', groupName: 'Hoop Squad', createdBy: 'u1', location: 'Sunset Park Courts', timeOptions: [{ id: 'th3', datetime: '2026-02-22T09:30', votes: ['u1','u2','u4'] }], quorum: 6, status: 'completed', responses: [{ userId: 'u1', response: 'in' }], createdAt: '2026-02-20T10:00' },
+  // Coffee on weekday mornings (pattern: various days, morning — no single day pattern)
+  { id: 'h4', title: 'Coffee', category: 'coffee', groupId: 'g3', groupName: 'Coffee Crew', createdBy: 'u1', location: 'Blue Bottle', timeOptions: [{ id: 'th4', datetime: '2026-02-10T08:30', votes: ['u1'] }], quorum: 2, status: 'completed', responses: [{ userId: 'u1', response: 'in' }], createdAt: '2026-02-09T10:00' },
+  { id: 'h5', title: 'Coffee', category: 'coffee', groupId: 'g3', groupName: 'Coffee Crew', createdBy: 'u1', location: 'Blue Bottle', timeOptions: [{ id: 'th5', datetime: '2026-02-18T09:00', votes: ['u1'] }], quorum: 2, status: 'completed', responses: [{ userId: 'u1', response: 'in' }], createdAt: '2026-02-17T10:00' },
+  { id: 'h6', title: 'Coffee', category: 'coffee', groupId: 'g3', groupName: 'Coffee Crew', createdBy: 'u1', location: 'Blue Bottle', timeOptions: [{ id: 'th6', datetime: '2026-02-25T08:00', votes: ['u1','u6'] }], quorum: 2, status: 'completed', responses: [{ userId: 'u1', response: 'in' }], createdAt: '2026-02-24T10:00' },
+  // Dinner on Thursday evenings (pattern: Thursday evening)
+  { id: 'h7', title: 'Dinner', category: 'dinner', groupId: 'g2', groupName: 'Dinner Club', createdBy: 'u1', location: 'Nobu', timeOptions: [{ id: 'th7', datetime: '2026-02-06T19:30', votes: ['u1','u5'] }], quorum: 3, status: 'completed', responses: [{ userId: 'u1', response: 'in' }], createdAt: '2026-02-04T10:00' },
+  { id: 'h8', title: 'Dinner', category: 'dinner', groupId: 'g2', groupName: 'Dinner Club', createdBy: 'u1', location: 'The Smith', timeOptions: [{ id: 'th8', datetime: '2026-02-13T20:00', votes: ['u1','u2'] }], quorum: 3, status: 'completed', responses: [{ userId: 'u1', response: 'in' }], createdAt: '2026-02-11T10:00' },
+  { id: 'h9', title: 'Dinner', category: 'dinner', groupId: 'g2', groupName: 'Dinner Club', createdBy: 'u1', location: 'Carbone', timeOptions: [{ id: 'th9', datetime: '2026-02-20T19:00', votes: ['u1','u5','u7'] }], quorum: 3, status: 'completed', responses: [{ userId: 'u1', response: 'in' }], createdAt: '2026-02-18T10:00' },
+];
+
 export const trips: Trip[] = [
   {
     id: 'trip1',
@@ -280,8 +296,4 @@ export const calendarShares: CalendarShare[] = [
   { id: 'cs3', ownerId: 'u1', targetType: 'group', targetId: 'g1', privacy: 'free-busy' },
 ];
 
-export const suggestedLobs = [
-  { title: 'Saturday Gym Session', category: 'gym' as const, emoji: '💪', time: 'Sat 10am' },
-  { title: 'Weekend Brunch', category: 'dinner' as const, emoji: '🥞', time: 'Sun 11am' },
-  { title: 'Pickup Soccer', category: 'sports' as const, emoji: '⚽', time: 'Sun 4pm' },
-];
+// suggestedLobs removed — Lobster Suggests now derives from user history via useLobsterSuggests hook
