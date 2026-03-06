@@ -19,7 +19,7 @@ const Trips = () => {
   const createdLobs = useCreatedLobs();
   const createdTrips = useCreatedTrips();
   const [showAddTrip, setShowAddTrip] = useState(false);
-  const [newTrip, setNewTrip] = useState({ city: '', country: '', startDate: '', endDate: '', showOnProfile: true });
+  const [showGroupTrip, setShowGroupTrip] = useState(false);
 
   const groupTripLobs = useMemo(
     () => [
