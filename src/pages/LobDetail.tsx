@@ -431,6 +431,13 @@ const LobDetail = () => {
           )}
         </motion.div>
 
+        {/* Trip Planning Section (dates-open / fully-open) */}
+        {showTripPlanning && (
+          <div className="mb-4">
+            <TripPlanningSection lob={lob} isCreator={isCreator} onLockIn={handleLockIn} />
+          </div>
+        )}
+
         {/* Details */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
