@@ -131,12 +131,16 @@ const LobDetail = () => {
   const group = groups.find(g => g.id === lob.groupId);
   const isCreator = lob.createdBy === 'u1';
   const inList = lob.responses.filter(r => r.response === 'in');
+  const maybeList = lob.responses.filter(r => r.response === 'maybe');
+  // Maybe does NOT count toward quorum — only 'in' does
   const inCount = myResponse === 'in' ? inList.length + (inList.find(r => r.userId === 'u1') ? 0 : 1) : inList.length;
   const quorumReached = inCount >= lob.quorum;
 
   const respondedUserIds = lob.responses.map(r => r.userId);
   const groupMembers = group?.members || [];
-  const unrespondedCount = groupMembers.filter(m => !respondedUserIds.includes(m.id)).length;
+  const unrespondedMembers = groupMembers.filter(m => !respondedUserIds.includes(m.id));
+  const unrespondedCount = unrespondedMembers.length;
+  const maybeCount = maybeList.length;
 
   const timeStr = overriddenTime || lob.selectedTime || lob.timeOptions[0]?.datetime;
   const parsedDate = timeStr ? new Date(timeStr) : null;
@@ -165,13 +169,22 @@ const LobDetail = () => {
 
   const canNudge = !lastNudgeTime || (Date.now() - lastNudgeTime > 2 * 60 * 60 * 1000);
 
-  const handleNudge = () => {
+  const handleNudgeMaybes = () => {
     if (!canNudge) {
       toast.error('You can nudge again in 2 hours');
       return;
     }
     setLastNudgeTime(Date.now());
-    toast.success(`Nudged ${unrespondedCount} people!`);
+    toast.success(`Nudged ${maybeCount} maybe${maybeCount !== 1 ? 's' : ''} — "Are you in or out?"`);
+  };
+
+  const handleNudgeNonResponders = () => {
+    if (!canNudge) {
+      toast.error('You can nudge again in 2 hours');
+      return;
+    }
+    setLastNudgeTime(Date.now());
+    toast.success(`Nudged ${unrespondedCount} who haven't responded yet`);
   };
 
   const handleAddComment = () => {
