@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plane, Plus, ChevronRight, Sparkles, Globe, Lock, MapPin, X, ArrowLeft, Users } from 'lucide-react';
+import { Plane, Plus, ChevronRight, Sparkles, Globe, Lock, MapPin, X, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useComposer } from '@/hooks/useComposer';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -9,14 +9,16 @@ import { TappableAvatar } from '@/components/TappableAvatar';
 import { LobCard } from '@/components/lob/LobCard';
 import { GroupTripComposer } from '@/components/trips/GroupTripComposer';
 import { useCreatedLobs } from '@/hooks/useCreatedLobs';
+import { useCreatedTrips } from '@/hooks/useCreatedTrips';
+import { tripStore } from '@/stores/tripStore';
 import { toast } from 'sonner';
 
 const Trips = () => {
   const navigate = useNavigate();
   const { openComposer } = useComposer();
   const createdLobs = useCreatedLobs();
+  const createdTrips = useCreatedTrips();
   const [showAddTrip, setShowAddTrip] = useState(false);
-  const [showGroupTrip, setShowGroupTrip] = useState(false);
   const [newTrip, setNewTrip] = useState({ city: '', country: '', startDate: '', endDate: '', showOnProfile: true });
 
   const groupTripLobs = useMemo(
