@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useComposer } from '@/hooks/useComposer';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Sparkles, MapPin } from 'lucide-react';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { trips, users, currentUser } from '@/data/seed';
 import { TappableAvatar } from '@/components/TappableAvatar';
 
@@ -13,9 +14,11 @@ const FriendTripDetail = () => {
 
   if (!trip) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Trip not found</p>
-      </div>
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <p className="text-muted-foreground">Trip not found</p>
+        </div>
+      </AppLayout>
     );
   }
 
@@ -31,7 +34,7 @@ const FriendTripDetail = () => {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <AppLayout>
       <div className="max-w-lg mx-auto px-4">
         {/* Header */}
         <div className="flex items-center pt-12 pb-4">
@@ -90,7 +93,7 @@ const FriendTripDetail = () => {
           </div>
         </motion.div>
       </div>
-    </div>
+    </AppLayout>
   );
 };
 

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plane, Plus, ChevronRight, Sparkles, Globe, Lock, MapPin, X, ArrowLeft, Users } from 'lucide-react';
+import { Plane, Plus, ChevronRight, Sparkles, Globe, Lock, MapPin, X, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useComposer } from '@/hooks/useComposer';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -9,12 +9,15 @@ import { TappableAvatar } from '@/components/TappableAvatar';
 import { LobCard } from '@/components/lob/LobCard';
 import { GroupTripComposer } from '@/components/trips/GroupTripComposer';
 import { useCreatedLobs } from '@/hooks/useCreatedLobs';
+import { useCreatedTrips } from '@/hooks/useCreatedTrips';
+import { tripStore } from '@/stores/tripStore';
 import { toast } from 'sonner';
 
 const Trips = () => {
   const navigate = useNavigate();
   const { openComposer } = useComposer();
   const createdLobs = useCreatedLobs();
+  const createdTrips = useCreatedTrips();
   const [showAddTrip, setShowAddTrip] = useState(false);
   const [showGroupTrip, setShowGroupTrip] = useState(false);
   const [newTrip, setNewTrip] = useState({ city: '', country: '', startDate: '', endDate: '', showOnProfile: true });
@@ -27,11 +30,14 @@ const Trips = () => {
     [createdLobs]
   );
 
-  const myTrips = seedTrips.filter(t => t.userId === currentUser.id);
+  const allMyTrips = useMemo(() => [
+    ...seedTrips.filter(t => t.userId === currentUser.id),
+    ...createdTrips,
+  ], [createdTrips]);
   const friendTrips = seedTrips.filter(t => t.userId !== currentUser.id && t.notifyUserIds.includes(currentUser.id));
 
   // Detect city overlaps
-  const myTripDates = myTrips.filter(t => t.showOnProfile);
+  const myTripDates = allMyTrips.filter(t => t.showOnProfile);
   const allVisibleFriendTrips = seedTrips.filter(t => t.userId !== currentUser.id && t.showOnProfile);
 
   const overlappingTrips = allVisibleFriendTrips.filter(ft => {
@@ -49,6 +55,18 @@ const Trips = () => {
       toast.error('Please fill in city, start and end dates');
       return;
     }
+    const trip = {
+      id: `trip-${Date.now()}`,
+      userId: currentUser.id,
+      city: newTrip.city,
+      country: newTrip.country || '',
+      emoji: '✈️',
+      startDate: newTrip.startDate,
+      endDate: newTrip.endDate,
+      notifyUserIds: [] as string[],
+      showOnProfile: newTrip.showOnProfile,
+    };
+    tripStore.addTrip(trip);
     toast.success(`Trip to ${newTrip.city} added!`);
     setShowAddTrip(false);
     setNewTrip({ city: '', country: '', startDate: '', endDate: '', showOnProfile: true });
@@ -189,9 +207,9 @@ const Trips = () => {
         {/* Your Trips */}
         <section className="mb-8">
           <h2 className="text-base font-bold text-foreground mb-3">Your Trips</h2>
-          {myTrips.length > 0 ? (
+          {allMyTrips.length > 0 ? (
             <div className="space-y-3">
-              {myTrips.map((trip, i) => {
+              {allMyTrips.map((trip, i) => {
                 const notifiedUsers = users.filter(u => trip.notifyUserIds.includes(u.id));
                 return (
                   <motion.button
