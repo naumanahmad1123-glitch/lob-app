@@ -15,7 +15,6 @@ export interface User {
   avatar: string;
   interests: string[];
   city?: string;
-  isPro?: boolean;
 }
 
 export interface Group {
