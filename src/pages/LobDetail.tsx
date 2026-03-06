@@ -309,6 +309,14 @@ const LobDetail = () => {
 
   const effectiveStatus = isCancelled ? 'cancelled' : lob.status;
 
+  const isGroupTrip = lob.category === 'group-trip';
+  const showTripPlanning = isGroupTrip && lob.tripPlanningPhase && lob.tripPlanningPhase !== 'confirmed';
+
+  const handleLockIn = (destination: string, startDate: string, endDate: string) => {
+    // In a real app this would update the lob via store/API
+    toast.success(`Trip locked in: ${destination}, ${new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} 🎉`);
+  };
+
   return (
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
