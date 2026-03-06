@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, ChevronRight, Bell, Calendar, Shield, Crown, LogOut, Plane, Users, HelpCircle, Eye, EyeOff, User, X } from 'lucide-react';
+import { Settings, ChevronRight, Bell, Calendar, Shield, LogOut, Plane, Users, HelpCircle, Eye, EyeOff, User, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { currentUser, trips, calendarShares, users, groups } from '@/data/seed';
@@ -50,7 +50,6 @@ const Profile = () => {
     { icon: Bell, label: 'Notifications', desc: 'Manage alerts' },
     { icon: Calendar, label: 'Calendar Sync', desc: 'Connect calendars' },
     { icon: Shield, label: 'Privacy', desc: 'Control your data' },
-    { icon: Crown, label: 'Upgrade to Pro', desc: 'Unlock advanced features', highlight: true },
   ];
 
   return (
@@ -306,15 +305,11 @@ const Profile = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 + i * 0.05 }}
                 onClick={() => handleMenuTap(item.label)}
-                className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all ${
-                  item.highlight
-                    ? 'border-primary/50 bg-primary/5'
-                    : 'border-border bg-card hover:bg-secondary'
-                }`}
+                className="w-full flex items-center gap-3 p-4 rounded-xl border transition-all border-border bg-card hover:bg-secondary"
               >
-                <Icon className={`w-5 h-5 ${item.highlight ? 'text-primary' : 'text-muted-foreground'}`} />
+                <Icon className="w-5 h-5 text-muted-foreground" />
                 <div className="flex-1 text-left">
-                  <p className={`text-sm font-semibold ${item.highlight ? 'text-primary' : 'text-foreground'}`}>{item.label}</p>
+                  <p className="text-sm font-semibold text-foreground">{item.label}</p>
                   <p className="text-xs text-muted-foreground">{item.desc}</p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
