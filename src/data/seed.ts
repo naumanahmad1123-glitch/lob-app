@@ -224,6 +224,29 @@ export const lobs: Lob[] = [
     ],
     createdAt: '2026-03-02T16:00',
   },
+  {
+    id: 'l9',
+    title: 'Lisbon Summer Trip',
+    category: 'group-trip',
+    createdBy: 'u1',
+    groupId: 'g1',
+    groupName: 'Hoop Squad',
+    tripStartDate: '2026-07-10',
+    tripEndDate: '2026-07-17',
+    location: 'Lisbon, Portugal',
+    timeOptions: [
+      { id: 't11', datetime: '2026-07-10T12:00', votes: ['u1', 'u2', 'u4'] },
+    ],
+    quorum: 4,
+    status: 'voting',
+    responses: [
+      { userId: 'u1', response: 'in' },
+      { userId: 'u2', response: 'in' },
+      { userId: 'u4', response: 'in' },
+      { userId: 'u5', response: 'maybe' },
+    ],
+    createdAt: '2026-03-03T10:00',
+  },
 ];
 
 export const trips: Trip[] = [
