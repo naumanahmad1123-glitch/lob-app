@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { MapPin, Clock, ChevronRight, Repeat, Crown, CalendarRange, Globe, Users } from 'lucide-react';
+import { MapPin, Clock, ChevronRight, Repeat, Crown, CalendarRange, Globe, Users, HelpCircle, Navigation } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Lob, CATEGORY_CONFIG, RECURRENCE_OPTIONS, FLEXIBLE_WINDOW_OPTIONS } from '@/data/types';
 import { currentUser } from '@/data/seed';
@@ -9,6 +9,24 @@ import { StatusPill } from './StatusPill';
 interface LobCardProps {
   lob: Lob;
   index?: number;
+}
+
+function getTripPhaseLabel(lob: Lob): { label: string; color: string } {
+  const phase = lob.tripPlanningPhase;
+  if (phase === 'voting-destination') return { label: '🗺️ Voting on destination', color: 'text-lob-maybe' };
+  if (phase === 'voting-dates') return { label: '📅 Voting on dates', color: 'text-primary' };
+  if (phase === 'confirmed' && lob.tripStartDate && lob.tripEndDate) {
+    const start = new Date(lob.tripStartDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const end = new Date(lob.tripEndDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return { label: `✅ Confirmed: ${start} – ${end}`, color: 'text-lob-confirmed' };
+  }
+  // Fallback for legacy data
+  if (lob.tripStartDate && lob.tripEndDate) {
+    const start = new Date(lob.tripStartDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const end = new Date(lob.tripEndDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return { label: `${start} – ${end}`, color: 'text-muted-foreground' };
+  }
+  return { label: 'Dates TBD', color: 'text-muted-foreground' };
 }
 
 export function LobCard({ lob, index = 0 }: LobCardProps) {
@@ -36,12 +54,10 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
     ? RECURRENCE_OPTIONS.find(r => r.key === lob.recurrence)?.label
     : null;
 
-  // Group Trip date range display
-  const tripDateRange = isGroupTrip && lob.tripStartDate && lob.tripEndDate
-    ? `${new Date(lob.tripStartDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(lob.tripEndDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-    : null;
-
   if (isGroupTrip) {
+    const phaseInfo = getTripPhaseLabel(lob);
+    const modeIcon = lob.tripPlanningMode === 'fully-open' ? '🌐' : lob.tripPlanningMode === 'dates-open' ? '📅' : '✈️';
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 12 }}
@@ -59,7 +75,7 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-2.5">
             <div className="relative w-10 h-10 rounded-xl gradient-primary flex items-center justify-center text-lg">
-              🌍
+              {modeIcon}
               {isYours && (
                 <Crown className="absolute -top-1.5 -right-1.5 w-3 h-3 text-primary fill-primary" />
               )}
@@ -84,16 +100,21 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
           <StatusPill status={lob.status} />
         </div>
 
+        {/* Phase status */}
+        <div className={`text-xs font-semibold ${phaseInfo.color} mb-2`}>
+          {phaseInfo.label}
+        </div>
+
         <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
-          {tripDateRange ? (
-            <span className="flex items-center gap-1">
-              <CalendarRange className="w-3.5 h-3.5 text-primary/60" />
-              {tripDateRange}
-            </span>
-          ) : (
+          {lob.tripTimeframe && (
             <span className="flex items-center gap-1">
               <CalendarRange className="w-3.5 h-3.5" />
-              Dates TBD
+              {lob.tripTimeframe}
+            </span>
+          )}
+          {lob.tripVibes && lob.tripVibes.length > 0 && (
+            <span className="flex items-center gap-1">
+              {lob.tripVibes.map(v => VIBE_EMOJIS[v] || '🏖️').join(' ')}
             </span>
           )}
           <span className="flex items-center gap-1">
@@ -101,6 +122,32 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
             {inCount}/{lob.quorum} in
           </span>
         </div>
+
+        {/* Destination voting progress */}
+        {lob.tripPlanningPhase === 'voting-destination' && lob.destinationOptions && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {lob.destinationOptions.map(d => (
+              <span key={d.id} className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-secondary/80 text-muted-foreground">
+                {d.name} · {d.votes.length}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Date voting progress */}
+        {lob.tripPlanningPhase === 'voting-dates' && lob.dateRangeOptions && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {lob.dateRangeOptions.map(dr => {
+              const s = new Date(dr.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              const e = new Date(dr.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              return (
+                <span key={dr.id} className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-secondary/80 text-muted-foreground">
+                  {s}–{e} · {dr.votes.length}
+                </span>
+              );
+            })}
+          </div>
+        )}
 
         <div className="flex items-center justify-between">
           <QuorumBar current={inCount} target={lob.quorum} />
@@ -167,3 +214,12 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
     </motion.div>
   );
 }
+
+const VIBE_EMOJIS: Record<string, string> = {
+  beach: '🏖️',
+  city: '🏙️',
+  adventure: '🧗',
+  ski: '⛷️',
+  cultural: '🏛️',
+  roadtrip: '🚗',
+};
