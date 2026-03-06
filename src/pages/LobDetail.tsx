@@ -244,6 +244,58 @@ const LobDetail = () => {
   };
 
   const deadlinePassed = lob.deadline ? new Date(lob.deadline).getTime() < Date.now() : false;
+  const GRACE_WINDOW_MS = 30 * 60 * 1000; // 30 minutes after deadline
+
+  // Auto-expiry: move maybes to out after deadline + 30min grace
+  useEffect(() => {
+    if (!lob.deadline || autoExpiryFired.current) return;
+    const deadlineMs = new Date(lob.deadline).getTime();
+    const expiryMs = deadlineMs + GRACE_WINDOW_MS;
+    const now = Date.now();
+
+    if (now >= expiryMs) {
+      // Already past grace — expire immediately
+      autoExpiryFired.current = true;
+      const maybes = lob.responses.filter(r => r.response === 'maybe');
+      if (maybes.length > 0) {
+        setAutoExpiredMaybes(maybes.map(r => r.userId));
+        const sysComments = maybes.map(r => ({
+          id: `c-autoexpiry-${r.userId}-${Date.now()}`,
+          userId: r.userId,
+          message: `${getUserName(r.userId)} was moved to Out after the deadline passed.`,
+          createdAt: new Date().toISOString(),
+        }));
+        setComments(prev => [...prev, ...sysComments]);
+        // If current user was maybe, move them to out
+        if (myResponse === 'maybe') {
+          setMyResponse('out');
+        }
+      }
+      return;
+    }
+
+    // Schedule for the future
+    const timeout = setTimeout(() => {
+      autoExpiryFired.current = true;
+      const maybes = lob.responses.filter(r => r.response === 'maybe');
+      if (maybes.length > 0) {
+        setAutoExpiredMaybes(maybes.map(r => r.userId));
+        const sysComments = maybes.map(r => ({
+          id: `c-autoexpiry-${r.userId}-${Date.now()}`,
+          userId: r.userId,
+          message: `${getUserName(r.userId)} was moved to Out after the deadline passed.`,
+          createdAt: new Date().toISOString(),
+        }));
+        setComments(prev => [...prev, ...sysComments]);
+        if (myResponse === 'maybe') {
+          setMyResponse('out');
+          toast('You were moved to Out — the deadline has passed.', { icon: '⏰' });
+        }
+      }
+    }, expiryMs - now);
+
+    return () => clearTimeout(timeout);
+  }, [lob.deadline, lob.responses, myResponse]);
 
   const handleBail = () => {
     setHasBailed(true);
