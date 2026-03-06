@@ -305,15 +305,11 @@ const Profile = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 + i * 0.05 }}
                 onClick={() => handleMenuTap(item.label)}
-                className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all ${
-                  item.highlight
-                    ? 'border-primary/50 bg-primary/5'
-                    : 'border-border bg-card hover:bg-secondary'
-                }`}
+                className="w-full flex items-center gap-3 p-4 rounded-xl border transition-all border-border bg-card hover:bg-secondary"
               >
-                <Icon className={`w-5 h-5 ${item.highlight ? 'text-primary' : 'text-muted-foreground'}`} />
+                <Icon className="w-5 h-5 text-muted-foreground" />
                 <div className="flex-1 text-left">
-                  <p className={`text-sm font-semibold ${item.highlight ? 'text-primary' : 'text-foreground'}`}>{item.label}</p>
+                  <p className="text-sm font-semibold text-foreground">{item.label}</p>
                   <p className="text-xs text-muted-foreground">{item.desc}</p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
