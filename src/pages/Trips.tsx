@@ -20,6 +20,7 @@ const Trips = () => {
   const createdTrips = useCreatedTrips();
   const [showAddTrip, setShowAddTrip] = useState(false);
   const [showGroupTrip, setShowGroupTrip] = useState(false);
+  const [newTrip, setNewTrip] = useState({ city: '', country: '', startDate: '', endDate: '', showOnProfile: true });
 
   const groupTripLobs = useMemo(
     () => [
@@ -29,11 +30,14 @@ const Trips = () => {
     [createdLobs]
   );
 
-  const myTrips = seedTrips.filter(t => t.userId === currentUser.id);
+  const allMyTrips = useMemo(() => [
+    ...seedTrips.filter(t => t.userId === currentUser.id),
+    ...createdTrips,
+  ], [createdTrips]);
   const friendTrips = seedTrips.filter(t => t.userId !== currentUser.id && t.notifyUserIds.includes(currentUser.id));
 
   // Detect city overlaps
-  const myTripDates = myTrips.filter(t => t.showOnProfile);
+  const myTripDates = allMyTrips.filter(t => t.showOnProfile);
   const allVisibleFriendTrips = seedTrips.filter(t => t.userId !== currentUser.id && t.showOnProfile);
 
   const overlappingTrips = allVisibleFriendTrips.filter(ft => {
@@ -51,6 +55,18 @@ const Trips = () => {
       toast.error('Please fill in city, start and end dates');
       return;
     }
+    const trip = {
+      id: `trip-${Date.now()}`,
+      userId: currentUser.id,
+      city: newTrip.city,
+      country: newTrip.country || '',
+      emoji: '✈️',
+      startDate: newTrip.startDate,
+      endDate: newTrip.endDate,
+      notifyUserIds: [] as string[],
+      showOnProfile: newTrip.showOnProfile,
+    };
+    tripStore.addTrip(trip);
     toast.success(`Trip to ${newTrip.city} added!`);
     setShowAddTrip(false);
     setNewTrip({ city: '', country: '', startDate: '', endDate: '', showOnProfile: true });
