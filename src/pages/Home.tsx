@@ -4,9 +4,10 @@ import { Sparkles, Bell, List, CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LobCard } from '@/components/lob/LobCard';
-import { lobs as seedLobs, suggestedLobs } from '@/data/seed';
-import { CATEGORY_CONFIG } from '@/data/types';
+import { lobs as seedLobs, lobHistory, currentUser } from '@/data/seed';
 import { useCreatedLobs } from '@/hooks/useCreatedLobs';
+import { useLobsterSuggests } from '@/hooks/useLobsterSuggests';
+import { useComposer } from '@/hooks/useComposer';
 
 type ViewMode = 'feed' | 'calendar';
 
@@ -23,8 +24,11 @@ function getCalendarDays(year: number, month: number) {
 
 const Home = () => {
   const navigate = useNavigate();
+  const { openComposer } = useComposer();
   const createdLobs = useCreatedLobs();
   const allLobs = useMemo(() => [...createdLobs, ...seedLobs], [createdLobs]);
+  const allLobsWithHistory = useMemo(() => [...allLobs, ...lobHistory], [allLobs]);
+  const suggestions = useLobsterSuggests(allLobsWithHistory, currentUser.id);
   const [view, setView] = useState<ViewMode>('feed');
   const [calMonth, setCalMonth] = useState(() => {
     const now = new Date();
@@ -142,28 +146,33 @@ const Home = () => {
                 </section>
               )}
 
-              {/* AI Suggestions */}
-              <section className="mb-8">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <h2 className="text-base font-bold text-foreground">Lobster Suggests</h2>
-                </div>
-                <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-                  {suggestedLobs.map((s, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.3 + i * 0.1 }}
-                      className="min-w-[160px] gradient-card border border-border/50 rounded-2xl p-4 shadow-card cursor-pointer active:scale-[0.97] transition-transform"
-                    >
-                      <span className="text-2xl">{s.emoji}</span>
-                      <p className="text-sm font-semibold text-foreground mt-2 leading-tight">{s.title}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{s.time}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </section>
+              {/* AI Suggestions — only shown when there's enough history */}
+              {suggestions.length > 0 && (
+                <section className="mb-8">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    <h2 className="text-base font-bold text-foreground">Lobster Suggests</h2>
+                  </div>
+                  <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+                    {suggestions.map((s, i) => (
+                      <motion.div
+                        key={`${s.category}-${i}`}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3 + i * 0.1 }}
+                        onClick={() => openComposer({ prefillText: s.title })}
+                        className="min-w-[160px] gradient-card border border-border/50 rounded-2xl p-4 shadow-card cursor-pointer active:scale-[0.97] transition-transform"
+                      >
+                        <span className="text-2xl">{s.emoji}</span>
+                        <p className="text-sm font-semibold text-foreground mt-2 leading-tight">{s.title}</p>
+                        {s.timeHint && (
+                          <p className="text-xs text-muted-foreground mt-1">{s.timeHint}</p>
+                        )}
+                      </motion.div>
+                    ))}
+                  </div>
+                </section>
+              )}
             </motion.div>
           ) : (
             <motion.div

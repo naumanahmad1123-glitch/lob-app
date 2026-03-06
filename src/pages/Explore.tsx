@@ -1,28 +1,25 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Compass, Filter } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { suggestedLobs } from '@/data/seed';
+import { lobs as seedLobs, lobHistory, currentUser } from '@/data/seed';
 import { CATEGORY_CONFIG, LobCategory } from '@/data/types';
-import { LobComposer } from '@/components/lob/LobComposer';
-import { LobSentToast } from '@/components/lob/LobSentToast';
+import { useComposer } from '@/hooks/useComposer';
+import { useCreatedLobs } from '@/hooks/useCreatedLobs';
+import { useLobsterSuggests } from '@/hooks/useLobsterSuggests';
 
 const categories = Object.entries(CATEGORY_CONFIG) as [LobCategory, typeof CATEGORY_CONFIG[LobCategory]][];
 
 const Explore = () => {
   const [activeCategory, setActiveCategory] = useState<LobCategory | null>(null);
-  const [composerOpen, setComposerOpen] = useState(false);
-  const [prefillText, setPrefillText] = useState('');
-  const [showToast, setShowToast] = useState(false);
+  const { openComposer } = useComposer();
+  const createdLobs = useCreatedLobs();
+  const allLobs = useMemo(() => [...createdLobs, ...seedLobs, ...lobHistory], [createdLobs]);
+  const suggestions = useLobsterSuggests(allLobs, currentUser.id);
 
   const filtered = activeCategory
-    ? suggestedLobs.filter(s => s.category === activeCategory)
-    : suggestedLobs;
-
-  const handleSuggestionTap = (title: string) => {
-    setPrefillText(title);
-    setComposerOpen(true);
-  };
+    ? suggestions.filter(s => s.category === activeCategory)
+    : suggestions;
 
   return (
     <AppLayout>
@@ -57,7 +54,7 @@ const Explore = () => {
           </div>
         </section>
 
-        {/* AI Suggestions */}
+        {/* Suggestions from history */}
         <section className="mb-8">
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="w-4 h-4 text-primary" />
@@ -74,24 +71,28 @@ const Explore = () => {
           <div className="space-y-3">
             {filtered.length > 0 ? filtered.map((s, i) => (
               <motion.button
-                key={i}
+                key={`${s.category}-${i}`}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.08 }}
-                onClick={() => handleSuggestionTap(s.title)}
+                onClick={() => openComposer({ prefillText: s.title })}
                 className="w-full text-left gradient-card rounded-2xl p-4 border border-border/50 shadow-card active:scale-[0.98] transition-transform"
               >
                 <div className="flex items-center gap-3">
                   <span className="text-3xl">{s.emoji}</span>
                   <div>
                     <p className="font-semibold text-foreground text-sm">{s.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{s.time} · Tap to lob it</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {s.timeHint ? `${s.timeHint} · ` : ''}Tap to lob it
+                    </p>
                   </div>
                 </div>
               </motion.button>
             )) : (
               <div className="text-center py-8 text-muted-foreground text-sm">
-                No suggestions for this category yet
+                {suggestions.length === 0
+                  ? 'Create a few more lobs to unlock personalized suggestions'
+                  : 'No suggestions for this category yet'}
               </div>
             )}
           </div>
@@ -110,15 +111,6 @@ const Explore = () => {
           </div>
         </section>
       </div>
-
-      {/* Inline composer for prefill from suggestions */}
-      <LobComposer
-        open={composerOpen}
-        onClose={() => { setComposerOpen(false); setPrefillText(''); }}
-        onLobSent={() => { setShowToast(true); setTimeout(() => setShowToast(false), 2500); }}
-        prefillText={prefillText}
-      />
-      <LobSentToast show={showToast} />
     </AppLayout>
   );
 };
