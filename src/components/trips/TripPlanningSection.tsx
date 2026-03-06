@@ -52,7 +52,7 @@ export function TripPlanningSection({ lob, isCreator, onLockIn }: TripPlanningSe
   const [tripComments, setTripComments] = useState<TripComment[]>([
     ...(isFullyOpen ? [
       { id: 'tc1', userId: 'u2', message: 'I was thinking somewhere warm — beach vibes for sure 🌴', createdAt: '2026-03-04T15:00' },
-      { id: 'tc2', userId: 'u4', message: 'Bali has been on my list forever. Also super affordable once you're there', createdAt: '2026-03-04T16:30' },
+      { id: 'tc2', userId: 'u4', message: 'Bali has been on my list forever. Also super affordable once you are there', createdAt: '2026-03-04T16:30' },
       { id: 'tc3', userId: 'u1', message: 'Down for Bali or Costa Rica. Both hit the adventure + beach vibe', createdAt: '2026-03-04T17:00' },
     ] : []),
     ...(isDatesOpen ? [
