@@ -10,6 +10,7 @@ import { format, addDays } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { lobs, users, groups, currentUser } from '@/data/seed';
 import { CATEGORY_CONFIG, ResponseType, LobComment, RECURRENCE_OPTIONS, TimeOption } from '@/data/types';
+import { TripPlanningSection } from '@/components/trips/TripPlanningSection';
 import { useCreatedLobs } from '@/hooks/useCreatedLobs';
 import { lobStore } from '@/stores/lobStore';
 import { ResponseButtons } from '@/components/lob/ResponseButtons';
