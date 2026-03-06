@@ -80,6 +80,13 @@ export interface Lob {
   destination?: string;
   tripStartDate?: string;
   tripEndDate?: string;
+  tripPlanningMode?: TripPlanningMode;
+  tripPlanningPhase?: TripPlanningPhase;
+  tripTimeframe?: string; // e.g. "August 2026", "Q3 2026"
+  tripBudget?: string; // e.g. "$1k-2k per person"
+  tripVibes?: TripVibe[];
+  destinationOptions?: { id: string; name: string; votes: string[] }[];
+  dateRangeOptions?: { id: string; startDate: string; endDate: string; votes: string[] }[];
 }
 
 export interface GuestInvite {
