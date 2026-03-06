@@ -5,6 +5,7 @@ import { ArrowLeft, HelpCircle, ChevronRight, Zap } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { users, currentUser, groups, lobs, calendarShares } from '@/data/seed';
 import { CATEGORY_CONFIG } from '@/data/types';
+import { ShowRateBadge } from '@/components/lob/ShowRateBadge';
 
 const INTEREST_LABELS: Record<string, string> = {
   sports: '🏀 Sports',
@@ -67,8 +68,9 @@ const UserProfile = () => {
     ? lobs.filter(l => l.status === 'confirmed' && l.responses.some(r => r.userId === user.id && r.response === 'in'))
     : [];
 
-  // Fake show rate
-  const showRate = 85 + (user.id.charCodeAt(1) % 15);
+  // Show rate from seed data — deterministic per user
+  const showRateTotal = 5 + (user.id.charCodeAt(1) % 10);
+  const showRateShowed = Math.min(showRateTotal, Math.round(showRateTotal * (0.7 + (user.id.charCodeAt(1) % 30) / 100)));
 
   return (
     <AppLayout>
@@ -102,12 +104,11 @@ const UserProfile = () => {
           {/* Show Rate */}
           <div className="flex justify-center mt-5">
             <div className="relative">
-              <p className="text-xl font-bold text-primary">{showRate}%</p>
+              <ShowRateBadge total={showRateTotal} showed={showRateShowed} />
               <button
                 onClick={() => setShowRateTooltip(!showRateTooltip)}
-                className="flex items-center gap-0.5 text-[11px] text-muted-foreground mx-auto"
+                className="flex items-center gap-0.5 text-[11px] text-muted-foreground mx-auto mt-0.5"
               >
-                Show Rate
                 <HelpCircle className="w-3 h-3" />
               </button>
               <AnimatePresence>

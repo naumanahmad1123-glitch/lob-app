@@ -99,6 +99,41 @@ export type Database = {
         }
         Relationships: []
       }
+      lob_attendance: {
+        Row: {
+          bailed_at: string | null
+          created_at: string
+          id: string
+          lob_id: string
+          outcome: string
+          user_id: string
+        }
+        Insert: {
+          bailed_at?: string | null
+          created_at?: string
+          id?: string
+          lob_id: string
+          outcome?: string
+          user_id: string
+        }
+        Update: {
+          bailed_at?: string | null
+          created_at?: string
+          id?: string
+          lob_id?: string
+          outcome?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lob_attendance_lob_id_fkey"
+            columns: ["lob_id"]
+            isOneToOne: false
+            referencedRelation: "lobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lob_comments: {
         Row: {
           created_at: string
