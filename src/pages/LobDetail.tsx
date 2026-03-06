@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, MapPin, Clock, Share2, MessageCircle, CheckCircle2, Check, Users,
   Bell, MoreVertical, XCircle, Repeat, Send, Plus, CalendarIcon, UserPlus, Minus,
-  Megaphone, Crown, Sparkles,
+  Megaphone, Crown, Sparkles, DoorOpen,
 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -17,6 +17,7 @@ import { QuorumRing } from '@/components/lob/QuorumRing';
 import { StatusPill } from '@/components/lob/StatusPill';
 import { LocationMap } from '@/components/lob/LocationMap';
 import { DeadlineCountdown } from '@/components/lob/DeadlineCountdown';
+import { BailSheet } from '@/components/lob/BailSheet';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -109,6 +110,10 @@ const LobDetail = () => {
   const [fillASeatSpots, setFillASeatSpots] = useState(lob?.fillASeatSpots || 1);
   const [showFillASeat, setShowFillASeat] = useState(false);
   const [showProUpgrade, setShowProUpgrade] = useState(false);
+
+  // Bail state
+  const [showBailSheet, setShowBailSheet] = useState(false);
+  const [hasBailed, setHasBailed] = useState(false);
 
   if (!lob) {
     return (
@@ -221,6 +226,27 @@ const LobDetail = () => {
     setShowCancelDialog(false);
     setShowMenu(false);
     toast.success('Plan cancelled. Everyone has been notified.');
+  };
+
+  const deadlinePassed = lob.deadline ? new Date(lob.deadline).getTime() < Date.now() : false;
+
+  const handleBail = () => {
+    setHasBailed(true);
+    setMyResponse('out');
+    setShowBailSheet(false);
+    const userName = getUserName('u1');
+    // Add system message
+    const systemComment = {
+      id: `c-bail-${Date.now()}`,
+      userId: 'u1',
+      message: `${userName} can no longer make it.`,
+      createdAt: new Date().toISOString(),
+    };
+    setComments(prev => [...prev, systemComment]);
+    toast.success(deadlinePassed
+      ? 'You bailed — this will affect your show rate.'
+      : 'You bailed — no impact on your show rate.'
+    );
   };
 
   const recurrenceLabel = lob.recurrence
@@ -495,6 +521,37 @@ const LobDetail = () => {
             </button>
           </motion.div>
         )}
+
+        {/* Can't make it — bail button (for committed non-creators) */}
+        {!isCreator && myResponse === 'in' && !hasBailed && !isCancelled && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.18 }}
+            className="mb-4"
+          >
+            <button
+              onClick={() => setShowBailSheet(true)}
+              className="w-full py-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive font-semibold text-sm flex items-center justify-center gap-2 hover:bg-destructive/15 transition-colors"
+            >
+              <DoorOpen className="w-4 h-4" />
+              Can't make it
+            </button>
+          </motion.div>
+        )}
+
+        {/* Bail confirmation sheet */}
+        <AnimatePresence>
+          {showBailSheet && (
+            <BailSheet
+              open={showBailSheet}
+              onClose={() => setShowBailSheet(false)}
+              onConfirm={handleBail}
+              pastDeadline={deadlinePassed}
+              userName={getUserName('u1')}
+            />
+          )}
+        </AnimatePresence>
 
         {/* Attendance Ring */}
         <motion.div

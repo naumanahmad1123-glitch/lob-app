@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { users } from '@/data/seed';
 import { LobResponse } from '@/data/types';
+import { ShowRateBadge } from '@/components/lob/ShowRateBadge';
 
 interface QuorumRingProps {
   current: number;
@@ -12,6 +13,11 @@ interface QuorumRingProps {
 
 const getName = (userId: string) => users.find(u => u.id === userId)?.name || 'Unknown';
 const getAvatar = (userId: string) => users.find(u => u.id === userId)?.avatar || '👤';
+const getShowRate = (userId: string) => {
+  const total = 5 + (userId.charCodeAt(1) % 10);
+  const showed = Math.min(total, Math.round(total * (0.7 + (userId.charCodeAt(1) % 30) / 100)));
+  return { total, showed };
+};
 
 function AvatarWithTooltip({ userId, bgClass }: { userId: string; bgClass: string }) {
   const [show, setShow] = useState(false);
@@ -183,7 +189,11 @@ export function QuorumRing({ current, target, responses }: QuorumRingProps) {
                             <span className={`w-9 h-9 rounded-full ${sec.bgClass} flex items-center justify-center text-lg`}>
                               {getAvatar(r.userId)}
                             </span>
-                            <span className="text-sm font-medium text-foreground">{getName(r.userId)}</span>
+                            <span className="text-sm font-medium text-foreground flex-1">{getName(r.userId)}</span>
+                            {(() => {
+                              const sr = getShowRate(r.userId);
+                              return <ShowRateBadge total={sr.total} showed={sr.showed} compact />;
+                            })()}
                           </button>
                         ))}
                       </div>

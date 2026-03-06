@@ -8,6 +8,7 @@ import { CalendarPrivacy } from '@/data/types';
 import { TappableAvatar } from '@/components/TappableAvatar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ShowRateBadge } from '@/components/lob/ShowRateBadge';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -105,12 +106,11 @@ const Profile = () => {
               <p className="text-[11px] text-muted-foreground">Groups</p>
             </div>
             <div className="relative">
-              <p className="text-xl font-bold text-primary">92%</p>
+              <ShowRateBadge total={12} showed={11} />
               <button
                 onClick={() => setShowRateTooltip(!showRateTooltip)}
-                className="flex items-center gap-0.5 text-[11px] text-muted-foreground"
+                className="flex items-center gap-0.5 text-[11px] text-muted-foreground mx-auto mt-0.5"
               >
-                Show Rate
                 <HelpCircle className="w-3 h-3" />
               </button>
               <AnimatePresence>
