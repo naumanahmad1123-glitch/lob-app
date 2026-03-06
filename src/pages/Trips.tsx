@@ -1,18 +1,28 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plane, Plus, ChevronRight, Sparkles, Globe, Lock, MapPin, X, ArrowLeft } from 'lucide-react';
+import { Plane, Plus, ChevronRight, Sparkles, Globe, Lock, MapPin, X, ArrowLeft, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useComposer } from '@/hooks/useComposer';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { trips as seedTrips, users, currentUser } from '@/data/seed';
 import { TappableAvatar } from '@/components/TappableAvatar';
+import { LobCard } from '@/components/lob/LobCard';
+import { GroupTripComposer } from '@/components/trips/GroupTripComposer';
+import { useCreatedLobs } from '@/hooks/useCreatedLobs';
 import { toast } from 'sonner';
 
 const Trips = () => {
   const navigate = useNavigate();
   const { openComposer } = useComposer();
+  const createdLobs = useCreatedLobs();
   const [showAddTrip, setShowAddTrip] = useState(false);
+  const [showGroupTrip, setShowGroupTrip] = useState(false);
   const [newTrip, setNewTrip] = useState({ city: '', country: '', startDate: '', endDate: '', showOnProfile: true });
+
+  const groupTripLobs = useMemo(
+    () => createdLobs.filter(l => l.category === 'group-trip'),
+    [createdLobs]
+  );
 
   const myTrips = seedTrips.filter(t => t.userId === currentUser.id);
   const friendTrips = seedTrips.filter(t => t.userId !== currentUser.id && t.notifyUserIds.includes(currentUser.id));
@@ -49,13 +59,22 @@ const Trips = () => {
             <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Trips</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Travel plans & friend visits</p>
           </div>
-          <button
-            onClick={() => setShowAddTrip(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/10 text-primary text-xs font-semibold"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Add Trip
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowGroupTrip(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl gradient-primary text-primary-foreground text-xs font-bold active:scale-95 transition-transform"
+            >
+              <Users className="w-3.5 h-3.5" />
+              Group Trip
+            </button>
+            <button
+              onClick={() => setShowAddTrip(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/10 text-primary text-xs font-semibold"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Solo
+            </button>
+          </div>
         </div>
 
         {/* Add Trip Sheet */}
@@ -148,6 +167,21 @@ const Trips = () => {
             </>
           )}
         </AnimatePresence>
+
+        {/* Group Trip Composer */}
+        <GroupTripComposer open={showGroupTrip} onClose={() => setShowGroupTrip(false)} />
+
+        {/* Group Trips */}
+        {groupTripLobs.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-base font-bold text-foreground mb-3">Group Trips</h2>
+            <div className="space-y-3">
+              {groupTripLobs.map((lob, i) => (
+                <LobCard key={lob.id} lob={lob} index={i} />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Your Trips */}
         <section className="mb-8">
