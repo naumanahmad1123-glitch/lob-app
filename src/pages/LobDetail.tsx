@@ -117,6 +117,45 @@ const LobDetail = () => {
   const [autoExpiredMaybes, setAutoExpiredMaybes] = useState<string[]>([]);
   const autoExpiryFired = useRef(false);
 
+  const getUserName = (userId: string) => users.find(u => u.id === userId)?.name || 'Unknown';
+
+  // Auto-expiry: move maybes to out after deadline + 30min grace
+  const GRACE_WINDOW_MS = 30 * 60 * 1000;
+  useEffect(() => {
+    if (!lob) return;
+    if (!lob.deadline || autoExpiryFired.current) return;
+    const deadlineMs = new Date(lob.deadline).getTime();
+    const expiryMs = deadlineMs + GRACE_WINDOW_MS;
+    const now = Date.now();
+
+    const expireMaybes = () => {
+      autoExpiryFired.current = true;
+      const maybes = lob.responses.filter(r => r.response === 'maybe');
+      if (maybes.length > 0) {
+        setAutoExpiredMaybes(maybes.map(r => r.userId));
+        const sysComments = maybes.map(r => ({
+          id: `c-autoexpiry-${r.userId}-${Date.now()}`,
+          userId: r.userId,
+          message: `${getUserName(r.userId)} was moved to Out after the deadline passed.`,
+          createdAt: new Date().toISOString(),
+        }));
+        setComments(prev => [...prev, ...sysComments]);
+        if (myResponse === 'maybe') {
+          setMyResponse('out');
+          toast('You were moved to Out — the deadline has passed.', { icon: '⏰' });
+        }
+      }
+    };
+
+    if (now >= expiryMs) {
+      expireMaybes();
+      return;
+    }
+
+    const timeout = setTimeout(expireMaybes, expiryMs - now);
+    return () => clearTimeout(timeout);
+  }, [lob?.deadline, lob?.responses, myResponse]);
+
   if (!lob) {
     return (
       <AppLayout>
