@@ -1,3 +1,5 @@
+// DUPLICATE NOTE: generateDayChips() and generateTimeChips() duplicate similar logic in LobComposer.tsx.
+// Consider consolidating into src/lib/lob-utils.ts.
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
