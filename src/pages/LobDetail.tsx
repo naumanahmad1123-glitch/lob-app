@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, MapPin, Clock, Share2, MessageCircle, CheckCircle2, Check, Users,
   Bell, MoreVertical, XCircle, Repeat, Send, Plus, CalendarIcon, UserPlus, Minus,
-  Megaphone, Crown, Sparkles, DoorOpen,
+  DoorOpen,
 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -106,11 +106,6 @@ const LobDetail = () => {
   const [showInviteGuest, setShowInviteGuest] = useState(false);
   const [guestSearch, setGuestSearch] = useState('');
 
-  // Fill a Seat state
-  const [fillASeatActive, setFillASeatActive] = useState(lob?.fillASeatActive || false);
-  const [fillASeatSpots, setFillASeatSpots] = useState(lob?.fillASeatSpots || 1);
-  const [showFillASeat, setShowFillASeat] = useState(false);
-  const [showProUpgrade, setShowProUpgrade] = useState(false);
 
   // Bail state
   const [showBailSheet, setShowBailSheet] = useState(false);

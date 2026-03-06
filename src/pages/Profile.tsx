@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, ChevronRight, Bell, Calendar, Shield, Crown, LogOut, Plane, Users, HelpCircle, Eye, EyeOff, User, X } from 'lucide-react';
+import { Settings, ChevronRight, Bell, Calendar, Shield, LogOut, Plane, Users, HelpCircle, Eye, EyeOff, User, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { currentUser, trips, calendarShares, users, groups } from '@/data/seed';
@@ -50,7 +50,6 @@ const Profile = () => {
     { icon: Bell, label: 'Notifications', desc: 'Manage alerts' },
     { icon: Calendar, label: 'Calendar Sync', desc: 'Connect calendars' },
     { icon: Shield, label: 'Privacy', desc: 'Control your data' },
-    { icon: Crown, label: 'Upgrade to Pro', desc: 'Unlock advanced features', highlight: true },
   ];
 
   return (
