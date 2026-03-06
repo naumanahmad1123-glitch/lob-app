@@ -537,7 +537,9 @@ const LobDetail = () => {
                 <Users className="w-6 h-6 text-primary" />
                 <div>
                   <p className="font-bold text-foreground text-sm">Waiting on {lob.quorum - inCount} more</p>
-                  <p className="text-xs text-muted-foreground">{inCount} of {lob.quorum} needed</p>
+                  <p className="text-xs text-muted-foreground">
+                    {inCount} in · {maybeCount} maybe · {unrespondedCount} no response
+                  </p>
                 </div>
               </>
             )}
