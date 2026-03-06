@@ -4,7 +4,7 @@ import { Plane, Plus, ChevronRight, Sparkles, Globe, Lock, MapPin, X, ArrowLeft,
 import { useNavigate } from 'react-router-dom';
 import { useComposer } from '@/hooks/useComposer';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { trips as seedTrips, users, currentUser } from '@/data/seed';
+import { trips as seedTrips, users, currentUser, lobs as seedLobs } from '@/data/seed';
 import { TappableAvatar } from '@/components/TappableAvatar';
 import { LobCard } from '@/components/lob/LobCard';
 import { GroupTripComposer } from '@/components/trips/GroupTripComposer';
@@ -20,7 +20,10 @@ const Trips = () => {
   const [newTrip, setNewTrip] = useState({ city: '', country: '', startDate: '', endDate: '', showOnProfile: true });
 
   const groupTripLobs = useMemo(
-    () => createdLobs.filter(l => l.category === 'group-trip'),
+    () => [
+      ...seedLobs.filter(l => l.category === 'group-trip'),
+      ...createdLobs.filter(l => l.category === 'group-trip'),
+    ],
     [createdLobs]
   );
 
