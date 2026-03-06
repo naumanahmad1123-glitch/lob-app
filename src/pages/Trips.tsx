@@ -207,9 +207,9 @@ const Trips = () => {
         {/* Your Trips */}
         <section className="mb-8">
           <h2 className="text-base font-bold text-foreground mb-3">Your Trips</h2>
-          {myTrips.length > 0 ? (
+          {allMyTrips.length > 0 ? (
             <div className="space-y-3">
-              {myTrips.map((trip, i) => {
+              {allMyTrips.map((trip, i) => {
                 const notifiedUsers = users.filter(u => trip.notifyUserIds.includes(u.id));
                 return (
                   <motion.button
