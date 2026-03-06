@@ -10,6 +10,7 @@ import { format, addDays } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { lobs, users, groups, currentUser } from '@/data/seed';
 import { CATEGORY_CONFIG, ResponseType, LobComment, RECURRENCE_OPTIONS, TimeOption } from '@/data/types';
+import { TripPlanningSection } from '@/components/trips/TripPlanningSection';
 import { useCreatedLobs } from '@/hooks/useCreatedLobs';
 import { lobStore } from '@/stores/lobStore';
 import { ResponseButtons } from '@/components/lob/ResponseButtons';
@@ -308,6 +309,14 @@ const LobDetail = () => {
 
   const effectiveStatus = isCancelled ? 'cancelled' : lob.status;
 
+  const isGroupTrip = lob.category === 'group-trip';
+  const showTripPlanning = isGroupTrip && lob.tripPlanningPhase && lob.tripPlanningPhase !== 'confirmed';
+
+  const handleLockIn = (destination: string, startDate: string, endDate: string) => {
+    // In a real app this would update the lob via store/API
+    toast.success(`Trip locked in: ${destination}, ${new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} 🎉`);
+  };
+
   return (
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
@@ -421,6 +430,13 @@ const LobDetail = () => {
             </div>
           )}
         </motion.div>
+
+        {/* Trip Planning Section (dates-open / fully-open) */}
+        {showTripPlanning && (
+          <div className="mb-4">
+            <TripPlanningSection lob={lob} isCreator={isCreator} onLockIn={handleLockIn} />
+          </div>
+        )}
 
         {/* Details */}
         <motion.div
