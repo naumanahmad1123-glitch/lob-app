@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, ChevronRight, Bell, Calendar, Shield, LogOut, Plane, Users, HelpCircle, Eye, EyeOff, User, X } from 'lucide-react';
+import { Settings, ChevronRight, Bell, Calendar, Shield, LogOut, Plane, Users, HelpCircle, Eye, EyeOff, User, X, Pencil } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { currentUser, trips, calendarShares, users, groups, lobs } from '@/data/seed';
@@ -11,6 +11,25 @@ import { toast } from 'sonner';
 import { ShowRateBadge } from '@/components/lob/ShowRateBadge';
 import { useCreatedLobs } from '@/hooks/useCreatedLobs';
 import { useCreatedGroups } from '@/hooks/useCreatedGroups';
+import { useProfile } from '@/hooks/useProfile';
+import { profileStore } from '@/stores/profileStore';
+
+const AVATAR_OPTIONS = ['🙂', '😎', '🤙', '🏄', '🎯', '🎤', '🚀', '🎨', '🦊', '🐻', '🌟', '⚡', '🔥', '🎸', '🧠', '👾'];
+
+const INTEREST_OPTIONS = [
+  { key: 'sports', label: '🏀 Sports' },
+  { key: 'dinner', label: '🍽️ Dinner' },
+  { key: 'coffee', label: '☕ Coffee' },
+  { key: 'gym', label: '💪 Gym' },
+  { key: 'chill', label: '😎 Chill' },
+  { key: 'travel', label: '✈️ Travel' },
+  { key: 'padel', label: '🎾 Padel' },
+  { key: 'music', label: '🎵 Music' },
+  { key: 'gaming', label: '🎮 Gaming' },
+  { key: 'art', label: '🎨 Art' },
+  { key: 'hiking', label: '🥾 Hiking' },
+  { key: 'cooking', label: '🧑‍🍳 Cooking' },
+];
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -21,12 +40,44 @@ const Profile = () => {
     return seedCount + createdLobs.length;
   }, [createdLobs]);
   const totalGroups = groups.length + createdGroups.length;
+  const profile = useProfile();
   const [showRateTooltip, setShowRateTooltip] = useState(false);
   const [showSharingPrivacy, setShowSharingPrivacy] = useState(false);
   const [showPrivacyInfo, setShowPrivacyInfo] = useState(false);
   const [localShares, setLocalShares] = useState(calendarShares);
   const [showComingSoon, setShowComingSoon] = useState<string | null>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [editName, setEditName] = useState(profile.name);
+  const [editAvatar, setEditAvatar] = useState(profile.avatar);
+  const [editInterests, setEditInterests] = useState<string[]>([...profile.interests]);
   const activeTrips = trips.filter(t => t.userId === currentUser.id && t.showOnProfile);
+
+  const openEditSheet = () => {
+    setEditName(profile.name);
+    setEditAvatar(profile.avatar);
+    setEditInterests([...profile.interests]);
+    setEditingProfile(true);
+  };
+
+  const handleSaveProfile = () => {
+    if (!editName.trim()) {
+      toast.error('Name cannot be empty');
+      return;
+    }
+    profileStore.updateProfile({
+      name: editName.trim(),
+      avatar: editAvatar,
+      interests: editInterests,
+    });
+    toast.success('Profile updated!');
+    setEditingProfile(false);
+  };
+
+  const toggleInterest = (key: string) => {
+    setEditInterests(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
 
   const togglePrivacy = (shareId: string) => {
     setLocalShares(prev => prev.map(s =>
@@ -91,16 +142,111 @@ const Profile = () => {
           )}
         </AnimatePresence>
 
+        {/* Edit Profile Sheet */}
+        <AnimatePresence>
+          {editingProfile && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setEditingProfile(false)}
+                className="fixed inset-0 z-[60] bg-background/60 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                className="fixed bottom-0 left-0 right-0 z-[70] max-w-lg mx-auto"
+              >
+                <div className="bg-card rounded-t-3xl border border-border/50 shadow-card px-5 pb-8 pt-4 max-h-[85vh] overflow-y-auto">
+                  <div className="flex justify-center mb-3">
+                    <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+                  </div>
+                  <div className="flex items-center justify-between mb-5">
+                    <h2 className="text-lg font-extrabold text-foreground">✏️ Edit Profile</h2>
+                    <button onClick={() => setEditingProfile(false)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                      <X className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  </div>
+                  <div className="mb-4">
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Name</label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={e => setEditName(e.target.value)}
+                      placeholder="Your name"
+                      className="w-full p-3 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Avatar</label>
+                    <div className="grid grid-cols-8 gap-2">
+                      {AVATAR_OPTIONS.map(emoji => (
+                        <button
+                          key={emoji}
+                          onClick={() => setEditAvatar(emoji)}
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${
+                            editAvatar === emoji
+                              ? 'bg-primary/15 border-2 border-primary scale-110'
+                              : 'bg-secondary border border-border hover:bg-muted'
+                          }`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mb-5">
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Interests</label>
+                    <div className="flex flex-wrap gap-2">
+                      {INTEREST_OPTIONS.map(opt => {
+                        const active = editInterests.includes(opt.key);
+                        return (
+                          <button
+                            key={opt.key}
+                            onClick={() => toggleInterest(opt.key)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                              active
+                                ? 'bg-primary/15 text-primary border border-primary/30'
+                                : 'bg-secondary text-muted-foreground border border-border'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleSaveProfile}
+                    className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
         {/* Profile Card */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="gradient-card rounded-2xl p-6 border border-border/50 shadow-card mb-6 text-center"
+          className="gradient-card rounded-2xl p-6 border border-border/50 shadow-card mb-6 text-center relative"
         >
+          <button
+            onClick={openEditSheet}
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-secondary flex items-center justify-center"
+          >
+            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+          </button>
           <div className="w-20 h-20 rounded-full bg-secondary mx-auto flex items-center justify-center text-4xl mb-3">
-            {currentUser.avatar}
+            {profile.avatar}
           </div>
-          <h2 className="text-xl font-bold text-foreground">{currentUser.name}</h2>
+          <h2 className="text-xl font-bold text-foreground">{profile.name}</h2>
           <p className="text-sm text-muted-foreground mt-1">Making plans since 2026</p>
 
           {/* Stats */}
@@ -295,11 +441,17 @@ const Profile = () => {
         <section className="mb-6">
           <h3 className="text-sm font-bold text-foreground mb-2">Interests</h3>
           <div className="flex flex-wrap gap-2">
-            {['🏀 Sports', '🍽️ Dinner', '☕ Coffee', '🎾 Padel'].map(tag => (
-              <span key={tag} className="px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-foreground">
-                {tag}
-              </span>
-            ))}
+            {profile.interests.map(key => {
+              const opt = INTEREST_OPTIONS.find(o => o.key === key);
+              return opt ? (
+                <span key={key} className="px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-foreground">
+                  {opt.label}
+                </span>
+              ) : null;
+            })}
+            {profile.interests.length === 0 && (
+              <span className="text-xs text-muted-foreground">No interests yet — tap edit to add some!</span>
+            )}
           </div>
         </section>
 
