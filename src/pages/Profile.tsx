@@ -146,12 +146,18 @@ const Profile = () => {
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="gradient-card rounded-2xl p-6 border border-border/50 shadow-card mb-6 text-center"
+          className="gradient-card rounded-2xl p-6 border border-border/50 shadow-card mb-6 text-center relative"
         >
+          <button
+            onClick={openEditSheet}
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-secondary flex items-center justify-center"
+          >
+            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+          </button>
           <div className="w-20 h-20 rounded-full bg-secondary mx-auto flex items-center justify-center text-4xl mb-3">
-            {currentUser.avatar}
+            {profile.avatar}
           </div>
-          <h2 className="text-xl font-bold text-foreground">{currentUser.name}</h2>
+          <h2 className="text-xl font-bold text-foreground">{profile.name}</h2>
           <p className="text-sm text-muted-foreground mt-1">Making plans since 2026</p>
 
           {/* Stats */}
@@ -346,11 +352,17 @@ const Profile = () => {
         <section className="mb-6">
           <h3 className="text-sm font-bold text-foreground mb-2">Interests</h3>
           <div className="flex flex-wrap gap-2">
-            {['🏀 Sports', '🍽️ Dinner', '☕ Coffee', '🎾 Padel'].map(tag => (
-              <span key={tag} className="px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-foreground">
-                {tag}
-              </span>
-            ))}
+            {profile.interests.map(key => {
+              const opt = INTEREST_OPTIONS.find(o => o.key === key);
+              return opt ? (
+                <span key={key} className="px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-foreground">
+                  {opt.label}
+                </span>
+              ) : null;
+            })}
+            {profile.interests.length === 0 && (
+              <span className="text-xs text-muted-foreground">No interests yet — tap edit to add some!</span>
+            )}
           </div>
         </section>
 
