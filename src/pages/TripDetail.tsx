@@ -7,12 +7,15 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { trips, users } from '@/data/seed';
 import { TappableAvatar } from '@/components/TappableAvatar';
 import { toast } from 'sonner';
+import { useCreatedTrips } from '@/hooks/useCreatedTrips';
+import { tripStore } from '@/stores/tripStore';
 
 const TripDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { openComposer } = useComposer();
-  const trip = trips.find(t => t.id === id);
+  const createdTrips = useCreatedTrips();
+  const trip = createdTrips.find(t => t.id === id) || trips.find(t => t.id === id);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({
     city: trip?.city || '',
@@ -35,10 +38,21 @@ const TripDetail = () => {
   const sharedUsers = users.filter(u => trip.notifyUserIds.includes(u.id));
   const dateStr = `${new Date(trip.startDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} – ${new Date(trip.endDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
 
+  const isCreatedTrip = createdTrips.some(t => t.id === id);
+
   const handleSaveEdit = () => {
     if (!editData.city.trim() || !editData.startDate || !editData.endDate) {
       toast.error('Please fill in all required fields');
       return;
+    }
+    if (isCreatedTrip) {
+      tripStore.updateTrip(id!, {
+        city: editData.city,
+        country: editData.country,
+        startDate: editData.startDate,
+        endDate: editData.endDate,
+        showOnProfile: editData.showOnProfile,
+      });
     }
     toast.success('Trip updated!');
     setEditing(false);
