@@ -86,6 +86,19 @@ export function parseTimeToISO(timeStr: string, dayStr: string = 'today'): strin
   return targetDate.toISOString();
 }
 
+// ─── Parse a formatted time string like "8:30 PM" into hours/minutes ───
+
+export function parseTimeString(timeStr: string): { hours: number; minutes: number } | null {
+  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!match) return null;
+  let hours = parseInt(match[1]);
+  const minutes = parseInt(match[2]);
+  const period = match[3].toUpperCase();
+  if (period === 'PM' && hours !== 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  return { hours, minutes };
+}
+
 // ─── Detect category from free text ───
 
 export function detectCategory(text: string): LobCategory | '' {
