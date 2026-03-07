@@ -40,19 +40,43 @@ const Profile = () => {
     return seedCount + createdLobs.length;
   }, [createdLobs]);
   const totalGroups = groups.length + createdGroups.length;
+  const profile = useProfile();
   const [showRateTooltip, setShowRateTooltip] = useState(false);
   const [showSharingPrivacy, setShowSharingPrivacy] = useState(false);
   const [showPrivacyInfo, setShowPrivacyInfo] = useState(false);
   const [localShares, setLocalShares] = useState(calendarShares);
   const [showComingSoon, setShowComingSoon] = useState<string | null>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [editName, setEditName] = useState(profile.name);
+  const [editAvatar, setEditAvatar] = useState(profile.avatar);
+  const [editInterests, setEditInterests] = useState<string[]>([...profile.interests]);
   const activeTrips = trips.filter(t => t.userId === currentUser.id && t.showOnProfile);
 
-  const togglePrivacy = (shareId: string) => {
-    setLocalShares(prev => prev.map(s =>
-      s.id === shareId
-        ? { ...s, privacy: (s.privacy === 'details' ? 'free-busy' : 'details') as CalendarPrivacy }
-        : s
-    ));
+  const openEditSheet = () => {
+    setEditName(profile.name);
+    setEditAvatar(profile.avatar);
+    setEditInterests([...profile.interests]);
+    setEditingProfile(true);
+  };
+
+  const handleSaveProfile = () => {
+    if (!editName.trim()) {
+      toast.error('Name cannot be empty');
+      return;
+    }
+    profileStore.updateProfile({
+      name: editName.trim(),
+      avatar: editAvatar,
+      interests: editInterests,
+    });
+    toast.success('Profile updated!');
+    setEditingProfile(false);
+  };
+
+  const toggleInterest = (key: string) => {
+    setEditInterests(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
   };
 
   const handleSignOut = async () => {
