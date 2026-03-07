@@ -1,7 +1,5 @@
 import { Trip } from '@/data/types';
 
-import { Trip } from '@/data/types';
-
 type Listener = () => void;
 
 let createdTrips: Trip[] = [];
