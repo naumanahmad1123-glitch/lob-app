@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, ChevronRight, Bell, Calendar, Shield, LogOut, Plane, Users, HelpCircle, Eye, EyeOff, User, X } from 'lucide-react';
+import { Settings, ChevronRight, Bell, Calendar, Shield, LogOut, Plane, Users, HelpCircle, Eye, EyeOff, User, X, Pencil } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { currentUser, trips, calendarShares, users, groups, lobs } from '@/data/seed';
@@ -11,6 +11,25 @@ import { toast } from 'sonner';
 import { ShowRateBadge } from '@/components/lob/ShowRateBadge';
 import { useCreatedLobs } from '@/hooks/useCreatedLobs';
 import { useCreatedGroups } from '@/hooks/useCreatedGroups';
+import { useProfile } from '@/hooks/useProfile';
+import { profileStore } from '@/stores/profileStore';
+
+const AVATAR_OPTIONS = ['🙂', '😎', '🤙', '🏄', '🎯', '🎤', '🚀', '🎨', '🦊', '🐻', '🌟', '⚡', '🔥', '🎸', '🧠', '👾'];
+
+const INTEREST_OPTIONS = [
+  { key: 'sports', label: '🏀 Sports' },
+  { key: 'dinner', label: '🍽️ Dinner' },
+  { key: 'coffee', label: '☕ Coffee' },
+  { key: 'gym', label: '💪 Gym' },
+  { key: 'chill', label: '😎 Chill' },
+  { key: 'travel', label: '✈️ Travel' },
+  { key: 'padel', label: '🎾 Padel' },
+  { key: 'music', label: '🎵 Music' },
+  { key: 'gaming', label: '🎮 Gaming' },
+  { key: 'art', label: '🎨 Art' },
+  { key: 'hiking', label: '🥾 Hiking' },
+  { key: 'cooking', label: '🧑‍🍳 Cooking' },
+];
 
 const Profile = () => {
   const navigate = useNavigate();
