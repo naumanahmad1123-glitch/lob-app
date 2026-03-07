@@ -1,6 +1,3 @@
-// DUPLICATE NOTE: Day/time chip generation logic is also in src/pages/LobDetail.tsx (generateDayChips, generateTimeChips).
-// Consider consolidating into src/lib/lob-utils.ts in a follow-up.
-
 import { Trip } from '@/data/types';
 
 type Listener = () => void;

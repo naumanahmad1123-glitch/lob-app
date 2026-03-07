@@ -1,6 +1,5 @@
-// DUPLICATE NOTE: generateDayChips() and generateTimeChips() duplicate similar logic in LobComposer.tsx.
-// Consider consolidating into src/lib/lob-utils.ts.
 import { useState, useEffect, useRef } from 'react';
+import { format } from 'date-fns';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -8,7 +7,6 @@ import {
   Bell, MoreVertical, XCircle, Repeat, Send, Plus, CalendarIcon, UserPlus, Minus,
   DoorOpen,
 } from 'lucide-react';
-import { format, addDays } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { lobs, users, groups, currentUser } from '@/data/seed';
 import { CATEGORY_CONFIG, ResponseType, LobComment, RECURRENCE_OPTIONS, TimeOption } from '@/data/types';
@@ -23,51 +21,10 @@ import { DeadlineCountdown } from '@/components/lob/DeadlineCountdown';
 import { BailSheet } from '@/components/lob/BailSheet';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-
-// ─── Day/Time chip helpers ───
-function generateDayChips(): { label: string; date: Date }[] {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = addDays(today, i);
-    let label: string;
-    if (i === 0) label = 'Today';
-    else if (i === 1) label = 'Tomorrow';
-    else label = format(d, 'EEE d');
-    return { label, date: d };
-  });
-}
-
-function generateTimeChips(): string[] {
-  const chips: string[] = [];
-  for (let h = 6; h <= 23; h++) {
-    for (const m of [0, 30]) {
-      const d = new Date();
-      d.setHours(h, m, 0, 0);
-      chips.push(format(d, 'h:mm a'));
-    }
-  }
-  return chips;
-}
+import { generateDayChips, generateTimeChips, isSameDay, parseTimeString } from '@/lib/lob-utils';
 
 const DAY_CHIPS = generateDayChips();
 const TIME_CHIPS = generateTimeChips();
-
-function isSameDay(a: Date | undefined, b: Date): boolean {
-  if (!a) return false;
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
-
-function parseTimeString(timeStr: string): { hours: number; minutes: number } | null {
-  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-  if (!match) return null;
-  let hours = parseInt(match[1]);
-  const minutes = parseInt(match[2]);
-  const period = match[3].toUpperCase();
-  if (period === 'PM' && hours !== 12) hours += 12;
-  if (period === 'AM' && hours === 12) hours = 0;
-  return { hours, minutes };
-}
 
 const LobDetail = () => {
   const { id } = useParams();
