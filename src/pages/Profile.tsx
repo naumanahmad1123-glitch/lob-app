@@ -142,6 +142,95 @@ const Profile = () => {
           )}
         </AnimatePresence>
 
+        {/* Edit Profile Sheet */}
+        <AnimatePresence>
+          {editingProfile && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setEditingProfile(false)}
+                className="fixed inset-0 z-[60] bg-background/60 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                className="fixed bottom-0 left-0 right-0 z-[70] max-w-lg mx-auto"
+              >
+                <div className="bg-card rounded-t-3xl border border-border/50 shadow-card px-5 pb-8 pt-4 max-h-[85vh] overflow-y-auto">
+                  <div className="flex justify-center mb-3">
+                    <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+                  </div>
+                  <div className="flex items-center justify-between mb-5">
+                    <h2 className="text-lg font-extrabold text-foreground">✏️ Edit Profile</h2>
+                    <button onClick={() => setEditingProfile(false)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                      <X className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  </div>
+                  <div className="mb-4">
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Name</label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={e => setEditName(e.target.value)}
+                      placeholder="Your name"
+                      className="w-full p-3 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Avatar</label>
+                    <div className="grid grid-cols-8 gap-2">
+                      {AVATAR_OPTIONS.map(emoji => (
+                        <button
+                          key={emoji}
+                          onClick={() => setEditAvatar(emoji)}
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${
+                            editAvatar === emoji
+                              ? 'bg-primary/15 border-2 border-primary scale-110'
+                              : 'bg-secondary border border-border hover:bg-muted'
+                          }`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mb-5">
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Interests</label>
+                    <div className="flex flex-wrap gap-2">
+                      {INTEREST_OPTIONS.map(opt => {
+                        const active = editInterests.includes(opt.key);
+                        return (
+                          <button
+                            key={opt.key}
+                            onClick={() => toggleInterest(opt.key)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                              active
+                                ? 'bg-primary/15 text-primary border border-primary/30'
+                                : 'bg-secondary text-muted-foreground border border-border'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleSaveProfile}
+                    className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
         {/* Profile Card */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
