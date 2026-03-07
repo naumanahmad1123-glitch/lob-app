@@ -17,6 +17,10 @@ export const tripStore = {
     createdTrips = [trip, ...createdTrips];
     notify();
   },
+  updateTrip(id: string, updates: Partial<Trip>) {
+    createdTrips = createdTrips.map(t => t.id === id ? { ...t, ...updates } : t);
+    notify();
+  },
   getTrips(): Trip[] {
     return createdTrips;
   },
