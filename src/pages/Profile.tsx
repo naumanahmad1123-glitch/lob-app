@@ -79,6 +79,14 @@ const Profile = () => {
     );
   };
 
+  const togglePrivacy = (shareId: string) => {
+    setLocalShares(prev => prev.map(s =>
+      s.id === shareId
+        ? { ...s, privacy: (s.privacy === 'details' ? 'free-busy' : 'details') as CalendarPrivacy }
+        : s
+    ));
+  };
+
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
