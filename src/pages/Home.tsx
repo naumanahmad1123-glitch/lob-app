@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Bell, List, CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +7,8 @@ import { LobCard } from '@/components/lob/LobCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseLobs } from '@/hooks/useSupabaseLobs';
 import { useComposer } from '@/hooks/useComposer';
+import { useUnreadNotificationCount } from '@/hooks/useNotifications';
+import { seedDemoData } from '@/lib/seed-demo';
 import { Lob } from '@/data/types';
 
 type ViewMode = 'feed' | 'calendar';
@@ -24,14 +26,23 @@ function getCalendarDays(year: number, month: number) {
 
 const Home = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { openComposer } = useComposer();
   const { data: allLobs = [], isLoading } = useSupabaseLobs();
+  const unreadCount = useUnreadNotificationCount();
   const [view, setView] = useState<ViewMode>('feed');
   const [calMonth, setCalMonth] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
   });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+
+  // Seed demo data on first login if user has no lobs
+  useEffect(() => {
+    if (user && !isLoading && allLobs.length === 0) {
+      seedDemoData(user.id);
+    }
+  }, [user?.id, isLoading, allLobs.length]);
 
   const activeLobs = allLobs.filter(l => l.status === 'voting');
   const confirmedLobs = allLobs.filter(l => l.status === 'confirmed');
@@ -80,6 +91,11 @@ const Home = () => {
             className="relative w-10 h-10 rounded-full bg-secondary flex items-center justify-center"
           >
             <Bell className="w-5 h-5 text-foreground" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </button>
         </div>
 
