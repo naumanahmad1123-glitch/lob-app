@@ -14,6 +14,7 @@ export interface DbTrip {
   notify_user_ids: string[];
   show_on_profile: boolean;
   created_at: string;
+  profile?: { name: string; avatar: string } | null;
 }
 
 export function useSupabaseTrips() {
@@ -25,10 +26,22 @@ export function useSupabaseTrips() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('trips')
-        .select('*')
+        .select('*, profiles!trips_user_id_fkey(name, avatar)')
         .order('start_date', { ascending: true });
-      if (error) throw error;
-      return (data || []) as DbTrip[];
+      if (error) {
+        // Fallback without join if FK doesn't exist
+        const { data: fallback, error: err2 } = await supabase
+          .from('trips')
+          .select('*')
+          .order('start_date', { ascending: true });
+        if (err2) throw err2;
+        return (fallback || []) as DbTrip[];
+      }
+      return (data || []).map((t: any) => ({
+        ...t,
+        profile: t.profiles || null,
+        profiles: undefined,
+      })) as DbTrip[];
     },
     staleTime: 10_000,
   });
