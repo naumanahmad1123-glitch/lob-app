@@ -8,11 +8,12 @@ import {
   DoorOpen,
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { lobs, users, groups, currentUser } from '@/data/seed';
 import { CATEGORY_CONFIG, ResponseType, LobComment, RECURRENCE_OPTIONS, TimeOption } from '@/data/types';
 import { TripPlanningSection } from '@/components/trips/TripPlanningSection';
-import { useCreatedLobs } from '@/hooks/useCreatedLobs';
-import { lobStore } from '@/stores/lobStore';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseLob } from '@/hooks/useSupabaseLobs';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { ResponseButtons } from '@/components/lob/ResponseButtons';
 import { QuorumRing } from '@/components/lob/QuorumRing';
 import { StatusPill } from '@/components/lob/StatusPill';
@@ -29,247 +30,97 @@ const TIME_CHIPS = generateTimeChips();
 const LobDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const createdLobs = useCreatedLobs();
-  const lob = lobs.find(l => l.id === id) || createdLobs.find(l => l.id === id);
-  const [myResponse, setMyResponse] = useState<ResponseType | undefined>(
-    lob?.responses.find(r => r.userId === 'u1')?.response
-  );
-  const [votedTimeIds, setVotedTimeIds] = useState<string[]>(
-    lob?.timeOptions.filter(t => t.votes.includes('u1')).map(t => t.id) || []
-  );
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { data: lob, isLoading } = useSupabaseLob(id);
+  
+  const myResponse = lob?.responses.find(r => r.userId === user?.id)?.response as ResponseType | undefined;
   const [lastNudgeTime, setLastNudgeTime] = useState<number | null>(null);
-  const [comments, setComments] = useState<LobComment[]>(lob?.comments || []);
+  const [localComments, setLocalComments] = useState<LobComment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [showMenu, setShowMenu] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [isCancelled, setIsCancelled] = useState(lob?.status === 'cancelled');
-
-  // Time suggestion state
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [suggestDay, setSuggestDay] = useState<Date | undefined>(undefined);
-  const [suggestTime, setSuggestTime] = useState('');
-
-  // Dynamic time options (can be added to by creator)
-  const [extraTimeOptions, setExtraTimeOptions] = useState<TimeOption[]>([]);
-
-  // Inline date edit for creator
-  const [editingTime, setEditingTime] = useState(false);
-  const [editDay, setEditDay] = useState<Date | undefined>(undefined);
-  const [editTime, setEditTime] = useState('');
-  const [overriddenTime, setOverriddenTime] = useState<string | null>(null);
-
-  // Open Invite state
-  const [openInviteEnabled, setOpenInviteEnabled] = useState(lob?.openInviteEnabled || false);
-  const [openInviteMaxGuests, setOpenInviteMaxGuests] = useState(lob?.openInviteMaxGuests || 3);
-  const [openInviteUsedGuests, setOpenInviteUsedGuests] = useState(lob?.openInviteUsedGuests || 0);
-  const [showInviteGuest, setShowInviteGuest] = useState(false);
-  const [guestSearch, setGuestSearch] = useState('');
-
-
-  // Bail state
   const [showBailSheet, setShowBailSheet] = useState(false);
-  const [hasBailed, setHasBailed] = useState(false);
-  const [autoExpiredMaybes, setAutoExpiredMaybes] = useState<string[]>([]);
-  const autoExpiryFired = useRef(false);
 
-  const getUserName = (userId: string) => users.find(u => u.id === userId)?.name || 'Unknown';
-
-  // Auto-expiry: move maybes to out after deadline + 30min grace
-  const GRACE_WINDOW_MS = 30 * 60 * 1000;
+  // Sync comments from DB
   useEffect(() => {
-    if (!lob) return;
-    if (!lob.deadline || autoExpiryFired.current) return;
-    const deadlineMs = new Date(lob.deadline).getTime();
-    const expiryMs = deadlineMs + GRACE_WINDOW_MS;
-    const now = Date.now();
+    if (lob?.comments) setLocalComments(lob.comments);
+  }, [lob?.comments]);
 
-    const expireMaybes = () => {
-      autoExpiryFired.current = true;
-      const maybes = lob.responses.filter(r => r.response === 'maybe');
-      if (maybes.length > 0) {
-        setAutoExpiredMaybes(maybes.map(r => r.userId));
-        const sysComments = maybes.map(r => ({
-          id: `c-autoexpiry-${r.userId}-${Date.now()}`,
-          userId: r.userId,
-          message: `${getUserName(r.userId)} was moved to Out after the deadline passed.`,
-          createdAt: new Date().toISOString(),
-        }));
-        setComments(prev => [...prev, ...sysComments]);
-        if (myResponse === 'maybe') {
-          setMyResponse('out');
-          toast('You were moved to Out — the deadline has passed.', { icon: '⏰' });
-        }
-      }
-    };
-
-    if (now >= expiryMs) {
-      expireMaybes();
-      return;
-    }
-
-    const timeout = setTimeout(expireMaybes, expiryMs - now);
-    return () => clearTimeout(timeout);
-  }, [lob?.deadline, lob?.responses, myResponse]);
-
-  if (!lob) {
-    return (
-      <AppLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <p className="text-muted-foreground">Lob not found</p>
-        </div>
-      </AppLayout>
-    );
+  if (isLoading) {
+    return <AppLayout><div className="flex items-center justify-center min-h-[60vh]"><p className="text-muted-foreground">Loading...</p></div></AppLayout>;
   }
 
-  const allTimeOptions = [...lob.timeOptions, ...extraTimeOptions];
+  if (!lob) {
+    return <AppLayout><div className="flex items-center justify-center min-h-[60vh]"><p className="text-muted-foreground">Lob not found</p></div></AppLayout>;
+  }
 
   const config = CATEGORY_CONFIG[lob.category];
-  const group = groups.find(g => g.id === lob.groupId);
-  const isCreator = lob.createdBy === 'u1';
+  const isCreator = lob.createdBy === user?.id;
   const inList = lob.responses.filter(r => r.response === 'in');
   const maybeList = lob.responses.filter(r => r.response === 'maybe');
-  // Maybe does NOT count toward quorum — only 'in' does
-  const inCount = myResponse === 'in' ? inList.length + (inList.find(r => r.userId === 'u1') ? 0 : 1) : inList.length;
+  const inCount = inList.length;
+  const maybeCount = maybeList.length;
   const quorumReached = inCount >= lob.quorum;
 
-  const respondedUserIds = lob.responses.map(r => r.userId);
-  const groupMembers = group?.members || [];
-  const unrespondedMembers = groupMembers.filter(m => !respondedUserIds.includes(m.id));
-  const unrespondedCount = unrespondedMembers.length;
-  const maybeCount = maybeList.length;
-
-  const timeStr = overriddenTime || lob.selectedTime || lob.timeOptions[0]?.datetime;
+  const timeStr = lob.selectedTime || lob.timeOptions[0]?.datetime;
   const parsedDate = timeStr ? new Date(timeStr) : null;
   const isInvalidDate = !parsedDate || isNaN(parsedDate.getTime());
   const formattedTime = isInvalidDate
-    ? 'Invalid Date'
-    : parsedDate.toLocaleString('en-US', {
-        weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-      });
-
-  const handleSaveTime = () => {
-    if (!editDay || !editTime) return;
-    const parsed = parseTimeString(editTime);
-    if (!parsed) return;
-    const dt = new Date(editDay);
-    dt.setHours(parsed.hours, parsed.minutes, 0, 0);
-    const iso = dt.toISOString();
-    setOverriddenTime(iso);
-    lobStore.updateLobTime(lob.id, iso);
-    setEditingTime(false);
-    toast.success('Date updated!');
-  };
-
-  const getUserAvatar = (userId: string) => users.find(u => u.id === userId)?.avatar || '👤';
+    ? 'Time TBD'
+    : parsedDate.toLocaleString('en-US', { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
   const canNudge = !lastNudgeTime || (Date.now() - lastNudgeTime > 2 * 60 * 60 * 1000);
 
-  const handleNudgeMaybes = () => {
-    if (!canNudge) {
-      toast.error('You can nudge again in 2 hours');
-      return;
+  const handleResponse = async (response: ResponseType) => {
+    if (!user) return;
+    // Upsert response
+    const existing = lob.responses.find(r => r.userId === user.id);
+    if (existing) {
+      await supabase.from('lob_responses').update({ response }).eq('lob_id', lob.id).eq('user_id', user.id);
+    } else {
+      await supabase.from('lob_responses').insert({ lob_id: lob.id, user_id: user.id, response });
     }
-    setLastNudgeTime(Date.now());
-    toast.success(`Nudged ${maybeCount} maybe${maybeCount !== 1 ? 's' : ''} — "Are you in or out?"`);
+    queryClient.invalidateQueries({ queryKey: ['supabase-lob', id] });
+    queryClient.invalidateQueries({ queryKey: ['supabase-lobs'] });
   };
 
-  const handleNudgeNonResponders = () => {
-    if (!canNudge) {
-      toast.error('You can nudge again in 2 hours');
-      return;
-    }
-    setLastNudgeTime(Date.now());
-    toast.success(`Nudged ${unrespondedCount} who haven't responded yet`);
-  };
-
-  const handleAddComment = () => {
-    if (!newComment.trim()) return;
-    const comment: LobComment = {
-      id: `c-${Date.now()}`,
-      userId: 'u1',
+  const handleAddComment = async () => {
+    if (!newComment.trim() || !user) return;
+    await supabase.from('lob_comments').insert({
+      lob_id: lob.id,
+      user_id: user.id,
       message: newComment.trim(),
-      createdAt: new Date().toISOString(),
-    };
-    setComments(prev => [...prev, comment]);
+    });
     setNewComment('');
+    queryClient.invalidateQueries({ queryKey: ['supabase-lob', id] });
   };
 
-  const handleSuggestTime = () => {
-    if (!suggestDay || !suggestTime) return;
-    const parsed = parseTimeString(suggestTime);
-    if (!parsed) return;
-    const dt = new Date(suggestDay);
-    dt.setHours(parsed.hours, parsed.minutes, 0, 0);
-    const comment: LobComment = {
-      id: `c-${Date.now()}`,
-      userId: 'u1',
-      message: '',
-      createdAt: new Date().toISOString(),
-      suggestedTime: dt.toISOString(),
-    };
-    setComments(prev => [...prev, comment]);
-    setShowTimePicker(false);
-    setSuggestDay(undefined);
-    setSuggestTime('');
-    toast.success('Time suggestion posted!');
-  };
-
-  const handleAddToPoll = (suggestedTime: string) => {
-    const alreadyExists = allTimeOptions.some(t => t.datetime === suggestedTime);
-    if (alreadyExists) {
-      toast.error('This time is already in the poll');
-      return;
-    }
-    const newOption: TimeOption = {
-      id: `to-${Date.now()}`,
-      datetime: suggestedTime,
-      votes: [],
-    };
-    setExtraTimeOptions(prev => [...prev, newOption]);
-    toast.success('Time added to poll!');
-  };
-
-  const handleCancel = () => {
-    setIsCancelled(true);
+  const handleCancel = async () => {
+    await supabase.from('lobs').update({ status: 'cancelled' }).eq('id', lob.id);
     setShowCancelDialog(false);
     setShowMenu(false);
-    toast.success('Plan cancelled. Everyone has been notified.');
+    queryClient.invalidateQueries({ queryKey: ['supabase-lob', id] });
+    queryClient.invalidateQueries({ queryKey: ['supabase-lobs'] });
+    toast.success('Plan cancelled.');
   };
 
+  const handleBail = async () => {
+    await handleResponse('out');
+    setShowBailSheet(false);
+    toast.success('You bailed.');
+  };
+
+  const recurrenceLabel = lob.recurrence ? RECURRENCE_OPTIONS.find(r => r.key === lob.recurrence)?.label : null;
+  const effectiveStatus = lob.status;
   const deadlinePassed = lob.deadline ? new Date(lob.deadline).getTime() < Date.now() : false;
 
-  const handleBail = () => {
-    setHasBailed(true);
-    setMyResponse('out');
-    setShowBailSheet(false);
-    const userName = getUserName('u1');
-    // Add system message
-    const systemComment = {
-      id: `c-bail-${Date.now()}`,
-      userId: 'u1',
-      message: `${userName} can no longer make it.`,
-      createdAt: new Date().toISOString(),
-    };
-    setComments(prev => [...prev, systemComment]);
-    toast.success(deadlinePassed
-      ? 'You bailed — this will affect your show rate.'
-      : 'You bailed — no impact on your show rate.'
-    );
+  const handleLockIn = (destination: string, startDate: string, endDate: string) => {
+    toast.success(`Trip locked in: ${destination} 🎉`);
   };
-
-  const recurrenceLabel = lob.recurrence
-    ? RECURRENCE_OPTIONS.find(r => r.key === lob.recurrence)?.label
-    : null;
-
-  const effectiveStatus = isCancelled ? 'cancelled' : lob.status;
 
   const isGroupTrip = lob.category === 'group-trip';
   const showTripPlanning = isGroupTrip && lob.tripPlanningPhase && lob.tripPlanningPhase !== 'confirmed';
-
-  const handleLockIn = (destination: string, startDate: string, endDate: string) => {
-    // In a real app this would update the lob via store/API
-    toast.success(`Trip locked in: ${destination}, ${new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${new Date(endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} 🎉`);
-  };
 
   return (
     <AppLayout>
@@ -283,12 +134,8 @@ const LobDetail = () => {
           <StatusPill status={effectiveStatus} />
           <button
             onClick={() => {
-              if (navigator.share) {
-                navigator.share({ title: lob.title, url: window.location.href });
-              } else {
-                navigator.clipboard.writeText(window.location.href);
-                toast.success('Link copied!');
-              }
+              if (navigator.share) navigator.share({ title: lob.title, url: window.location.href });
+              else { navigator.clipboard.writeText(window.location.href); toast.success('Link copied!'); }
             }}
             className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center"
           >
@@ -296,24 +143,13 @@ const LobDetail = () => {
           </button>
           {isCreator && (
             <div className="relative">
-              <button
-                onClick={() => setShowMenu(!showMenu)}
-                className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center"
-              >
+              <button onClick={() => setShowMenu(!showMenu)} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
                 <MoreVertical className="w-5 h-5 text-foreground" />
               </button>
               <AnimatePresence>
                 {showMenu && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: -5 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: -5 }}
-                    className="absolute right-0 top-12 z-50 w-48 rounded-xl bg-card border border-border shadow-card overflow-hidden"
-                  >
-                    <button
-                      onClick={() => { setShowMenu(false); setShowCancelDialog(true); }}
-                      className="w-full flex items-center gap-2 px-4 py-3 text-sm text-destructive hover:bg-secondary/50 transition-colors"
-                    >
+                  <motion.div initial={{ opacity: 0, scale: 0.9, y: -5 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: -5 }} className="absolute right-0 top-12 z-50 w-48 rounded-xl bg-card border border-border shadow-card overflow-hidden">
+                    <button onClick={() => { setShowMenu(false); setShowCancelDialog(true); }} className="w-full flex items-center gap-2 px-4 py-3 text-sm text-destructive hover:bg-secondary/50 transition-colors">
                       <XCircle className="w-4 h-4" /> Cancel Plan
                     </button>
                   </motion.div>
@@ -323,40 +159,17 @@ const LobDetail = () => {
           )}
         </div>
 
-        {/* Cancel confirmation dialog */}
+        {/* Cancel confirmation */}
         <AnimatePresence>
           {showCancelDialog && (
             <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowCancelDialog(false)}
-                className="fixed inset-0 z-[80] bg-background/60 backdrop-blur-sm"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[90] max-w-sm mx-auto bg-card rounded-2xl border border-border shadow-card p-6"
-              >
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCancelDialog(false)} className="fixed inset-0 z-[80] bg-background/60 backdrop-blur-sm" />
+              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[90] max-w-sm mx-auto bg-card rounded-2xl border border-border shadow-card p-6">
                 <h3 className="font-bold text-foreground text-lg mb-2">Cancel this plan?</h3>
-                <p className="text-sm text-muted-foreground mb-5">
-                  Are you sure you want to cancel this plan? Everyone will be notified.
-                </p>
+                <p className="text-sm text-muted-foreground mb-5">Everyone will be notified.</p>
                 <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowCancelDialog(false)}
-                    className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground font-semibold text-sm"
-                  >
-                    Keep it
-                  </button>
-                  <button
-                    onClick={handleCancel}
-                    className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground font-semibold text-sm"
-                  >
-                    Cancel Plan
-                  </button>
+                  <button onClick={() => setShowCancelDialog(false)} className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground font-semibold text-sm">Keep it</button>
+                  <button onClick={handleCancel} className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground font-semibold text-sm">Cancel Plan</button>
                 </div>
               </motion.div>
             </>
@@ -364,16 +177,12 @@ const LobDetail = () => {
         </AnimatePresence>
 
         {/* Cancelled banner */}
-        {isCancelled && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="rounded-2xl p-4 bg-destructive/10 border border-destructive/30 mb-4 flex items-center gap-3"
-          >
+        {effectiveStatus === 'cancelled' && (
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="rounded-2xl p-4 bg-destructive/10 border border-destructive/30 mb-4 flex items-center gap-3">
             <XCircle className="w-6 h-6 text-destructive" />
             <div>
               <p className="font-bold text-foreground text-sm">Plan cancelled</p>
-              <p className="text-xs text-muted-foreground">This plan has been cancelled by the creator</p>
+              <p className="text-xs text-muted-foreground">This plan has been cancelled</p>
             </div>
           </motion.div>
         )}
@@ -395,7 +204,7 @@ const LobDetail = () => {
           )}
         </motion.div>
 
-        {/* Trip Planning Section (dates-open / fully-open) */}
+        {/* Trip Planning Section */}
         {showTripPlanning && (
           <div className="mb-4">
             <TripPlanningSection lob={lob} isCreator={isCreator} onLockIn={handleLockIn} />
@@ -403,86 +212,11 @@ const LobDetail = () => {
         )}
 
         {/* Details */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card mb-4 space-y-3"
-        >
-          <div
-            className={cn(
-              'flex items-center gap-2 text-sm',
-              isInvalidDate && isCreator ? 'text-destructive cursor-pointer' : 'text-foreground',
-              isCreator && 'cursor-pointer'
-            )}
-            onClick={() => isCreator && setEditingTime(true)}
-          >
-            <Clock className={cn('w-4 h-4', isInvalidDate ? 'text-destructive' : 'text-primary')} />
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card mb-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm text-foreground">
+            <Clock className="w-4 h-4 text-primary" />
             <span>{formattedTime}</span>
-            {isCreator && (
-              <span className="text-xs text-muted-foreground ml-1">tap to edit</span>
-            )}
           </div>
-          <AnimatePresence>
-            {editingTime && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-3 pt-2"
-              >
-                <p className="text-xs font-medium text-muted-foreground">Pick a day</p>
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {DAY_CHIPS.map(chip => (
-                    <button
-                      key={chip.label}
-                      onClick={() => setEditDay(chip.date)}
-                      className={cn(
-                        'px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all',
-                        editDay && isSameDay(editDay, chip.date)
-                          ? 'border-primary bg-primary/10 text-foreground'
-                          : 'border-border bg-secondary/50 text-muted-foreground'
-                      )}
-                    >
-                      {chip.label}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs font-medium text-muted-foreground">Pick a time</p>
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {TIME_CHIPS.filter((_, i) => i % 2 === 0).map(t => (
-                    <button
-                      key={t}
-                      onClick={() => setEditTime(t)}
-                      className={cn(
-                        'px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all',
-                        editTime === t
-                          ? 'border-primary bg-primary/10 text-foreground'
-                          : 'border-border bg-secondary/50 text-muted-foreground'
-                      )}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setEditingTime(false)}
-                    className="flex-1 py-2 rounded-xl bg-secondary text-muted-foreground text-sm font-medium"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSaveTime}
-                    disabled={!editDay || !editTime}
-                    className="flex-1 py-2 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-40"
-                  >
-                    Save
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
           {lob.location && (
             <div className="flex items-center gap-2 text-sm text-foreground">
               <MapPin className="w-4 h-4 text-primary" />
@@ -495,507 +229,89 @@ const LobDetail = () => {
 
         {/* Status Banner */}
         {effectiveStatus === 'voting' && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className={`rounded-2xl p-4 mb-4 flex items-center gap-3 ${
-              quorumReached
-                ? 'bg-lob-confirmed/10 border border-lob-confirmed/30'
-                : 'bg-secondary/50 border border-border/50'
-            }`}
-          >
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={`rounded-2xl p-4 mb-4 flex items-center gap-3 ${quorumReached ? 'bg-lob-confirmed/10 border border-lob-confirmed/30' : 'bg-secondary/50 border border-border/50'}`}>
             {quorumReached ? (
-              <>
-                <CheckCircle2 className="w-6 h-6 text-lob-confirmed" />
-                <div>
-                  <p className="font-bold text-foreground text-sm">It's on! 🎉</p>
-                  <p className="text-xs text-muted-foreground">Ready to confirm this plan</p>
-                </div>
-              </>
+              <><CheckCircle2 className="w-6 h-6 text-lob-confirmed" /><div><p className="font-bold text-foreground text-sm">It's on! 🎉</p><p className="text-xs text-muted-foreground">Ready to confirm</p></div></>
             ) : (
-              <>
-                <Users className="w-6 h-6 text-primary" />
-                <div>
-                  <p className="font-bold text-foreground text-sm">Waiting on {lob.quorum - inCount} more</p>
-                  <p className="text-xs text-muted-foreground">
-                    {inCount} in · {maybeCount} maybe · {unrespondedCount} no response
-                  </p>
-                </div>
-              </>
+              <><Users className="w-6 h-6 text-primary" /><div><p className="font-bold text-foreground text-sm">Waiting on {lob.quorum - inCount} more</p><p className="text-xs text-muted-foreground">{inCount} in · {maybeCount} maybe</p></div></>
             )}
           </motion.div>
         )}
 
         {/* Response Buttons */}
         {effectiveStatus === 'voting' && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="mb-4"
-          >
-            <ResponseButtons current={myResponse} onChange={setMyResponse} />
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-4">
+            <ResponseButtons current={myResponse} onChange={handleResponse} />
           </motion.div>
         )}
 
-        {/* Nudge buttons (creator only) — separate for maybes and non-responders */}
-        {isCreator && effectiveStatus === 'voting' && (maybeCount > 0 || unrespondedCount > 0) && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.17 }}
-            className="mb-4 space-y-2"
-          >
-            {maybeCount > 0 && (
-              <button
-                onClick={handleNudgeMaybes}
-                disabled={!canNudge}
-                className="w-full py-3 rounded-xl bg-lob-maybe/10 border border-lob-maybe/30 text-lob-maybe font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-40 transition-opacity hover:bg-lob-maybe/15"
-              >
-                <Bell className="w-4 h-4" />
-                Nudge {maybeCount} maybe{maybeCount !== 1 ? 's' : ''} — "In or out?"
-              </button>
-            )}
-            {unrespondedCount > 0 && (
-              <button
-                onClick={handleNudgeNonResponders}
-                disabled={!canNudge}
-                className="w-full py-3 rounded-xl bg-primary/10 border border-primary/30 text-primary font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-40 transition-opacity hover:bg-primary/15"
-              >
-                <Bell className="w-4 h-4" />
-                Nudge {unrespondedCount} non-responder{unrespondedCount !== 1 ? 's' : ''}
-              </button>
-            )}
-          </motion.div>
-        )}
-
-        {/* Can't make it — bail button (for committed non-creators) */}
-        {!isCreator && myResponse === 'in' && !hasBailed && !isCancelled && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.18 }}
-            className="mb-4"
-          >
-            <button
-              onClick={() => setShowBailSheet(true)}
-              className="w-full py-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive font-semibold text-sm flex items-center justify-center gap-2 hover:bg-destructive/15 transition-colors"
-            >
-              <DoorOpen className="w-4 h-4" />
-              Can't make it
+        {/* Bail button */}
+        {!isCreator && myResponse === 'in' && effectiveStatus !== 'cancelled' && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} className="mb-4">
+            <button onClick={() => setShowBailSheet(true)} className="w-full py-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive font-semibold text-sm flex items-center justify-center gap-2">
+              <DoorOpen className="w-4 h-4" /> Can't make it
             </button>
           </motion.div>
         )}
 
-        {/* Bail confirmation sheet */}
         <AnimatePresence>
           {showBailSheet && (
-            <BailSheet
-              open={showBailSheet}
-              onClose={() => setShowBailSheet(false)}
-              onConfirm={handleBail}
-              pastDeadline={deadlinePassed}
-              userName={getUserName('u1')}
-            />
+            <BailSheet open={showBailSheet} onClose={() => setShowBailSheet(false)} onConfirm={handleBail} pastDeadline={deadlinePassed} userName="You" />
           )}
         </AnimatePresence>
 
         {/* Attendance Ring */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="gradient-card rounded-2xl p-5 border border-border/50 shadow-card mb-4"
-        >
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="gradient-card rounded-2xl p-5 border border-border/50 shadow-card mb-4">
           <p className="text-xs font-semibold text-muted-foreground mb-4">ATTENDANCE</p>
-          <QuorumRing current={inCount} target={lob.quorum} responses={lob.responses} groupMembers={groupMembers} />
+          <QuorumRing current={inCount} target={lob.quorum} responses={lob.responses} groupMembers={[]} />
         </motion.div>
 
-        {/* Deadline Countdown */}
+        {/* Deadline */}
         {lob.deadline && effectiveStatus === 'voting' && (
           <div className="mb-4">
-            <DeadlineCountdown
-              deadline={lob.deadline}
-              isCreator={isCreator}
-              quorumReached={quorumReached}
-              isMaybe={myResponse === 'maybe'}
-            />
+            <DeadlineCountdown deadline={lob.deadline} isCreator={isCreator} quorumReached={quorumReached} isMaybe={myResponse === 'maybe'} />
           </div>
         )}
 
-        {/* Open Invite Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.22 }}
-          className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card mb-4"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <UserPlus className="w-4 h-4 text-primary" />
-              <p className="text-xs font-semibold text-muted-foreground">OPEN INVITE</p>
-            </div>
-            {isCreator && (
-              <button
-                onClick={() => {
-                  setOpenInviteEnabled(!openInviteEnabled);
-                  toast.success(openInviteEnabled ? 'Open invite disabled' : 'Open invite enabled');
-                }}
-                className={cn(
-                  'text-xs font-medium px-3 py-1 rounded-full transition-colors',
-                  openInviteEnabled ? 'bg-primary/15 text-primary' : 'bg-secondary text-muted-foreground'
-                )}
-              >
-                {openInviteEnabled ? 'On' : 'Off'}
-              </button>
-            )}
+        {/* Comments */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <MessageCircle className="w-4 h-4 text-primary" />
+            <p className="text-xs font-semibold text-muted-foreground">COMMENTS</p>
           </div>
 
-          {openInviteEnabled ? (
-            <div className="space-y-3">
-              {isCreator && (
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground">Max guests:</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setOpenInviteMaxGuests(Math.max(1, openInviteMaxGuests - 1))}
-                      className="w-7 h-7 rounded-full border border-border bg-card flex items-center justify-center"
-                    >
-                      <Minus className="w-3 h-3 text-foreground" />
-                    </button>
-                    <span className="text-sm font-bold text-primary tabular-nums">{openInviteMaxGuests}</span>
-                    <button
-                      onClick={() => setOpenInviteMaxGuests(Math.min(10, openInviteMaxGuests + 1))}
-                      className="w-7 h-7 rounded-full border border-border bg-card flex items-center justify-center"
-                    >
-                      <Plus className="w-3 h-3 text-foreground" />
-                    </button>
+          {localComments.length > 0 ? (
+            <div className="space-y-3 mb-3">
+              {localComments.map(c => (
+                <div key={c.id} className="flex gap-2">
+                  <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-sm shrink-0">💬</div>
+                  <div>
+                    <p className="text-sm text-foreground">{c.message}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(c.createdAt).toLocaleString()}</p>
                   </div>
                 </div>
-              )}
-
-              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-secondary/50 border border-border/50">
-                <Users className="w-4 h-4 text-primary" />
-                <span className="text-xs text-foreground font-medium">
-                  {openInviteMaxGuests - openInviteUsedGuests} guest spot{openInviteMaxGuests - openInviteUsedGuests !== 1 ? 's' : ''} remaining
-                </span>
-                <span className="text-[10px] text-muted-foreground ml-auto">
-                  {openInviteUsedGuests}/{openInviteMaxGuests} used
-                </span>
-              </div>
-
-              {/* Invite a guest button — shown to confirmed attendees */}
-              {myResponse === 'in' && openInviteUsedGuests < openInviteMaxGuests && (
-                <>
-                  <button
-                    onClick={() => setShowInviteGuest(!showInviteGuest)}
-                    className="w-full py-2.5 rounded-xl bg-primary/10 border border-primary/30 text-primary font-semibold text-sm flex items-center justify-center gap-2 hover:bg-primary/15 transition-colors"
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    Invite a guest
-                  </button>
-                  <AnimatePresence>
-                    {showInviteGuest && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="p-3 rounded-xl bg-secondary/50 border border-border/50 space-y-2">
-                          <input
-                            type="text"
-                            placeholder="Search people..."
-                            value={guestSearch}
-                            onChange={e => setGuestSearch(e.target.value)}
-                            className="w-full p-2.5 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                          />
-                          <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                            {users
-                              .filter(u => u.id !== 'u1' && !lob.responses.some(r => r.userId === u.id) && u.name.toLowerCase().includes(guestSearch.toLowerCase()))
-                              .slice(0, 5)
-                              .map(u => (
-                                <button
-                                  key={u.id}
-                                  onClick={() => {
-                                    setOpenInviteUsedGuests(prev => prev + 1);
-                                    setShowInviteGuest(false);
-                                    setGuestSearch('');
-                                    toast.success(`Invited ${u.name}! They'll see the activity, time, and location.`);
-                                  }}
-                                  className="w-full flex items-center gap-2.5 p-2.5 rounded-xl border border-border bg-card hover:border-primary/50 transition-all"
-                                >
-                                  <span className="text-lg">{u.avatar}</span>
-                                  <span className="text-sm font-medium text-foreground">{u.name}</span>
-                                  <span className="ml-auto text-[10px] text-muted-foreground">Invite</span>
-                                </button>
-                              ))}
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </>
-              )}
+              ))}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">
-              {isCreator ? 'Turn on to let confirmed attendees bring guests' : 'Guest invites are currently disabled'}
-            </p>
-          )}
-        </motion.div>
-
-
-        {/* Time Poll */}
-        {allTimeOptions.length > 1 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card mb-4"
-          >
-            <p className="text-xs font-semibold text-muted-foreground mb-3">⏱ TIME POLL — tap to vote</p>
-            <div className="space-y-2">
-              {allTimeOptions.map(opt => {
-                const t = new Date(opt.datetime);
-                const iVoted = votedTimeIds.includes(opt.id);
-                const voteCount = opt.votes.length + (iVoted && !opt.votes.includes('u1') ? 1 : 0);
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => {
-                      setVotedTimeIds(prev =>
-                        prev.includes(opt.id) ? prev.filter(x => x !== opt.id) : [...prev, opt.id]
-                      );
-                    }}
-                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
-                      iVoted ? 'bg-primary/10 border-primary' : 'bg-secondary/50 border-border/50 hover:border-primary/40'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                        iVoted ? 'bg-primary border-primary' : 'border-muted-foreground/40'
-                      }`}>
-                        {iVoted && <Check className="w-3 h-3 text-primary-foreground" />}
-                      </div>
-                      <span className="text-sm font-medium text-foreground">
-                        {t.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex -space-x-1">
-                        {opt.votes.slice(0, 3).map(uid => (
-                          <span key={uid} className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs border-2 border-card">
-                            {getUserAvatar(uid)}
-                          </span>
-                        ))}
-                      </div>
-                      <span className="text-xs font-semibold text-muted-foreground">{voteCount}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Comments Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card mb-4"
-        >
-          <p className="text-xs font-semibold text-muted-foreground mb-3">
-            <MessageCircle className="w-3.5 h-3.5 inline mr-1" />
-            COMMENTS {comments.length > 0 && `(${comments.length})`}
-          </p>
-
-          {comments.length === 0 && (
-            <p className="text-xs text-muted-foreground mb-3">No comments yet. Start the conversation!</p>
+            <p className="text-xs text-muted-foreground mb-3">No comments yet</p>
           )}
 
-          <div className="space-y-3 mb-3">
-            {comments.map(c => {
-              const timeDiff = Date.now() - new Date(c.createdAt).getTime();
-              const mins = Math.floor(timeDiff / 60000);
-              const timeAgo = mins < 1 ? 'just now' : mins < 60 ? `${mins}m ago` : mins < 1440 ? `${Math.floor(mins / 60)}h ago` : `${Math.floor(mins / 1440)}d ago`;
-
-              // Time suggestion card
-              if (c.suggestedTime) {
-                const suggestedDate = new Date(c.suggestedTime);
-                const alreadyInPoll = allTimeOptions.some(t => t.datetime === c.suggestedTime);
-                return (
-                  <div key={c.id} className="flex items-start gap-2.5">
-                    <button
-                      onClick={() => navigate(c.userId === 'u1' ? '/profile' : `/user/${c.userId}`)}
-                      className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-sm shrink-0 mt-0.5 active:scale-90 transition-transform"
-                    >
-                      {getUserAvatar(c.userId)}
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-xs font-semibold text-foreground">{getUserName(c.userId)}</span>
-                        <span className="text-[10px] text-muted-foreground">{timeAgo}</span>
-                      </div>
-                      <div className="mt-1.5 p-3 rounded-xl bg-primary/5 border border-primary/20">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Clock className="w-4 h-4 text-primary" />
-                          <span className="text-sm font-semibold text-foreground">
-                            {suggestedDate.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground mb-2">Suggested time</p>
-                        {isCreator && !alreadyInPoll && (
-                          <button
-                            onClick={() => handleAddToPoll(c.suggestedTime!)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/30 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
-                          >
-                            <Plus className="w-3 h-3" />
-                            Add to poll
-                          </button>
-                        )}
-                        {alreadyInPoll && (
-                          <span className="flex items-center gap-1 text-[11px] text-primary/70">
-                            <Check className="w-3 h-3" /> Added to poll
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              // Regular comment
-              return (
-                <div key={c.id} className="flex items-start gap-2.5">
-                  <button
-                    onClick={() => navigate(c.userId === 'u1' ? '/profile' : `/user/${c.userId}`)}
-                    className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-sm shrink-0 mt-0.5 active:scale-90 transition-transform"
-                  >
-                    {getUserAvatar(c.userId)}
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-xs font-semibold text-foreground">{getUserName(c.userId)}</span>
-                      <span className="text-[10px] text-muted-foreground">{timeAgo}</span>
-                    </div>
-                    <p className="text-sm text-foreground/90 mt-0.5">{c.message}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Time picker inline */}
-          <AnimatePresence>
-            {showTimePicker && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden mb-3"
-              >
-                <div className="p-3 rounded-xl bg-secondary/50 border border-border/50 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold text-foreground">Suggest a time</p>
-                    <button onClick={() => setShowTimePicker(false)} className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center">
-                      <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
-                    </button>
-                  </div>
-
-                  <div>
-                    <p className="text-[11px] font-medium text-muted-foreground mb-1.5">Day</p>
-                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-                      {DAY_CHIPS.map(c => (
-                        <button
-                          key={c.label}
-                          onClick={() => setSuggestDay(c.date)}
-                          className={cn(
-                            'shrink-0 px-3 py-2 rounded-xl text-xs font-medium border transition-all',
-                            isSameDay(suggestDay, c.date)
-                              ? 'border-primary bg-primary/15 text-primary'
-                              : 'border-border bg-card text-muted-foreground hover:border-primary/50'
-                          )}
-                        >
-                          {c.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-[11px] font-medium text-muted-foreground mb-1.5">Time</p>
-                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-                      {TIME_CHIPS.map(t => (
-                        <button
-                          key={t}
-                          onClick={() => setSuggestTime(t)}
-                          className={cn(
-                            'shrink-0 px-3 py-2 rounded-xl text-xs font-medium border transition-all',
-                            suggestTime === t
-                              ? 'border-primary bg-primary/15 text-primary'
-                              : 'border-border bg-card text-muted-foreground hover:border-primary/50'
-                          )}
-                        >
-                          {t}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {suggestDay && suggestTime && (
-                    <div className="flex items-center gap-2 text-xs text-primary">
-                      <Clock className="w-3 h-3" />
-                      {format(suggestDay, 'EEE, MMM d')} at {suggestTime}
-                    </div>
-                  )}
-
-                  <button
-                    onClick={handleSuggestTime}
-                    disabled={!suggestDay || !suggestTime}
-                    className="w-full py-2.5 rounded-xl gradient-primary text-primary-foreground font-semibold text-xs disabled:opacity-40 transition-opacity"
-                  >
-                    Post suggestion
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Add comment + suggest time */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowTimePicker(!showTimePicker)}
-              className={cn(
-                'w-9 h-9 rounded-full flex items-center justify-center shrink-0 border transition-colors',
-                showTimePicker
-                  ? 'bg-primary/15 border-primary text-primary'
-                  : 'bg-secondary border-border text-muted-foreground hover:border-primary/50'
-              )}
-              title="Suggest a time"
-            >
-              <CalendarIcon className="w-4 h-4" />
-            </button>
+          <div className="flex gap-2">
             <input
               type="text"
               placeholder="Add a comment..."
               value={newComment}
               onChange={e => setNewComment(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleAddComment()}
-              className="flex-1 p-2.5 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="flex-1 p-2.5 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            <button
-              onClick={handleAddComment}
-              disabled={!newComment.trim()}
-              className="w-9 h-9 rounded-full gradient-primary flex items-center justify-center disabled:opacity-40 transition-opacity shrink-0"
-            >
+            <button onClick={handleAddComment} disabled={!newComment.trim()} className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center disabled:opacity-40">
               <Send className="w-4 h-4 text-primary-foreground" />
             </button>
           </div>
         </motion.div>
 
-        <div className="h-6" />
+        <div className="h-8" />
       </div>
     </AppLayout>
   );
