@@ -237,11 +237,11 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
             animate={lobLaunched ? { y: '-100%', opacity: 0, scale: 0.8 } : { y: 0 }}
             exit={{ y: '100%' }}
             transition={lobLaunched ? { duration: 0.5, ease: [0.2, 0.8, 0.2, 1] } : { type: 'spring', damping: 28, stiffness: 300 }}
-            drag={showConfirm ? 'y' : 'y'}
+            drag={lobLaunched ? false : 'y'}
             dragConstraints={showConfirm ? { top: -200, bottom: 100 } : { top: 0 }}
             dragElastic={0.2}
             onDragEnd={showConfirm ? handleConfirmDragEnd : ((_: any, info: PanInfo) => { if (info.offset.y > 100) onClose(); })}
-            style={showConfirm ? { y: confirmDragY, opacity: confirmOpacity, scale: confirmScale } : { y, opacity }}
+            style={lobLaunched ? undefined : (showConfirm ? { y: confirmDragY, opacity: confirmOpacity, scale: confirmScale } : { y, opacity })}
             className="fixed bottom-0 left-0 right-0 z-[70] max-w-lg mx-auto"
           >
             <div className="bg-card rounded-t-3xl border border-border/50 shadow-card overflow-hidden max-h-[85vh]">
