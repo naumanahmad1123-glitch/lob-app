@@ -29,11 +29,47 @@ export async function seedDemoData(userId: string) {
 
   if (gErr || !createdGroups) return;
 
-  // Add user as member of each group
-  const memberships = createdGroups.map(g => ({
-    group_id: g.id,
-    user_id: userId,
-  }));
+  // Create fake member profiles
+  const fakeMembers = [
+    { name: 'Alex', avatar: '😎', interests: ['sports', 'gym'], city: 'New York' },
+    { name: 'Sam', avatar: '🤙', interests: ['dinner', 'coffee'], city: 'London' },
+    { name: 'Jordan', avatar: '🏄', interests: ['sports', 'travel'], city: 'London' },
+    { name: 'Taylor', avatar: '🎯', interests: ['padel', 'gym'], city: 'New York' },
+    { name: 'Casey', avatar: '🎨', interests: ['chill', 'travel'], city: 'London' },
+    { name: 'Morgan', avatar: '🎤', interests: ['dinner', 'chill'], city: 'Paris' },
+  ];
+
+  const fakeIds: string[] = [];
+  for (const member of fakeMembers) {
+    const fakeId = crypto.randomUUID();
+    fakeIds.push(fakeId);
+    await supabase.from('profiles').insert({
+      id: fakeId,
+      name: member.name,
+      avatar: member.avatar,
+      interests: member.interests,
+      city: member.city,
+    });
+  }
+
+  // Add user + fake members to groups
+  const memberships = [
+    // User in all groups
+    ...createdGroups.map(g => ({ group_id: g.id, user_id: userId })),
+    // Hoop Squad: Alex, Jordan, Taylor, Morgan
+    { group_id: createdGroups[0].id, user_id: fakeIds[0] },
+    { group_id: createdGroups[0].id, user_id: fakeIds[2] },
+    { group_id: createdGroups[0].id, user_id: fakeIds[3] },
+    { group_id: createdGroups[0].id, user_id: fakeIds[5] },
+    // Dinner Club: Sam, Casey, Morgan
+    { group_id: createdGroups[1].id, user_id: fakeIds[1] },
+    { group_id: createdGroups[1].id, user_id: fakeIds[4] },
+    { group_id: createdGroups[1].id, user_id: fakeIds[5] },
+    // Coffee Crew: Sam, Alex, Taylor
+    { group_id: createdGroups[2].id, user_id: fakeIds[1] },
+    { group_id: createdGroups[2].id, user_id: fakeIds[0] },
+    { group_id: createdGroups[2].id, user_id: fakeIds[3] },
+  ];
   await supabase.from('group_members').insert(memberships);
 
   // Create demo lobs
