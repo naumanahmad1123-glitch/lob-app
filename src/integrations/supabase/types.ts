@@ -407,6 +407,45 @@ export type Database = {
         }
         Relationships: []
       }
+      trips: {
+        Row: {
+          city: string
+          country: string
+          created_at: string
+          emoji: string
+          end_date: string
+          id: string
+          notify_user_ids: string[]
+          show_on_profile: boolean
+          start_date: string
+          user_id: string
+        }
+        Insert: {
+          city: string
+          country?: string
+          created_at?: string
+          emoji?: string
+          end_date: string
+          id?: string
+          notify_user_ids?: string[]
+          show_on_profile?: boolean
+          start_date: string
+          user_id: string
+        }
+        Update: {
+          city?: string
+          country?: string
+          created_at?: string
+          emoji?: string
+          end_date?: string
+          id?: string
+          notify_user_ids?: string[]
+          show_on_profile?: boolean
+          start_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -4,10 +4,10 @@ import { Sparkles, Bell, List, CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LobCard } from '@/components/lob/LobCard';
-import { lobs as seedLobs, lobHistory, currentUser } from '@/data/seed';
-import { useCreatedLobs } from '@/hooks/useCreatedLobs';
-import { useLobsterSuggests } from '@/hooks/useLobsterSuggests';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseLobs } from '@/hooks/useSupabaseLobs';
 import { useComposer } from '@/hooks/useComposer';
+import { Lob } from '@/data/types';
 
 type ViewMode = 'feed' | 'calendar';
 
@@ -25,10 +25,7 @@ function getCalendarDays(year: number, month: number) {
 const Home = () => {
   const navigate = useNavigate();
   const { openComposer } = useComposer();
-  const createdLobs = useCreatedLobs();
-  const allLobs = useMemo(() => [...createdLobs, ...seedLobs], [createdLobs]);
-  const allLobsWithHistory = useMemo(() => [...allLobs, ...lobHistory], [allLobs]);
-  const suggestions = useLobsterSuggests(allLobsWithHistory, currentUser.id);
+  const { data: allLobs = [], isLoading } = useSupabaseLobs();
   const [view, setView] = useState<ViewMode>('feed');
   const [calMonth, setCalMonth] = useState(() => {
     const now = new Date();
@@ -40,9 +37,8 @@ const Home = () => {
   const confirmedLobs = allLobs.filter(l => l.status === 'confirmed');
   const allUpcoming = allLobs.filter(l => l.status === 'voting' || l.status === 'confirmed');
 
-  // Map day-of-month → lobs for the current calendar month
   const lobsByDay = useMemo(() => {
-    const map = new Map<number, typeof allLobs>();
+    const map = new Map<number, Lob[]>();
     allUpcoming.forEach(lob => {
       const timeStr = lob.selectedTime || lob.timeOptions[0]?.datetime;
       if (!timeStr) return;
@@ -60,7 +56,6 @@ const Home = () => {
   const monthLabel = new Date(calMonth.year, calMonth.month).toLocaleString('en-US', { month: 'long', year: 'numeric' });
   const today = new Date();
   const isCurrentMonth = today.getFullYear() === calMonth.year && today.getMonth() === calMonth.month;
-
   const selectedDayLobs = selectedDay ? lobsByDay.get(selectedDay) || [] : [];
 
   const prevMonth = () => {
@@ -75,7 +70,6 @@ const Home = () => {
   return (
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
-        {/* Header */}
         <div className="flex items-center justify-between pt-12 pb-4">
           <div>
             <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Lob</h1>
@@ -86,11 +80,9 @@ const Home = () => {
             className="relative w-10 h-10 rounded-full bg-secondary flex items-center justify-center"
           >
             <Bell className="w-5 h-5 text-foreground" />
-            {/* Badge hidden until real notifications exist */}
           </button>
         </div>
 
-        {/* View toggle */}
         <div className="flex items-center gap-1 bg-secondary rounded-xl p-1 mb-6">
           <button
             onClick={() => setView('feed')}
@@ -112,164 +104,119 @@ const Home = () => {
           </button>
         </div>
 
-        <AnimatePresence mode="wait">
-          {view === 'feed' ? (
-            <motion.div
-              key="feed"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-            >
-              {/* Active Lobs */}
-              <section className="mb-8">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-base font-bold text-foreground">Needs Your Vote</h2>
-                  <span className="text-xs font-semibold text-primary">{activeLobs.length} active</span>
+        {isLoading ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-sm">Loading plans...</p>
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            {view === 'feed' ? (
+              <motion.div
+                key="feed"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                {activeLobs.length > 0 && (
+                  <section className="mb-8">
+                    <div className="flex items-center justify-between mb-3">
+                      <h2 className="text-base font-bold text-foreground">Needs Your Vote</h2>
+                      <span className="text-xs font-semibold text-primary">{activeLobs.length} active</span>
+                    </div>
+                    <div className="space-y-3">
+                      {activeLobs.map((lob, i) => (
+                        <LobCard key={lob.id} lob={lob} index={i} />
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {confirmedLobs.length > 0 && (
+                  <section className="mb-8">
+                    <h2 className="text-base font-bold text-foreground mb-3">Upcoming</h2>
+                    <div className="space-y-3">
+                      {confirmedLobs.map((lob, i) => (
+                        <LobCard key={lob.id} lob={lob} index={i} />
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {allLobs.length === 0 && (
+                  <div className="gradient-card rounded-2xl border border-border/50 p-8 text-center">
+                    <span className="text-4xl mb-3 block">🏐</span>
+                    <p className="text-sm font-semibold text-foreground">No plans yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">Lob something to get started!</p>
+                  </div>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="calendar"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <button onClick={prevMonth} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground">‹</button>
+                  <h2 className="text-base font-bold text-foreground">{monthLabel}</h2>
+                  <button onClick={nextMonth} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground">›</button>
                 </div>
-                <div className="space-y-3">
-                  {activeLobs.map((lob, i) => (
-                    <LobCard key={lob.id} lob={lob} index={i} />
+                <div className="grid grid-cols-7 mb-2">
+                  {DAYS_OF_WEEK.map(d => (
+                    <div key={d} className="text-center text-xs font-semibold text-muted-foreground py-1">{d}</div>
                   ))}
                 </div>
-              </section>
-
-              {/* Confirmed */}
-              {confirmedLobs.length > 0 && (
-                <section className="mb-8">
-                  <h2 className="text-base font-bold text-foreground mb-3">Upcoming</h2>
-                  <div className="space-y-3">
-                    {confirmedLobs.map((lob, i) => (
-                      <LobCard key={lob.id} lob={lob} index={i} />
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* AI Suggestions — only shown when there's enough history */}
-              {suggestions.length > 0 && (
-                <section className="mb-8">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Sparkles className="w-4 h-4 text-primary" />
-                    <h2 className="text-base font-bold text-foreground">Lobster Suggests</h2>
-                  </div>
-                  <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-                    {suggestions.map((s, i) => (
-                      <motion.div
-                        key={`${s.category}-${i}`}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 + i * 0.1 }}
-                        onClick={() => openComposer({ prefillText: s.title })}
-                        className="min-w-[160px] gradient-card border border-border/50 rounded-2xl p-4 shadow-card cursor-pointer active:scale-[0.97] transition-transform"
-                      >
-                        <span className="text-2xl">{s.emoji}</span>
-                        <p className="text-sm font-semibold text-foreground mt-2 leading-tight">{s.title}</p>
-                        {s.timeHint && (
-                          <p className="text-xs text-muted-foreground mt-1">{s.timeHint}</p>
-                        )}
-                      </motion.div>
-                    ))}
-                  </div>
-                </section>
-              )}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="calendar"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.2 }}
-            >
-              {/* Calendar header */}
-              <div className="flex items-center justify-between mb-4">
-                <button onClick={prevMonth} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground">
-                  ‹
-                </button>
-                <h2 className="text-base font-bold text-foreground">{monthLabel}</h2>
-                <button onClick={nextMonth} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground">
-                  ›
-                </button>
-              </div>
-
-              {/* Day headers */}
-              <div className="grid grid-cols-7 mb-2">
-                {DAYS_OF_WEEK.map(d => (
-                  <div key={d} className="text-center text-xs font-semibold text-muted-foreground py-1">{d}</div>
-                ))}
-              </div>
-
-              {/* Calendar grid */}
-              <div className="grid grid-cols-7 gap-1 mb-4">
-                {calendarDays.map((day, i) => {
-                  if (day === null) return <div key={i} />;
-                  const hasLobs = lobsByDay.has(day);
-                  const isToday = isCurrentMonth && day === today.getDate();
-                  const isSelected = day === selectedDay;
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => setSelectedDay(isSelected ? null : day)}
-                      className={`relative aspect-square rounded-xl flex flex-col items-center justify-center text-sm font-medium transition-all ${
-                        isSelected
-                          ? 'bg-primary text-primary-foreground'
-                          : isToday
-                            ? 'bg-accent/20 text-accent'
+                <div className="grid grid-cols-7 gap-1 mb-4">
+                  {calendarDays.map((day, i) => {
+                    if (day === null) return <div key={i} />;
+                    const hasLobs = lobsByDay.has(day);
+                    const isToday = isCurrentMonth && day === today.getDate();
+                    const isSelected = day === selectedDay;
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => setSelectedDay(isSelected ? null : day)}
+                        className={`relative aspect-square rounded-xl flex flex-col items-center justify-center text-sm font-medium transition-all ${
+                          isSelected ? 'bg-primary text-primary-foreground'
+                            : isToday ? 'bg-accent/20 text-accent'
                             : 'text-foreground hover:bg-secondary'
-                      }`}
-                    >
-                      {day}
-                      {hasLobs && (
-                        <span className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${
-                          isSelected ? 'bg-primary-foreground' : 'bg-primary'
-                        }`} />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Selected day's lobs */}
-              <AnimatePresence mode="wait">
-                {selectedDay && (
-                  <motion.div
-                    key={selectedDay}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 8 }}
-                    transition={{ duration: 0.15 }}
-                  >
-                    <h3 className="text-sm font-bold text-foreground mb-3">
-                      {new Date(calMonth.year, calMonth.month, selectedDay).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-                    </h3>
-                    {selectedDayLobs.length > 0 ? (
-                      <div className="space-y-3">
-                        {selectedDayLobs.map((lob, i) => (
-                          <LobCard key={lob.id} lob={lob} index={i} />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="gradient-card rounded-2xl border border-border/50 p-6 text-center">
-                        <p className="text-sm text-muted-foreground">No plans this day</p>
-                        <p className="text-xs text-muted-foreground/60 mt-1">Lob something!</p>
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {!selectedDay && (
-                <div className="gradient-card rounded-2xl border border-border/50 p-6 text-center">
-                  <CalendarDays className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Tap a day to see plans</p>
+                        }`}
+                      >
+                        {day}
+                        {hasLobs && <span className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-primary-foreground' : 'bg-primary'}`} />}
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Bottom spacer */}
+                <AnimatePresence mode="wait">
+                  {selectedDay && (
+                    <motion.div key={selectedDay} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={{ duration: 0.15 }}>
+                      <h3 className="text-sm font-bold text-foreground mb-3">
+                        {new Date(calMonth.year, calMonth.month, selectedDay).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                      </h3>
+                      {selectedDayLobs.length > 0 ? (
+                        <div className="space-y-3">{selectedDayLobs.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}</div>
+                      ) : (
+                        <div className="gradient-card rounded-2xl border border-border/50 p-6 text-center">
+                          <p className="text-sm text-muted-foreground">No plans this day</p>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                {!selectedDay && (
+                  <div className="gradient-card rounded-2xl border border-border/50 p-6 text-center">
+                    <CalendarDays className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">Tap a day to see plans</p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
         <div className="h-8" />
       </div>
     </AppLayout>

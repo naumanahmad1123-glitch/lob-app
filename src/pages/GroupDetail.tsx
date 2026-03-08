@@ -4,22 +4,19 @@ import { useComposer } from '@/hooks/useComposer';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { groups, lobs as seedLobs } from '@/data/seed';
 import { LobCard } from '@/components/lob/LobCard';
-import { useCreatedLobs } from '@/hooks/useCreatedLobs';
-import { useCreatedGroups } from '@/hooks/useCreatedGroups';
+import { useSupabaseGroups } from '@/hooks/useSupabaseGroups';
+import { useSupabaseLobs } from '@/hooks/useSupabaseLobs';
 
 const GroupDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { openComposer } = useComposer();
-  const createdGroups = useCreatedGroups();
-  const group = groups.find(g => g.id === id) || createdGroups.find(g => g.id === id);
-  const createdLobs = useCreatedLobs();
-  const groupLobs = useMemo(() => {
-    const all = [...createdLobs, ...seedLobs];
-    return all.filter(l => l.groupId === id);
-  }, [createdLobs, id]);
+  const { data: allGroups = [] } = useSupabaseGroups();
+  const { data: allLobs = [] } = useSupabaseLobs();
+
+  const group = allGroups.find(g => g.id === id);
+  const groupLobs = useMemo(() => allLobs.filter(l => l.groupId === id), [allLobs, id]);
 
   if (!group) {
     return (
@@ -55,16 +52,15 @@ const GroupDetail = () => {
         {/* Members */}
         <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 mb-4">
           {group.members.map(m => (
-            <button
+            <div
               key={m.id}
-              onClick={() => navigate(m.id === 'u1' ? '/profile' : `/user/${m.id}`)}
-              className="flex flex-col items-center gap-1 min-w-[56px] active:scale-95 transition-transform"
+              className="flex flex-col items-center gap-1 min-w-[56px]"
             >
               <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-xl">
                 {m.avatar}
               </div>
               <span className="text-[10px] text-muted-foreground font-medium">{m.name}</span>
-            </button>
+            </div>
           ))}
         </div>
 
