@@ -91,6 +91,11 @@ const Home = () => {
             className="relative w-10 h-10 rounded-full bg-secondary flex items-center justify-center"
           >
             <Bell className="w-5 h-5 text-foreground" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </button>
         </div>
 
