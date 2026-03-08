@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { MapPin, Clock, ChevronRight, Repeat, Crown, CalendarRange, Globe, Users, HelpCircle, Navigation } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Lob, CATEGORY_CONFIG, RECURRENCE_OPTIONS, FLEXIBLE_WINDOW_OPTIONS } from '@/data/types';
-import { currentUser } from '@/data/seed';
+import { useAuth } from '@/contexts/AuthContext';
 import { QuorumBar } from './QuorumBar';
 import { StatusPill } from './StatusPill';
 
