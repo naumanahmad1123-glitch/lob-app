@@ -1,4 +1,4 @@
-import { useState, ref, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { X, MapPin, Clock, Users, ChevronRight, Sparkles, Send, User, Check, ChevronUp, ArrowUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
