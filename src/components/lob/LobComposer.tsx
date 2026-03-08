@@ -212,13 +212,12 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
   const confirmHintOp = useTransform(confirmDragY, [0, -30], [1, 0]);
   const [lobLaunched, setLobLaunched] = useState(false);
 
-  const handleConfirmDragEnd = useCallback((_: any, info: PanInfo) => {
+  const handleConfirmDragEnd = useCallback(async (_: any, info: PanInfo) => {
     if (info.offset.y < -60 || info.velocity.y < -300) {
       setLobLaunched(true);
-      setTimeout(() => {
-        handleLobIt();
-        setLobLaunched(false);
-      }, 500);
+      await new Promise(r => setTimeout(r, 500));
+      await handleLobIt();
+      setLobLaunched(false);
     }
   }, [handleLobIt]);
 
