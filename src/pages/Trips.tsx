@@ -170,7 +170,7 @@ const Trips = () => {
 
         {friendTrips.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-base font-bold text-foreground mb-3">Friends' Trips</h2>
+            <h2 className="text-base font-bold text-foreground mb-3">Friends Visiting</h2>
             <div className="space-y-3">
               {friendTrips.map((trip, i) => (
                 <motion.div
@@ -181,13 +181,17 @@ const Trips = () => {
                   className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card"
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="text-2xl">{trip.emoji}</span>
-                    <div>
-                      <h3 className="font-semibold text-foreground text-[15px]">{trip.city}{trip.country ? `, ${trip.country}` : ''}</h3>
+                    <span className="text-2xl">{trip.userAvatar || trip.emoji}</span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="font-semibold text-foreground text-[15px]">{trip.userName || 'Friend'}</h3>
+                        <span className="text-xs text-muted-foreground">→ {trip.city}</span>
+                      </div>
                       <p className="text-xs text-muted-foreground">
                         {new Date(trip.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {new Date(trip.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </p>
                     </div>
+                    <span className="text-lg">{trip.emoji}</span>
                   </div>
                 </motion.div>
               ))}
