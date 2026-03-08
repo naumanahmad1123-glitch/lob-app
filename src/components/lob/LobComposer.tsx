@@ -162,13 +162,21 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
   const handleQuickSubmit = useCallback(() => {
     if (!quickText.trim()) return;
     const result = parseLobText(quickText);
-    setParsed(result);
-    if (result.category) {
+    // Preserve user's recipient/group selection instead of overwriting with defaults
+    setParsed(p => ({
+      ...p,
+      title: result.title,
+      category: result.category || p.category,
+      time: result.time || p.time,
+      location: result.location || p.location,
+    }));
+    const category = result.category || parsed.category;
+    if (category) {
       setShowConfirm(true);
     } else {
       setStep('category');
     }
-  }, [quickText]);
+  }, [quickText, parsed.category]);
 
   const handleLobIt = useCallback(() => {
     const category = (parsed.category || 'other') as LobCategory;
