@@ -31,8 +31,9 @@ function getTripPhaseLabel(lob: Lob): { label: string; color: string } {
 
 export function LobCard({ lob, index = 0 }: LobCardProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const config = CATEGORY_CONFIG[lob.category];
-  const isYours = lob.createdBy === currentUser.id;
+  const isYours = lob.createdBy === user?.id;
   const inCount = lob.responses.filter(r => r.response === 'in').length;
   const isGroupTrip = lob.category === 'group-trip';
   const timeStr = lob.selectedTime || lob.timeOptions[0]?.datetime;
