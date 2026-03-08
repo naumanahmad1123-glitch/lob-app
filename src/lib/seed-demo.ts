@@ -76,6 +76,8 @@ export async function seedDemoData(userId: string) {
   const now = new Date();
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
+  const dayAfter = new Date(now);
+  dayAfter.setDate(dayAfter.getDate() + 2);
   const nextWeek = new Date(now);
   nextWeek.setDate(nextWeek.getDate() + 7);
 
@@ -110,6 +112,36 @@ export async function seedDemoData(userId: string) {
       quorum: 2,
       status: 'voting',
     },
+    {
+      title: 'Padel Doubles',
+      category: 'padel',
+      group_id: createdGroups[0].id,
+      group_name: 'Hoop Squad',
+      created_by: fakeIds[0], // Alex created this one
+      location: 'NYC Padel Club',
+      quorum: 4,
+      status: 'voting',
+    },
+    {
+      title: 'Rooftop Drinks',
+      category: 'chill',
+      group_id: createdGroups[1].id,
+      group_name: 'Dinner Club',
+      created_by: fakeIds[1], // Sam created
+      location: 'Westlight Brooklyn',
+      quorum: 3,
+      status: 'confirmed',
+    },
+    {
+      title: 'Sunday Gym Session',
+      category: 'gym',
+      group_id: createdGroups[0].id,
+      group_name: 'Hoop Squad',
+      created_by: fakeIds[3], // Taylor created
+      location: 'Equinox SoHo',
+      quorum: 2,
+      status: 'voting',
+    },
   ];
 
   const { data: createdLobs, error: lErr } = await supabase
@@ -124,30 +156,100 @@ export async function seedDemoData(userId: string) {
     lob_id: l.id,
     datetime: new Date(tomorrow.getTime() + i * 3600000 + 18 * 3600000).toISOString(),
   }));
+  // Add second time option for some lobs
+  timeOptions.push(
+    { lob_id: createdLobs[0].id, datetime: new Date(dayAfter.getTime() + 19 * 3600000).toISOString() },
+    { lob_id: createdLobs[3].id, datetime: new Date(dayAfter.getTime() + 10 * 3600000).toISOString() },
+  );
   await supabase.from('lob_time_options').insert(timeOptions);
 
-  // RSVP the user as "in" for the first lob
-  await supabase.from('lob_responses').insert({
-    lob_id: createdLobs[0].id,
-    user_id: userId,
-    response: 'in',
-  });
+  // RSVP the user as "in" for a couple lobs
+  await supabase.from('lob_responses').insert([
+    { lob_id: createdLobs[0].id, user_id: userId, response: 'in' },
+    { lob_id: createdLobs[4].id, user_id: userId, response: 'in' },
+  ]);
 
-  // Create a demo trip
-  const tripStart = new Date(now);
-  tripStart.setDate(tripStart.getDate() + 14);
-  const tripEnd = new Date(tripStart);
-  tripEnd.setDate(tripEnd.getDate() + 5);
+  // Fake member RSVPs to make lobs feel alive
+  await supabase.from('lob_responses').insert([
+    { lob_id: createdLobs[0].id, user_id: fakeIds[0], response: 'in' },
+    { lob_id: createdLobs[0].id, user_id: fakeIds[2], response: 'in' },
+    { lob_id: createdLobs[0].id, user_id: fakeIds[3], response: 'maybe' },
+    { lob_id: createdLobs[1].id, user_id: fakeIds[1], response: 'in' },
+    { lob_id: createdLobs[1].id, user_id: fakeIds[4], response: 'maybe' },
+    { lob_id: createdLobs[2].id, user_id: fakeIds[1], response: 'in' },
+    { lob_id: createdLobs[3].id, user_id: fakeIds[0], response: 'in' },
+    { lob_id: createdLobs[3].id, user_id: fakeIds[2], response: 'in' },
+    { lob_id: createdLobs[3].id, user_id: fakeIds[3], response: 'in' },
+    { lob_id: createdLobs[4].id, user_id: fakeIds[1], response: 'in' },
+    { lob_id: createdLobs[4].id, user_id: fakeIds[4], response: 'in' },
+    { lob_id: createdLobs[4].id, user_id: fakeIds[5], response: 'in' },
+    { lob_id: createdLobs[5].id, user_id: fakeIds[3], response: 'in' },
+  ]);
 
-  await supabase.from('trips').insert({
-    user_id: userId,
-    city: 'London',
-    country: 'UK',
-    emoji: '🇬🇧',
-    start_date: tripStart.toISOString().split('T')[0],
-    end_date: tripEnd.toISOString().split('T')[0],
-    show_on_profile: true,
-  });
+  // Create demo trips
+  const tripStart1 = new Date(now);
+  tripStart1.setDate(tripStart1.getDate() + 14);
+  const tripEnd1 = new Date(tripStart1);
+  tripEnd1.setDate(tripEnd1.getDate() + 5);
+
+  const tripStart2 = new Date(now);
+  tripStart2.setDate(tripStart2.getDate() + 30);
+  const tripEnd2 = new Date(tripStart2);
+  tripEnd2.setDate(tripEnd2.getDate() + 7);
+
+  const tripStart3 = new Date(now);
+  tripStart3.setDate(tripStart3.getDate() + 60);
+  const tripEnd3 = new Date(tripStart3);
+  tripEnd3.setDate(tripEnd3.getDate() + 4);
+
+  await supabase.from('trips').insert([
+    {
+      user_id: userId,
+      city: 'London',
+      country: 'UK',
+      emoji: '🇬🇧',
+      start_date: tripStart1.toISOString().split('T')[0],
+      end_date: tripEnd1.toISOString().split('T')[0],
+      show_on_profile: true,
+    },
+    {
+      user_id: userId,
+      city: 'Tokyo',
+      country: 'Japan',
+      emoji: '🇯🇵',
+      start_date: tripStart2.toISOString().split('T')[0],
+      end_date: tripEnd2.toISOString().split('T')[0],
+      show_on_profile: true,
+    },
+    {
+      user_id: userId,
+      city: 'Barcelona',
+      country: 'Spain',
+      emoji: '🇪🇸',
+      start_date: tripStart3.toISOString().split('T')[0],
+      end_date: tripEnd3.toISOString().split('T')[0],
+      show_on_profile: true,
+    },
+    // Fake member trips (for "Friends Visiting" section)
+    {
+      user_id: fakeIds[1], // Sam
+      city: 'New York',
+      country: 'USA',
+      emoji: '🇺🇸',
+      start_date: tripStart1.toISOString().split('T')[0],
+      end_date: tripEnd1.toISOString().split('T')[0],
+      show_on_profile: true,
+    },
+    {
+      user_id: fakeIds[2], // Jordan
+      city: 'New York',
+      country: 'USA',
+      emoji: '🗽',
+      start_date: tripStart2.toISOString().split('T')[0],
+      end_date: tripEnd2.toISOString().split('T')[0],
+      show_on_profile: true,
+    },
+  ]);
 
   // Add a welcome notification
   await supabase.from('notifications').insert({
