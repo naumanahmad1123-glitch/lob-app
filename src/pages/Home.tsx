@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Bell, List, CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +7,8 @@ import { LobCard } from '@/components/lob/LobCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseLobs } from '@/hooks/useSupabaseLobs';
 import { useComposer } from '@/hooks/useComposer';
+import { useUnreadNotificationCount } from '@/hooks/useNotifications';
+import { seedDemoData } from '@/lib/seed-demo';
 import { Lob } from '@/data/types';
 
 type ViewMode = 'feed' | 'calendar';
