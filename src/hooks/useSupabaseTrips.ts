@@ -14,6 +14,8 @@ export interface DbTrip {
   notify_user_ids: string[];
   show_on_profile: boolean;
   created_at: string;
+  userName?: string;
+  userAvatar?: string;
 }
 
 export function useSupabaseTrips() {
@@ -28,7 +30,26 @@ export function useSupabaseTrips() {
         .select('*')
         .order('start_date', { ascending: true });
       if (error) throw error;
-      return (data || []) as DbTrip[];
+      const trips = (data || []) as DbTrip[];
+
+      // Fetch profile names for non-current-user trips
+      const otherUserIds = [...new Set(trips.filter(t => t.user_id !== user?.id).map(t => t.user_id))];
+      if (otherUserIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, name, avatar')
+          .in('id', otherUserIds);
+        const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+        trips.forEach(t => {
+          const p = profileMap.get(t.user_id);
+          if (p) {
+            t.userName = p.name;
+            t.userAvatar = p.avatar;
+          }
+        });
+      }
+
+      return trips;
     },
     staleTime: 10_000,
   });
