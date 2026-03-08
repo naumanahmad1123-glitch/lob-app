@@ -14,7 +14,8 @@ export interface DbTrip {
   notify_user_ids: string[];
   show_on_profile: boolean;
   created_at: string;
-  profile?: { name: string; avatar: string } | null;
+  userName?: string;
+  userAvatar?: string;
 }
 
 export function useSupabaseTrips() {
@@ -26,22 +27,29 @@ export function useSupabaseTrips() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('trips')
-        .select('*, profiles!trips_user_id_fkey(name, avatar)')
+        .select('*')
         .order('start_date', { ascending: true });
-      if (error) {
-        // Fallback without join if FK doesn't exist
-        const { data: fallback, error: err2 } = await supabase
-          .from('trips')
-          .select('*')
-          .order('start_date', { ascending: true });
-        if (err2) throw err2;
-        return (fallback || []) as DbTrip[];
+      if (error) throw error;
+      const trips = (data || []) as DbTrip[];
+
+      // Fetch profile names for non-current-user trips
+      const otherUserIds = [...new Set(trips.filter(t => t.user_id !== user?.id).map(t => t.user_id))];
+      if (otherUserIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, name, avatar')
+          .in('id', otherUserIds);
+        const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+        trips.forEach(t => {
+          const p = profileMap.get(t.user_id);
+          if (p) {
+            t.userName = p.name;
+            t.userAvatar = p.avatar;
+          }
+        });
       }
-      return (data || []).map((t: any) => ({
-        ...t,
-        profile: t.profiles || null,
-        profiles: undefined,
-      })) as DbTrip[];
+
+      return trips;
     },
     staleTime: 10_000,
   });
