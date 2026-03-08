@@ -26,14 +26,23 @@ function getCalendarDays(year: number, month: number) {
 
 const Home = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { openComposer } = useComposer();
   const { data: allLobs = [], isLoading } = useSupabaseLobs();
+  const unreadCount = useUnreadNotificationCount();
   const [view, setView] = useState<ViewMode>('feed');
   const [calMonth, setCalMonth] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
   });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+
+  // Seed demo data on first login if user has no lobs
+  useEffect(() => {
+    if (user && !isLoading && allLobs.length === 0) {
+      seedDemoData(user.id);
+    }
+  }, [user?.id, isLoading, allLobs.length]);
 
   const activeLobs = allLobs.filter(l => l.status === 'voting');
   const confirmedLobs = allLobs.filter(l => l.status === 'confirmed');
