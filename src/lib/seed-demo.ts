@@ -294,7 +294,7 @@ export async function seedDemoData(userId: string) {
   const aishaMay3 = '2026-05-03';
   const aishaMay7 = '2026-05-07';
 
-  await supabase.from('trips').insert([
+  const { data: createdTrips } = await supabase.from('trips').insert([
     // 1. Mexico City — dates open
     {
       user_id: userId,
@@ -335,7 +335,7 @@ export async function seedDemoData(userId: string) {
       end_date: aishaMay7,
       show_on_profile: true,
     },
-  ]);
+  ]).select();
 
   // --- NOTIFICATIONS ---
   await supabase.from('notifications').insert([
