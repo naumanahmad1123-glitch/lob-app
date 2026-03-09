@@ -213,6 +213,8 @@ export function TripVoting({ tripId, userId, isOwner, status, suggestions, hasDe
           )}
         </div>
       ))}
+        </CollapsibleContent>
+      </Collapsible>
     </motion.section>
   );
 }
