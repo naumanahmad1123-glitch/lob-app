@@ -41,7 +41,7 @@ export function BottomTabs({ onLobTap }: BottomTabsProps) {
             <button
               key={tab.path}
               onClick={() => navigate(tab.path)}
-              className="flex flex-col items-center gap-0.5 min-w-[48px] py-1"
+              className="flex flex-col items-center gap-0.5 min-w-[40px] py-1"
             >
               <div className="relative">
                 <Icon className={`w-5 h-5 transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
