@@ -52,14 +52,14 @@ export function useTripMembers(tripId: string | undefined) {
       if (error) throw error;
 
       const userIds = [...new Set((data || []).map(m => m.user_id))];
-      const profileMap: Record<string, { name: string; avatar: string }> = {};
+      const profileMap: Record<string, { name: string; avatar: string; avatar_photo_url: string | null }> = {};
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, name, avatar')
+          .select('id, name, avatar, avatar_photo_url')
           .in('id', userIds);
         (profiles || []).forEach(p => {
-          profileMap[p.id] = { name: p.name || 'Unknown', avatar: p.avatar || '🙂' };
+          profileMap[p.id] = { name: p.name || 'Unknown', avatar: p.avatar || '🙂', avatar_photo_url: p.avatar_photo_url || null };
         });
       }
 
@@ -69,6 +69,7 @@ export function useTripMembers(tripId: string | undefined) {
         status: m.status,
         name: profileMap[m.user_id]?.name || 'Unknown',
         avatar: profileMap[m.user_id]?.avatar || '🙂',
+        avatar_photo_url: profileMap[m.user_id]?.avatar_photo_url || null,
       })) as TripMember[];
     },
     staleTime: 10_000,
