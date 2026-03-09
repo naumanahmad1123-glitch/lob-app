@@ -141,7 +141,7 @@ export function TripInvitePicker({ open, onClose, tripId, existingMemberIds }: P
               </div>
 
               {selected.length > 0 && (
-                <div style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+                <div className="border-t border-border/50 px-5 pt-3" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
                   <button
                     onClick={handleInvite}
                     disabled={saving}

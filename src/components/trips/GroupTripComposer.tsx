@@ -156,6 +156,7 @@ export function GroupTripComposer({ open, onClose, onCreated }: GroupTripCompose
                 </button>
               </div>
 
+              <div className="flex-1 overflow-y-auto px-5">
               <AnimatePresence mode="wait">
                 {step === 'mode' ? (
                   <motion.div
@@ -362,18 +363,22 @@ export function GroupTripComposer({ open, onClose, onCreated }: GroupTripCompose
                         })}
                       </div>
                     </div>
-
-                    {/* Submit */}
-                    <button
-                      onClick={handleCreate}
-                      className="w-full py-3.5 rounded-xl gradient-primary text-primary-foreground font-bold text-sm mt-2 active:scale-[0.98] transition-transform"
-                    >
-                      🌍 Lob the Trip
-                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
+              </div>
+
+              {/* Pinned footer with submit button */}
+              {step === 'details' && (
+                <div className="px-5 pt-3 border-t border-border/50" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+                  <button
+                    onClick={handleCreate}
+                    className="w-full py-3.5 rounded-xl gradient-primary text-primary-foreground font-bold text-sm active:scale-[0.98] transition-transform"
+                  >
+                    🌍 Lob the Trip
+                  </button>
+                </div>
+              )}
           </motion.div>
         </>
       )}
