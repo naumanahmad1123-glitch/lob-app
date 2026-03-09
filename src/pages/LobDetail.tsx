@@ -211,7 +211,10 @@ const LobDetail = () => {
             <div>
               <h1 className="text-2xl font-extrabold text-foreground leading-tight">{lob.title}</h1>
               <p className="text-sm text-muted-foreground">
-                {lob.groupName} · by {creatorName}
+                {isIndividualLob
+                  ? recipientIds.map(rid => getProfileName(profileMap, rid).split(' ')[0]).join(', ')
+                  : lob.groupName}
+                {' · by '}{creatorName}
               </p>
             </div>
           </div>
