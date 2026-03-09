@@ -34,16 +34,19 @@ const LobDetail = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: lob, isLoading } = useSupabaseLob(id);
+  const { data: recipientIds = [] } = useLobRecipients(id);
+  const isIndividualLob = !lob?.groupId && recipientIds.length > 0;
   
-  // Collect all user IDs from responses and comments for profile lookup
+  // Collect all user IDs from responses, comments, and recipients for profile lookup
   const allUserIds = useMemo(() => {
-    if (!lob) return [];
+    if (!lob) return recipientIds;
     const ids = new Set<string>();
     ids.add(lob.createdBy);
     lob.responses.forEach(r => ids.add(r.userId));
     (lob.comments || []).forEach(c => ids.add(c.userId));
+    recipientIds.forEach(rid => ids.add(rid));
     return Array.from(ids);
-  }, [lob]);
+  }, [lob, recipientIds]);
 
   const { data: profileMap } = useProfileMap(allUserIds);
 
