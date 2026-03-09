@@ -361,6 +361,7 @@ export async function seedDemoData(userId: string) {
       title: 'Sofia started a new trip: Mexico City',
       body: 'Want in?',
       emoji: '✨',
+      trip_id: createdTrips?.[0]?.id || null,
     },
   ]);
 }
