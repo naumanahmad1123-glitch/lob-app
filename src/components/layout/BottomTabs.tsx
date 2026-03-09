@@ -1,11 +1,11 @@
-import { Home, Link2, Plane, User } from 'lucide-react';
+import { Home, Users, Plane, User } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { useCallback, useState } from 'react';
 
 const tabs = [
   { path: '/', matchPaths: ['/'], icon: Home, label: 'Home' },
-  { path: '/connect', matchPaths: ['/connect', '/groups'], icon: Link2, label: 'Connect' },
+  { path: '/connect', matchPaths: ['/connect', '/groups'], icon: Users, label: 'Connect' },
   { path: '/trips', matchPaths: ['/trips'], icon: Plane, label: 'Trips' },
   { path: '/profile', matchPaths: ['/profile'], icon: User, label: 'Profile' },
 ];
