@@ -1,0 +1,1 @@
+UPDATE notifications SET trip_id = '87fdd44a-bb82-4770-9c8c-f937c92a5859' WHERE id = '880d7c59-d3a3-4692-b5b2-5ebbbed82078'
