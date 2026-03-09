@@ -179,7 +179,7 @@ const Trips = () => {
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  onClick={() => navigate(`/trips/${trip.id}/friend`)}
+                  onClick={() => navigate(`/trips/${trip.id}/friend`, { state: { trip } })}
                   className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card cursor-pointer active:scale-[0.98] hover:border-primary/30 hover:shadow-lg transition-all"
                 >
                   <div className="flex items-center gap-2.5">
