@@ -6,6 +6,7 @@ export interface DbProfile {
   id: string;
   name: string;
   avatar: string;
+  avatar_photo_url: string | null;
   interests: string[];
   city: string | null;
   is_pro: boolean;
