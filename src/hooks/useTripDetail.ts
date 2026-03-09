@@ -177,14 +177,14 @@ export function useTripComments(tripId: string | undefined) {
       if (error) throw error;
 
       const userIds = [...new Set((data || []).map(c => c.user_id))];
-      const profileMap: Record<string, { name: string; avatar: string }> = {};
+      const profileMap: Record<string, { name: string; avatar: string; avatar_photo_url: string | null }> = {};
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, name, avatar')
+          .select('id, name, avatar, avatar_photo_url')
           .in('id', userIds);
         (profiles || []).forEach(p => {
-          profileMap[p.id] = { name: p.name || 'Unknown', avatar: p.avatar || '🙂' };
+          profileMap[p.id] = { name: p.name || 'Unknown', avatar: p.avatar || '🙂', avatar_photo_url: p.avatar_photo_url || null };
         });
       }
 
@@ -196,6 +196,7 @@ export function useTripComments(tripId: string | undefined) {
         created_at: c.created_at,
         userName: profileMap[c.user_id]?.name || 'Unknown',
         userAvatar: profileMap[c.user_id]?.avatar || '🙂',
+        userPhotoUrl: profileMap[c.user_id]?.avatar_photo_url || null,
       })) as TripComment[];
     },
     staleTime: 10_000,
