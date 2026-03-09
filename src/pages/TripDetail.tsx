@@ -1,77 +1,138 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useComposer } from '@/hooks/useComposer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Pencil, Sparkles, Globe, Lock, X } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { trips, users } from '@/data/seed';
-import { TappableAvatar } from '@/components/TappableAvatar';
+import { useSupabaseTrips } from '@/hooks/useSupabaseTrips';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { useCreatedTrips } from '@/hooks/useCreatedTrips';
-import { tripStore } from '@/stores/tripStore';
 
 const TripDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { openComposer } = useComposer();
-  const createdTrips = useCreatedTrips();
-  const trip = createdTrips.find(t => t.id === id) || trips.find(t => t.id === id);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { data: allTrips = [], isLoading } = useSupabaseTrips();
+
+  const trip = useMemo(() => allTrips.find(t => t.id === id), [allTrips, id]);
+
   const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [editData, setEditData] = useState({
-    city: trip?.city || '',
-    country: trip?.country || '',
-    startDate: trip?.startDate || '',
-    endDate: trip?.endDate || '',
-    showOnProfile: trip?.showOnProfile ?? true,
+    city: '',
+    country: '',
+    startDate: '',
+    endDate: '',
+    showOnProfile: true,
   });
 
-  if (!trip) {
+  // Fetch profiles for notify_user_ids
+  const notifyIds = trip?.notify_user_ids || [];
+  const { data: sharedUsers = [] } = useQuery({
+    queryKey: ['trip-shared-users', id, notifyIds],
+    enabled: notifyIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, name, avatar, city')
+        .in('id', notifyIds);
+      return data || [];
+    },
+    staleTime: 30_000,
+  });
+
+  const isOwner = trip?.user_id === user?.id;
+
+  const openEditSheet = () => {
+    if (!trip) return;
+    setEditData({
+      city: trip.city,
+      country: trip.country,
+      startDate: trip.start_date,
+      endDate: trip.end_date,
+      showOnProfile: trip.show_on_profile,
+    });
+    setEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!trip || !user || saving) return;
+    if (!editData.city.trim() || !editData.startDate || !editData.endDate) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('trips').update({
+        city: editData.city,
+        country: editData.country,
+        start_date: editData.startDate,
+        end_date: editData.endDate,
+        show_on_profile: editData.showOnProfile,
+      }).eq('id', trip.id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['supabase-trips'] });
+      toast.success('Trip updated!');
+      setEditing(false);
+    } catch (err: any) {
+      toast.error('Failed to update: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (isLoading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <p className="text-muted-foreground">Trip not found</p>
+        <div className="max-w-lg mx-auto px-4 flex items-center justify-center min-h-[60vh]">
+          <p className="text-muted-foreground text-sm">Loading trip...</p>
         </div>
       </AppLayout>
     );
   }
 
-  const sharedUsers = users.filter(u => trip.notifyUserIds.includes(u.id));
-  const dateStr = `${new Date(trip.startDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} – ${new Date(trip.endDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+  if (!trip) {
+    return (
+      <AppLayout>
+        <div className="max-w-lg mx-auto px-4">
+          <div className="pt-12 pb-6">
+            <button onClick={() => navigate('/trips')} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
+              <ArrowLeft className="w-5 h-5 text-foreground" />
+            </button>
+          </div>
+          <div className="flex items-center justify-center min-h-[40vh]">
+            <p className="text-muted-foreground">Trip not found</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
-  const isCreatedTrip = createdTrips.some(t => t.id === id);
-
-  const handleSaveEdit = () => {
-    if (!editData.city.trim() || !editData.startDate || !editData.endDate) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-    if (isCreatedTrip) {
-      tripStore.updateTrip(id!, {
-        city: editData.city,
-        country: editData.country,
-        startDate: editData.startDate,
-        endDate: editData.endDate,
-        showOnProfile: editData.showOnProfile,
-      });
-    }
-    toast.success('Trip updated!');
-    setEditing(false);
-  };
+  const dateStr = `${new Date(trip.start_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} – ${new Date(trip.end_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
 
   return (
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
         {/* Header */}
         <div className="flex items-center justify-between pt-12 pb-6">
-          <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+          <button
+            onClick={() => navigate('/trips')}
+            className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+          >
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
-          <button
-            onClick={() => setEditing(true)}
-            className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center"
-          >
-            <Pencil className="w-4 h-4 text-foreground" />
-          </button>
+          {isOwner && (
+            <button
+              onClick={openEditSheet}
+              className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+            >
+              <Pencil className="w-4 h-4 text-foreground" />
+            </button>
+          )}
         </div>
 
         {/* Edit Sheet */}
@@ -81,16 +142,16 @@ const TripDetail = () => {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                exit={{ opacity: 0, pointerEvents: 'none' as any }}
                 onClick={() => setEditing(false)}
-                className="fixed inset-0 z-[60] bg-background/60 backdrop-blur-sm"
+                className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm"
               />
               <motion.div
                 initial={{ y: '100%' }}
                 animate={{ y: 0 }}
                 exit={{ y: '100%' }}
                 transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-                className="fixed bottom-0 left-0 right-0 z-[70] max-w-lg mx-auto"
+                className="fixed bottom-0 left-0 right-0 z-50 max-w-lg mx-auto"
               >
                 <div className="bg-card rounded-t-3xl border border-border/50 shadow-card px-5 pb-8 pt-4">
                   <div className="flex justify-center mb-3">
@@ -98,63 +159,29 @@ const TripDetail = () => {
                   </div>
                   <div className="flex items-center justify-between mb-5">
                     <h2 className="text-lg font-extrabold text-foreground">✏️ Edit Trip</h2>
-                    <button onClick={() => setEditing(false)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                    <button onClick={() => setEditing(false)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center cursor-pointer">
                       <X className="w-4 h-4 text-muted-foreground" />
                     </button>
                   </div>
                   <div className="space-y-3">
-                    <input
-                      type="text"
-                      placeholder="City"
-                      value={editData.city}
-                      onChange={e => setEditData(p => ({ ...p, city: e.target.value }))}
-                      className="w-full p-3 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Country"
-                      value={editData.country}
-                      onChange={e => setEditData(p => ({ ...p, country: e.target.value }))}
-                      className="w-full p-3 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
+                    <input type="text" placeholder="City" value={editData.city} onChange={e => setEditData(p => ({ ...p, city: e.target.value }))} className="w-full p-3 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                    <input type="text" placeholder="Country" value={editData.country} onChange={e => setEditData(p => ({ ...p, country: e.target.value }))} className="w-full p-3 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-medium text-muted-foreground mb-1 block">Start</label>
-                        <input
-                          type="date"
-                          value={editData.startDate}
-                          onChange={e => setEditData(p => ({ ...p, startDate: e.target.value }))}
-                          className="w-full p-3 rounded-xl bg-input border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:dark]"
-                        />
+                        <input type="date" value={editData.startDate} onChange={e => setEditData(p => ({ ...p, startDate: e.target.value }))} className="w-full p-3 rounded-xl bg-input border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:dark]" />
                       </div>
                       <div>
                         <label className="text-xs font-medium text-muted-foreground mb-1 block">End</label>
-                        <input
-                          type="date"
-                          value={editData.endDate}
-                          onChange={e => setEditData(p => ({ ...p, endDate: e.target.value }))}
-                          className="w-full p-3 rounded-xl bg-input border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:dark]"
-                        />
+                        <input type="date" value={editData.endDate} onChange={e => setEditData(p => ({ ...p, endDate: e.target.value }))} className="w-full p-3 rounded-xl bg-input border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:dark]" />
                       </div>
                     </div>
-                    <button
-                      onClick={() => setEditData(p => ({ ...p, showOnProfile: !p.showOnProfile }))}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card"
-                    >
-                      {editData.showOnProfile ? (
-                        <Globe className="w-4 h-4 text-accent" />
-                      ) : (
-                        <Lock className="w-4 h-4 text-muted-foreground" />
-                      )}
-                      <span className="text-sm font-medium text-foreground flex-1 text-left">
-                        {editData.showOnProfile ? 'Visible on profile' : 'Private trip'}
-                      </span>
+                    <button onClick={() => setEditData(p => ({ ...p, showOnProfile: !p.showOnProfile }))} className="w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card cursor-pointer">
+                      {editData.showOnProfile ? <Globe className="w-4 h-4 text-accent" /> : <Lock className="w-4 h-4 text-muted-foreground" />}
+                      <span className="text-sm font-medium text-foreground flex-1 text-left">{editData.showOnProfile ? 'Visible on profile' : 'Private trip'}</span>
                     </button>
-                    <button
-                      onClick={handleSaveEdit}
-                      className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm"
-                    >
-                      Save Changes
+                    <button onClick={handleSaveEdit} disabled={saving} className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm cursor-pointer disabled:opacity-50">
+                      {saving ? 'Saving...' : 'Save Changes'}
                     </button>
                   </div>
                 </div>
@@ -164,41 +191,34 @@ const TripDetail = () => {
         </AnimatePresence>
 
         {/* Trip info */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
-        >
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
           <span className="text-5xl mb-3 block">{trip.emoji}</span>
-          <h1 className="text-2xl font-extrabold text-foreground">{trip.city}, {trip.country}</h1>
+          <h1 className="text-2xl font-extrabold text-foreground">{trip.city}{trip.country ? `, ${trip.country}` : ''}</h1>
           <p className="text-sm text-muted-foreground mt-1">{dateStr}</p>
           <div className="flex items-center justify-center gap-1.5 mt-3">
-            {trip.showOnProfile ? (
+            {trip.show_on_profile ? (
               <span className="flex items-center gap-1 text-[11px] font-medium text-accent px-2.5 py-1 rounded-full bg-accent/10">
-                <Globe className="w-3 h-3" />
-                Visible on Profile
+                <Globe className="w-3 h-3" /> Visible on Profile
               </span>
             ) : (
               <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground px-2.5 py-1 rounded-full bg-secondary">
-                <Lock className="w-3 h-3" />
-                Private
+                <Lock className="w-3 h-3" /> Private
               </span>
             )}
           </div>
         </motion.div>
 
         {/* Shared with */}
-        <motion.section
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8"
-        >
-          <h2 className="text-sm font-bold text-foreground mb-3">Shared With</h2>
-          <div className="space-y-2">
-            {sharedUsers.map(u => (
-              <TappableAvatar key={u.id} userId={u.id} emoji={u.avatar}>
-                <div className="w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card active:bg-secondary transition-colors">
+        {sharedUsers.length > 0 && (
+          <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8">
+            <h2 className="text-sm font-bold text-foreground mb-3">Shared With</h2>
+            <div className="space-y-2">
+              {sharedUsers.map(u => (
+                <motion.div
+                  key={u.id}
+                  onClick={() => navigate(`/user/${u.id}`)}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card cursor-pointer active:scale-[0.98] hover:border-primary/30 transition-all"
+                >
                   <span className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg">
                     {u.avatar}
                   </span>
@@ -206,19 +226,19 @@ const TripDetail = () => {
                     <p className="text-sm font-semibold text-foreground">{u.name}</p>
                     {u.city && <p className="text-xs text-muted-foreground">{u.city}</p>}
                   </div>
-                </div>
-              </TappableAvatar>
-            ))}
-          </div>
-        </motion.section>
+                </motion.div>
+              ))}
+            </div>
+          </motion.section>
+        )}
 
         {/* Lob the group */}
         <motion.button
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          onClick={() => openComposer({ prefillUserIds: trip.notifyUserIds })}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm shadow-glow mb-8"
+          onClick={() => openComposer({ prefillUserIds: trip.notify_user_ids })}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm shadow-glow mb-8 cursor-pointer active:scale-[0.98] transition-transform"
         >
           <Sparkles className="w-4 h-4" />
           Lob the Group
