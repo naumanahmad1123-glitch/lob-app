@@ -3,10 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 let seeded = false;
 
 export async function seedDemoData(userId: string) {
+  // Data is pre-seeded in the database — skip runtime seeding
   if (seeded) return;
   seeded = true;
 
-  // Check if user already has groups
+  // Check if user already has groups (data already exists)
   const { data: existingGroups } = await supabase
     .from('group_members')
     .select('id')
