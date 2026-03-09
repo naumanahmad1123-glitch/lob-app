@@ -95,7 +95,7 @@ function SuggestionCard({
   );
 }
 
-export function TripVoting({ tripId, userId, isOwner, status, suggestions }: Props) {
+export function TripVoting({ tripId, userId, isOwner, status, suggestions, hasDestination, hasDates }: Props) {
   const queryClient = useQueryClient();
   const [adding, setAdding] = useState<string | null>(null); // 'destination' | 'date' | 'activity'
   const [inputVal, setInputVal] = useState('');
