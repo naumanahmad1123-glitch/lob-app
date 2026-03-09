@@ -10,16 +10,34 @@ const statusStyles: Record<LobStatus, string> = {
 
 const statusLabels: Record<LobStatus, string> = {
   draft: 'Draft',
-  voting: 'Voting',
-  confirmed: 'Confirmed',
+  voting: 'Waiting for responses',
+  confirmed: '🎉 Confirmed',
   cancelled: 'Cancelled',
   completed: 'Done',
 };
 
-export function StatusPill({ status }: { status: LobStatus }) {
+interface StatusPillProps {
+  status: LobStatus;
+  deadlinePassed?: boolean;
+  quorumReached?: boolean;
+}
+
+export function StatusPill({ status, deadlinePassed, quorumReached }: StatusPillProps) {
+  // Override display based on conditions
+  let displayLabel = statusLabels[status];
+  let displayStyle = statusStyles[status];
+
+  if (status === 'voting' && quorumReached) {
+    displayLabel = '🎉 Confirmed';
+    displayStyle = statusStyles.confirmed;
+  } else if (status === 'voting' && deadlinePassed) {
+    displayLabel = 'Closed';
+    displayStyle = 'bg-muted text-muted-foreground';
+  }
+
   return (
-    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${statusStyles[status]}`}>
-      {statusLabels[status]}
+    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${displayStyle}`}>
+      {displayLabel}
     </span>
   );
 }

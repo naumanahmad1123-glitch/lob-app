@@ -181,11 +181,32 @@ const LobDetail = () => {
 
   const handleCancel = async () => {
     await supabase.from('lobs').update({ status: 'cancelled' }).eq('id', lob.id);
+
+    // Notify all responders about cancellation
+    const creatorDisplayName = getProfileName(profileMap, lob.createdBy);
+    const respondentIds = lob.responses
+      .map(r => r.userId)
+      .filter(uid => uid !== user?.id);
+
+    if (respondentIds.length > 0) {
+      await supabase.from('notifications').insert(
+        respondentIds.map(uid => ({
+          user_id: uid,
+          lob_id: lob.id,
+          type: 'cancelled',
+          title: 'Lob cancelled',
+          body: `"${lob.title}" has been cancelled by ${creatorDisplayName}`,
+          emoji: '❌',
+        }))
+      );
+    }
+
     setShowCancelDialog(false);
     setShowMenu(false);
     queryClient.invalidateQueries({ queryKey: ['supabase-lob', id] });
     queryClient.invalidateQueries({ queryKey: ['supabase-lobs'] });
-    toast.success('Plan cancelled.');
+    toast.success('Lob cancelled');
+    navigate('/');
   };
 
   const handleBail = async () => {
@@ -195,7 +216,7 @@ const LobDetail = () => {
   };
 
   const handleShareLink = () => {
-    const shareUrl = `${window.location.origin}/lob/${lob.id}`;
+    const shareUrl = `https://lob-app.lovable.app/lob/${lob.id}`;
     navigator.clipboard.writeText(shareUrl);
     toast.success('Link copied!');
   };
@@ -225,7 +246,7 @@ const LobDetail = () => {
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
           <div className="flex-1" />
-          <StatusPill status={effectiveStatus} />
+          <StatusPill status={effectiveStatus} deadlinePassed={deadlinePassed} quorumReached={quorumReached} />
           <button
             onClick={() => {
               if (navigator.share) navigator.share({ title: lob.title, url: window.location.href });
@@ -243,8 +264,11 @@ const LobDetail = () => {
               <AnimatePresence>
                 {showMenu && (
                   <motion.div initial={{ opacity: 0, scale: 0.9, y: -5 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: -5 }} className="absolute right-0 top-12 z-50 w-48 rounded-xl bg-card border border-border shadow-card overflow-hidden">
+                    <button onClick={() => { setShowMenu(false); handleShareLink(); }} className="w-full flex items-center gap-2 px-4 py-3 text-sm text-foreground hover:bg-secondary/50 transition-colors cursor-pointer">
+                      <Link2 className="w-4 h-4" /> Copy link
+                    </button>
                     <button onClick={() => { setShowMenu(false); setShowCancelDialog(true); }} className="w-full flex items-center gap-2 px-4 py-3 text-sm text-destructive hover:bg-secondary/50 transition-colors cursor-pointer">
-                      <XCircle className="w-4 h-4" /> Cancel Plan
+                      <XCircle className="w-4 h-4" /> Cancel lob
                     </button>
                   </motion.div>
                 )}
@@ -259,11 +283,11 @@ const LobDetail = () => {
             <>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, pointerEvents: 'none' as any }} onClick={() => setShowCancelDialog(false)} className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm" />
               <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-sm mx-auto bg-card rounded-2xl border border-border shadow-card p-6">
-                <h3 className="font-bold text-foreground text-lg mb-2">Cancel this plan?</h3>
+                <h3 className="font-bold text-foreground text-lg mb-2">Cancel this lob?</h3>
                 <p className="text-sm text-muted-foreground mb-5">Everyone will be notified.</p>
                 <div className="flex gap-3">
                   <button onClick={() => setShowCancelDialog(false)} className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground font-semibold text-sm cursor-pointer">Keep it</button>
-                  <button onClick={handleCancel} className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground font-semibold text-sm cursor-pointer">Cancel Plan</button>
+                  <button onClick={handleCancel} className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground font-semibold text-sm cursor-pointer">Cancel Lob</button>
                 </div>
               </motion.div>
             </>
@@ -373,7 +397,7 @@ const LobDetail = () => {
                   <button
                     onClick={handleNudge}
                     disabled={!canNudge || nudging}
-                    className="mt-3 w-full py-2.5 rounded-xl bg-primary/10 border border-primary/30 text-primary font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/20 transition-colors"
+                    className="mt-3 w-full py-2.5 rounded-xl bg-orange-500 text-white font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-orange-600 transition-colors"
                   >
                     <Hand className="w-4 h-4" />
                     {!canNudge ? 'Nudged recently' : `👋 Nudge ${nonResponders.length} ${nonResponders.length === 1 ? 'person' : 'people'}`}
