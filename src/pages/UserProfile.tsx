@@ -109,7 +109,7 @@ const UserProfile = () => {
               <ShowRateBadge total={showRateTotal} showed={showRateShowed} />
               <button
                 onClick={() => setShowRateTooltip(!showRateTooltip)}
-                className="flex items-center gap-0.5 text-[11px] text-muted-foreground mx-auto mt-0.5"
+                className="flex items-center gap-0.5 text-[11px] text-muted-foreground mx-auto mt-0.5 cursor-pointer"
               >
                 <HelpCircle className="w-3 h-3" />
               </button>
