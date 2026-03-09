@@ -313,7 +313,7 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
                 </div>
               )}
 
-              <div className="flex-1 px-5 pb-6 overflow-y-auto">
+              <div className={`flex-1 px-5 pb-6 ${showConfirm ? 'overflow-hidden touch-none' : 'overflow-y-auto'}`}>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-extrabold text-foreground">
                     {step === 'quick' && !showConfirm && '🏐 Lob an idea'}
