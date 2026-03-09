@@ -1,6 +1,5 @@
-import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, ChevronRight, Users } from 'lucide-react';
+import { Plus, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSupabaseGroups } from '@/hooks/useSupabaseGroups';
