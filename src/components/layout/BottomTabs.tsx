@@ -60,7 +60,7 @@ export function BottomTabs({ onLobTap }: BottomTabsProps) {
         })}
 
         {/* Center Lob button - draggable upward */}
-        <div className="relative -mt-6">
+        <div className="relative -mt-6 z-50 pointer-events-auto">
           <motion.div
             style={{ scale: ballScale }}
             className="relative"
