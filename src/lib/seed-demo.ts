@@ -15,28 +15,14 @@ export async function seedDemoData(userId: string) {
 
   if (existingGroups && existingGroups.length > 0) return;
 
-  // Create demo groups
-  const groups = [
-    { name: 'Hoop Squad', emoji: '🏀', created_by: userId },
-    { name: 'Dinner Club', emoji: '🍷', created_by: userId },
-    { name: 'Coffee Crew', emoji: '☕', created_by: userId },
-  ];
-
-  const { data: createdGroups, error: gErr } = await supabase
-    .from('groups')
-    .insert(groups)
-    .select();
-
-  if (gErr || !createdGroups) return;
-
-  // Create fake member profiles
+  // --- FAKE MEMBER PROFILES ---
   const fakeMembers = [
-    { name: 'Alex', avatar: '😎', interests: ['sports', 'gym'], city: 'New York' },
-    { name: 'Sam', avatar: '🤙', interests: ['dinner', 'coffee'], city: 'London' },
-    { name: 'Jordan', avatar: '🏄', interests: ['sports', 'travel'], city: 'London' },
-    { name: 'Taylor', avatar: '🎯', interests: ['padel', 'gym'], city: 'New York' },
-    { name: 'Casey', avatar: '🎨', interests: ['chill', 'travel'], city: 'London' },
-    { name: 'Morgan', avatar: '🎤', interests: ['dinner', 'chill'], city: 'Paris' },
+    { name: 'Jordan Lee', avatar: '🏄', interests: ['basketball', 'drinks', 'travel'], city: 'Toronto' },
+    { name: 'Priya Sharma', avatar: '🎯', interests: ['padel', 'brunch', 'fitness'], city: 'Toronto' },
+    { name: 'Marcus Chen', avatar: '💪', interests: ['basketball', 'padel', 'travel'], city: 'Toronto' },
+    { name: 'Aisha Okafor', avatar: '🎨', interests: ['dinner', 'travel', 'culture'], city: 'London' },
+    { name: 'Tyler Wu', avatar: '🤙', interests: ['basketball', 'drinks', 'coffee'], city: 'Toronto' },
+    { name: 'Sofia Reyes', avatar: '✨', interests: ['padel', 'travel', 'rooftop'], city: 'Toronto' },
   ];
 
   const fakeIds: string[] = [];
@@ -52,95 +38,161 @@ export async function seedDemoData(userId: string) {
     });
   }
 
-  // Add user + fake members to groups
+  // Index aliases
+  const [jordanId, priyaId, marcusId, aishaId, tylerId, sofiaId] = fakeIds;
+
+  // --- GROUPS ---
+  const groups = [
+    { name: 'Hoop Squad', emoji: '🏀', created_by: userId },
+    { name: 'Casa Crew', emoji: '🏠', created_by: userId },
+    { name: 'Padel Gang', emoji: '🎾', created_by: marcusId },
+  ];
+
+  const { data: createdGroups, error: gErr } = await supabase
+    .from('groups')
+    .insert(groups)
+    .select();
+
+  if (gErr || !createdGroups) return;
+
+  const [hoopSquad, casaCrew, padelGang] = createdGroups;
+
+  // --- GROUP MEMBERSHIPS ---
   const memberships = [
-    // User in all groups
-    ...createdGroups.map(g => ({ group_id: g.id, user_id: userId })),
-    // Hoop Squad: Alex, Jordan, Taylor, Morgan
-    { group_id: createdGroups[0].id, user_id: fakeIds[0] },
-    { group_id: createdGroups[0].id, user_id: fakeIds[2] },
-    { group_id: createdGroups[0].id, user_id: fakeIds[3] },
-    { group_id: createdGroups[0].id, user_id: fakeIds[5] },
-    // Dinner Club: Sam, Casey, Morgan
-    { group_id: createdGroups[1].id, user_id: fakeIds[1] },
-    { group_id: createdGroups[1].id, user_id: fakeIds[4] },
-    { group_id: createdGroups[1].id, user_id: fakeIds[5] },
-    // Coffee Crew: Sam, Alex, Taylor
-    { group_id: createdGroups[2].id, user_id: fakeIds[1] },
-    { group_id: createdGroups[2].id, user_id: fakeIds[0] },
-    { group_id: createdGroups[2].id, user_id: fakeIds[3] },
+    // Hoop Squad: Nauman, Jordan, Marcus, Tyler, Priya, Aisha
+    { group_id: hoopSquad.id, user_id: userId },
+    { group_id: hoopSquad.id, user_id: jordanId },
+    { group_id: hoopSquad.id, user_id: marcusId },
+    { group_id: hoopSquad.id, user_id: tylerId },
+    { group_id: hoopSquad.id, user_id: priyaId },
+    { group_id: hoopSquad.id, user_id: aishaId },
+    // Casa Crew: Nauman, Sofia, Jordan, Tyler, Aisha
+    { group_id: casaCrew.id, user_id: userId },
+    { group_id: casaCrew.id, user_id: sofiaId },
+    { group_id: casaCrew.id, user_id: jordanId },
+    { group_id: casaCrew.id, user_id: tylerId },
+    { group_id: casaCrew.id, user_id: aishaId },
+    // Padel Gang: Nauman, Marcus, Priya, Sofia
+    { group_id: padelGang.id, user_id: userId },
+    { group_id: padelGang.id, user_id: marcusId },
+    { group_id: padelGang.id, user_id: priyaId },
+    { group_id: padelGang.id, user_id: sofiaId },
   ];
   await supabase.from('group_members').insert(memberships);
 
-  // Create demo lobs
+  // --- LOBS ---
   const now = new Date();
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const dayAfter = new Date(now);
-  dayAfter.setDate(dayAfter.getDate() + 2);
-  const nextWeek = new Date(now);
-  nextWeek.setDate(nextWeek.getDate() + 7);
+
+  // Tomorrow 7pm
+  const tomorrow7pm = new Date(now);
+  tomorrow7pm.setDate(tomorrow7pm.getDate() + 1);
+  tomorrow7pm.setHours(19, 0, 0, 0);
+
+  // Tomorrow 3pm (deadline for lob 1)
+  const tomorrow3pm = new Date(now);
+  tomorrow3pm.setDate(tomorrow3pm.getDate() + 1);
+  tomorrow3pm.setHours(15, 0, 0, 0);
+
+  // Friday evening
+  const friday = new Date(now);
+  friday.setDate(friday.getDate() + ((5 - friday.getDay() + 7) % 7 || 7));
+  friday.setHours(20, 0, 0, 0);
+
+  // Thursday 9pm (deadline for lob 2)
+  const thursday9pm = new Date(now);
+  thursday9pm.setDate(thursday9pm.getDate() + ((4 - thursday9pm.getDay() + 7) % 7 || 7));
+  thursday9pm.setHours(21, 0, 0, 0);
+
+  // Sunday 10am
+  const sunday10am = new Date(now);
+  sunday10am.setDate(sunday10am.getDate() + ((7 - sunday10am.getDay()) % 7 || 7));
+  sunday10am.setHours(10, 0, 0, 0);
+
+  // Saturday 6pm (deadline for lob 3)
+  const saturday6pm = new Date(now);
+  saturday6pm.setDate(saturday6pm.getDate() + ((6 - saturday6pm.getDay() + 7) % 7 || 7));
+  saturday6pm.setHours(18, 0, 0, 0);
+
+  // Past dates
+  const twoWeeksAgo = new Date(now);
+  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+  const oneWeekAgo = new Date(now);
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  const threeWeeksAgo = new Date(now);
+  threeWeeksAgo.setDate(threeWeeksAgo.getDate() - 21);
 
   const lobs = [
+    // 1. Pickup basketball — CONFIRMED
     {
-      title: 'Friday Night Hoops',
+      title: 'Pickup basketball tmrw 7pm',
       category: 'sports',
-      group_id: createdGroups[0].id,
+      group_id: hoopSquad.id,
       group_name: 'Hoop Squad',
       created_by: userId,
-      location: 'Sunset Park Courts',
+      location: 'Regent Park Courts',
       quorum: 4,
-      status: 'voting',
-    },
-    {
-      title: 'Sushi Thursday',
-      category: 'dinner',
-      group_id: createdGroups[1].id,
-      group_name: 'Dinner Club',
-      created_by: userId,
-      location: 'Nobu Downtown',
-      quorum: 3,
-      status: 'voting',
-    },
-    {
-      title: 'Morning Coffee + Cowork',
-      category: 'coffee',
-      group_id: createdGroups[2].id,
-      group_name: 'Coffee Crew',
-      created_by: userId,
-      location: 'Blue Bottle Coffee',
-      quorum: 2,
-      status: 'voting',
-    },
-    {
-      title: 'Padel Doubles',
-      category: 'padel',
-      group_id: createdGroups[0].id,
-      group_name: 'Hoop Squad',
-      created_by: fakeIds[0], // Alex created this one
-      location: 'NYC Padel Club',
-      quorum: 4,
-      status: 'voting',
-    },
-    {
-      title: 'Rooftop Drinks',
-      category: 'chill',
-      group_id: createdGroups[1].id,
-      group_name: 'Dinner Club',
-      created_by: fakeIds[1], // Sam created
-      location: 'Westlight Brooklyn',
-      quorum: 3,
+      deadline: tomorrow3pm.toISOString(),
       status: 'confirmed',
     },
+    // 2. Rooftop drinks — VOTING (pending)
     {
-      title: 'Sunday Gym Session',
-      category: 'gym',
-      group_id: createdGroups[0].id,
-      group_name: 'Hoop Squad',
-      created_by: fakeIds[3], // Taylor created
-      location: 'Equinox SoHo',
-      quorum: 2,
+      title: 'Rooftop drinks Friday?',
+      category: 'chill',
+      group_id: casaCrew.id,
+      group_name: 'Casa Crew',
+      created_by: sofiaId,
+      location: 'Bar Raval, Toronto',
+      quorum: 3,
+      deadline: thursday9pm.toISOString(),
       status: 'voting',
+    },
+    // 3. Padel Sunday — VOTING (pending)
+    {
+      title: 'Padel Sunday morning',
+      category: 'padel',
+      group_id: padelGang.id,
+      group_name: 'Padel Gang',
+      created_by: marcusId,
+      location: 'Toronto Padel Club',
+      quorum: 4,
+      deadline: saturday6pm.toISOString(),
+      status: 'voting',
+    },
+    // 4. Raptors watch party — past confirmed
+    {
+      title: 'Raptors watch party',
+      category: 'chill',
+      group_id: casaCrew.id,
+      group_name: 'Casa Crew',
+      created_by: userId,
+      location: 'Real Sports Bar',
+      quorum: 3,
+      status: 'completed',
+      created_at: twoWeeksAgo.toISOString(),
+    },
+    // 5. Brunch Saturday — past cancelled
+    {
+      title: 'Brunch Saturday',
+      category: 'dinner',
+      group_id: casaCrew.id,
+      group_name: 'Casa Crew',
+      created_by: jordanId,
+      location: 'Lady Marmalade',
+      quorum: 4,
+      status: 'cancelled',
+      created_at: oneWeekAgo.toISOString(),
+    },
+    // 6. Track night — past confirmed
+    {
+      title: 'Track night',
+      category: 'sports',
+      group_id: hoopSquad.id,
+      group_name: 'Hoop Squad',
+      created_by: tylerId,
+      location: 'U of T Track',
+      quorum: 3,
+      status: 'completed',
+      created_at: threeWeeksAgo.toISOString(),
     },
   ];
 
@@ -151,113 +203,143 @@ export async function seedDemoData(userId: string) {
 
   if (lErr || !createdLobs) return;
 
-  // Add time options for each lob
-  const timeOptions = createdLobs.map((l, i) => ({
-    lob_id: l.id,
-    datetime: new Date(tomorrow.getTime() + i * 3600000 + 18 * 3600000).toISOString(),
-  }));
-  // Add second time option for some lobs
-  timeOptions.push(
-    { lob_id: createdLobs[0].id, datetime: new Date(dayAfter.getTime() + 19 * 3600000).toISOString() },
-    { lob_id: createdLobs[3].id, datetime: new Date(dayAfter.getTime() + 10 * 3600000).toISOString() },
-  );
+  // --- TIME OPTIONS ---
+  const timeOptions = [
+    { lob_id: createdLobs[0].id, datetime: tomorrow7pm.toISOString() },
+    { lob_id: createdLobs[1].id, datetime: friday.toISOString() },
+    { lob_id: createdLobs[2].id, datetime: sunday10am.toISOString() },
+    { lob_id: createdLobs[3].id, datetime: twoWeeksAgo.toISOString() },
+    { lob_id: createdLobs[5].id, datetime: threeWeeksAgo.toISOString() },
+  ];
   await supabase.from('lob_time_options').insert(timeOptions);
 
-  // RSVP the user as "in" for a couple lobs
-  await supabase.from('lob_responses').insert([
+  // --- RSVP RESPONSES ---
+  const responses = [
+    // Lob 1: Pickup basketball — Marcus ✅, Jordan ✅, Tyler ✅, Aisha ❌, Nauman ✅ (creator)
     { lob_id: createdLobs[0].id, user_id: userId, response: 'in' },
+    { lob_id: createdLobs[0].id, user_id: marcusId, response: 'in' },
+    { lob_id: createdLobs[0].id, user_id: jordanId, response: 'in' },
+    { lob_id: createdLobs[0].id, user_id: tylerId, response: 'in' },
+    { lob_id: createdLobs[0].id, user_id: aishaId, response: 'out' },
+
+    // Lob 2: Rooftop drinks — Nauman ✅, Jordan ✅, Tyler maybe
+    { lob_id: createdLobs[1].id, user_id: userId, response: 'in' },
+    { lob_id: createdLobs[1].id, user_id: jordanId, response: 'in' },
+    { lob_id: createdLobs[1].id, user_id: tylerId, response: 'maybe' },
+
+    // Lob 3: Padel Sunday — Marcus ✅, Sofia ✅
+    { lob_id: createdLobs[2].id, user_id: marcusId, response: 'in' },
+    { lob_id: createdLobs[2].id, user_id: sofiaId, response: 'in' },
+
+    // Lob 4: Raptors watch party — all in (past)
+    { lob_id: createdLobs[3].id, user_id: userId, response: 'in' },
+    { lob_id: createdLobs[3].id, user_id: sofiaId, response: 'in' },
+    { lob_id: createdLobs[3].id, user_id: jordanId, response: 'in' },
+    { lob_id: createdLobs[3].id, user_id: tylerId, response: 'in' },
+    { lob_id: createdLobs[3].id, user_id: aishaId, response: 'in' },
+
+    // Lob 5: Brunch — only 2/4 (cancelled)
+    { lob_id: createdLobs[4].id, user_id: jordanId, response: 'in' },
     { lob_id: createdLobs[4].id, user_id: userId, response: 'in' },
-  ]);
 
-  // Fake member RSVPs to make lobs feel alive
-  await supabase.from('lob_responses').insert([
-    { lob_id: createdLobs[0].id, user_id: fakeIds[0], response: 'in' },
-    { lob_id: createdLobs[0].id, user_id: fakeIds[2], response: 'in' },
-    { lob_id: createdLobs[0].id, user_id: fakeIds[3], response: 'maybe' },
-    { lob_id: createdLobs[1].id, user_id: fakeIds[1], response: 'in' },
-    { lob_id: createdLobs[1].id, user_id: fakeIds[4], response: 'maybe' },
-    { lob_id: createdLobs[2].id, user_id: fakeIds[1], response: 'in' },
-    { lob_id: createdLobs[3].id, user_id: fakeIds[0], response: 'in' },
-    { lob_id: createdLobs[3].id, user_id: fakeIds[2], response: 'in' },
-    { lob_id: createdLobs[3].id, user_id: fakeIds[3], response: 'in' },
-    { lob_id: createdLobs[4].id, user_id: fakeIds[1], response: 'in' },
-    { lob_id: createdLobs[4].id, user_id: fakeIds[4], response: 'in' },
-    { lob_id: createdLobs[4].id, user_id: fakeIds[5], response: 'in' },
-    { lob_id: createdLobs[5].id, user_id: fakeIds[3], response: 'in' },
-  ]);
+    // Lob 6: Track night — 4 attended (past)
+    { lob_id: createdLobs[5].id, user_id: tylerId, response: 'in' },
+    { lob_id: createdLobs[5].id, user_id: userId, response: 'in' },
+    { lob_id: createdLobs[5].id, user_id: marcusId, response: 'in' },
+    { lob_id: createdLobs[5].id, user_id: jordanId, response: 'in' },
+  ];
+  await supabase.from('lob_responses').insert(responses);
 
-  // Create demo trips
-  const tripStart1 = new Date(now);
-  tripStart1.setDate(tripStart1.getDate() + 14);
-  const tripEnd1 = new Date(tripStart1);
-  tripEnd1.setDate(tripEnd1.getDate() + 5);
+  // --- LOB COMMENTS ---
+  const comments = [
+    // Lob 1: Pickup basketball
+    { lob_id: createdLobs[0].id, user_id: marcusId, message: "I'll bring the ball 🏀" },
+    { lob_id: createdLobs[0].id, user_id: jordanId, message: 'Court 2 or 3?' },
+    // Lob 2: Rooftop drinks
+    { lob_id: createdLobs[1].id, user_id: userId, message: "I'm so in" },
+  ];
+  await supabase.from('lob_comments').insert(comments);
 
-  const tripStart2 = new Date(now);
-  tripStart2.setDate(tripStart2.getDate() + 30);
-  const tripEnd2 = new Date(tripStart2);
-  tripEnd2.setDate(tripEnd2.getDate() + 7);
+  // --- TRIPS ---
+  // Nauman's trips
+  const may16 = '2026-05-16';
+  const may19 = '2026-05-19';
+  const springStart = '2026-04-01';
+  const springEnd = '2026-05-31';
+  const summerStart = '2026-07-01';
+  const summerEnd = '2026-08-31';
 
-  const tripStart3 = new Date(now);
-  tripStart3.setDate(tripStart3.getDate() + 60);
-  const tripEnd3 = new Date(tripStart3);
-  tripEnd3.setDate(tripEnd3.getDate() + 4);
+  // Aisha visiting Toronto
+  const aishaMay3 = '2026-05-03';
+  const aishaMay7 = '2026-05-07';
 
   await supabase.from('trips').insert([
+    // 1. Mexico City — dates open
     {
       user_id: userId,
-      city: 'London',
-      country: 'UK',
-      emoji: '🇬🇧',
-      start_date: tripStart1.toISOString().split('T')[0],
-      end_date: tripEnd1.toISOString().split('T')[0],
+      city: 'Mexico City',
+      country: 'Mexico',
+      emoji: '🇲🇽',
+      start_date: springStart,
+      end_date: springEnd,
       show_on_profile: true,
     },
+    // 2. Montréal Long Weekend — confirmed
     {
       user_id: userId,
-      city: 'Tokyo',
-      country: 'Japan',
-      emoji: '🇯🇵',
-      start_date: tripStart2.toISOString().split('T')[0],
-      end_date: tripEnd2.toISOString().split('T')[0],
+      city: 'Montréal',
+      country: 'Canada',
+      emoji: '🇨🇦',
+      start_date: may16,
+      end_date: may19,
       show_on_profile: true,
     },
+    // 3. Somewhere this summer — fully open
     {
       user_id: userId,
-      city: 'Barcelona',
-      country: 'Spain',
-      emoji: '🇪🇸',
-      start_date: tripStart3.toISOString().split('T')[0],
-      end_date: tripEnd3.toISOString().split('T')[0],
+      city: 'TBD',
+      country: 'TBD',
+      emoji: '🌍',
+      start_date: summerStart,
+      end_date: summerEnd,
       show_on_profile: true,
     },
-    // Fake member trips (for "Friends Visiting" section)
+    // Aisha visiting Toronto
     {
-      user_id: fakeIds[1], // Sam
-      city: 'New York',
-      country: 'USA',
-      emoji: '🇺🇸',
-      start_date: tripStart1.toISOString().split('T')[0],
-      end_date: tripEnd1.toISOString().split('T')[0],
-      show_on_profile: true,
-    },
-    {
-      user_id: fakeIds[2], // Jordan
-      city: 'New York',
-      country: 'USA',
-      emoji: '🗽',
-      start_date: tripStart2.toISOString().split('T')[0],
-      end_date: tripEnd2.toISOString().split('T')[0],
+      user_id: aishaId,
+      city: 'Toronto',
+      country: 'Canada',
+      emoji: '🇨🇦',
+      start_date: aishaMay3,
+      end_date: aishaMay7,
       show_on_profile: true,
     },
   ]);
 
-  // Add a welcome notification
-  await supabase.from('notifications').insert({
-    user_id: userId,
-    type: 'info',
-    title: 'Welcome to Lob! 🎉',
-    body: 'We created some demo plans to get you started. Try RSVPing!',
-    emoji: '🏐',
-    lob_id: createdLobs[0].id,
-  });
+  // --- NOTIFICATIONS ---
+  await supabase.from('notifications').insert([
+    {
+      user_id: userId,
+      type: 'info',
+      title: 'Hoop Squad lob confirmed!',
+      body: "See you at Regent Park tmrw 🏀",
+      emoji: '🏀',
+      lob_id: createdLobs[0].id,
+    },
+    {
+      user_id: userId,
+      type: 'response',
+      title: 'Tyler voted maybe on Rooftop drinks',
+      body: 'Rooftop drinks Friday?',
+      emoji: '🤙',
+      lob_id: createdLobs[1].id,
+    },
+    {
+      user_id: userId,
+      type: 'info',
+      title: 'Sofia started a new trip: Mexico City',
+      body: 'Want in?',
+      emoji: '✨',
+    },
+  ]);
 }
