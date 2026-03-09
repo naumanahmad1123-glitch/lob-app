@@ -1,7 +1,7 @@
 import { Home, Users, Plane, User } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef } from 'react';
 
 const tabs = [
   { path: '/', matchPaths: ['/'], icon: Home, label: 'Home' },
