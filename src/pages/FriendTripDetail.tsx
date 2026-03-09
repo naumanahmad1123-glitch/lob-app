@@ -1,57 +1,97 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useMemo } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useComposer } from '@/hooks/useComposer';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Sparkles, MapPin } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { trips, users, currentUser } from '@/data/seed';
-import { TappableAvatar } from '@/components/TappableAvatar';
+import { useSupabaseTrips, DbTrip } from '@/hooks/useSupabaseTrips';
+import { useAuth } from '@/contexts/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const FriendTripDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { openComposer } = useComposer();
-  const trip = trips.find(t => t.id === id);
+  const { user } = useAuth();
+  const { data: allTrips = [], isLoading } = useSupabaseTrips();
 
-  if (!trip) {
+  // Use router state as immediate fallback while Supabase loads
+  const statTrip = (location.state as any)?.trip as DbTrip | undefined;
+  const dbTrip = useMemo(() => allTrips.find(t => t.id === id), [allTrips, id]);
+  const trip = dbTrip || statTrip;
+
+  // Check city overlap with my trips
+  const hasOverlap = useMemo(() => {
+    if (!trip || !user) return false;
+    return allTrips.some(mt => {
+      if (mt.user_id !== user.id || !mt.show_on_profile) return false;
+      const sameCity = mt.city.toLowerCase() === trip.city.toLowerCase();
+      const overlap = new Date(mt.start_date) <= new Date(trip.end_date) && new Date(mt.end_date) >= new Date(trip.start_date);
+      return sameCity && overlap;
+    });
+  }, [allTrips, trip, user]);
+
+  const dateStr = trip
+    ? `${new Date(trip.start_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} – ${new Date(trip.end_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+    : '';
+
+  const travelerName = trip?.userName || 'Friend';
+  const travelerAvatar = trip?.userAvatar || trip?.emoji || '✈️';
+
+  // Loading skeleton
+  if (isLoading && !trip) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <p className="text-muted-foreground">Trip not found</p>
+        <div className="max-w-lg mx-auto px-4">
+          <div className="flex items-center pt-12 pb-4">
+            <button onClick={() => navigate('/trips')} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
+              <ArrowLeft className="w-5 h-5 text-foreground" />
+            </button>
+          </div>
+          <Skeleton className="h-12 w-full rounded-2xl mb-6" />
+          <Skeleton className="h-48 w-full rounded-2xl mb-6" />
         </div>
       </AppLayout>
     );
   }
 
-  const traveler = users.find(u => u.id === trip.userId);
-  const dateStr = `${new Date(trip.startDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} – ${new Date(trip.endDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
-
-  // Check if current user overlaps in same city
-  const myTrips = trips.filter(t => t.userId === currentUser.id && t.showOnProfile);
-  const hasOverlap = myTrips.some(mt => {
-    const sameCity = mt.city.toLowerCase() === trip.city.toLowerCase();
-    const overlap = new Date(mt.startDate) <= new Date(trip.endDate) && new Date(mt.endDate) >= new Date(trip.startDate);
-    return sameCity && overlap;
-  });
+  if (!trip) {
+    return (
+      <AppLayout>
+        <div className="max-w-lg mx-auto px-4">
+          <div className="pt-12 pb-4">
+            <button onClick={() => navigate('/trips')} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
+              <ArrowLeft className="w-5 h-5 text-foreground" />
+            </button>
+          </div>
+          <div className="flex items-center justify-center min-h-[40vh]">
+            <p className="text-muted-foreground">Trip not found</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
         {/* Header */}
         <div className="flex items-center pt-12 pb-4">
-          <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+          <button onClick={() => navigate('/trips')} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
         </div>
 
-        {/* Lob CTA — prominent at top */}
+        {/* Lob CTA */}
         <motion.button
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          onClick={() => openComposer({ prefillUserIds: trip.userId ? [trip.userId] : [] })}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm shadow-glow mb-6"
+          onClick={() => openComposer({ prefillUserIds: trip.user_id ? [trip.user_id] : [] })}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm shadow-glow mb-6 cursor-pointer active:scale-[0.98] transition-transform"
         >
           <Sparkles className="w-4 h-4" />
-          Make a Plan with {traveler?.name}
+          Make a Plan with {travelerName}
         </motion.button>
 
         {/* Trip card */}
@@ -62,16 +102,15 @@ const FriendTripDetail = () => {
           className="gradient-card rounded-2xl p-6 border border-border/50 shadow-card mb-6"
         >
           <div className="flex items-center gap-3 mb-4">
-            {traveler && (
-              <TappableAvatar userId={traveler.id} emoji={traveler.avatar}>
-                <span className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-2xl">
-                  {traveler.avatar}
-                </span>
-              </TappableAvatar>
-            )}
+            <button
+              onClick={() => navigate(`/user/${trip.user_id}`)}
+              className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-2xl cursor-pointer active:scale-90 transition-transform"
+            >
+              {travelerAvatar}
+            </button>
             <div>
-              <h2 className="text-lg font-bold text-foreground">{traveler?.name}'s Trip</h2>
-              <p className="text-xs text-muted-foreground">to {trip.city}, {trip.country}</p>
+              <h2 className="text-lg font-bold text-foreground">{travelerName}'s Trip</h2>
+              <p className="text-xs text-muted-foreground">to {trip.city}{trip.country ? `, ${trip.country}` : ''}</p>
             </div>
           </div>
 
@@ -79,7 +118,7 @@ const FriendTripDetail = () => {
             <div className="flex items-center gap-2">
               <span className="text-2xl">{trip.emoji}</span>
               <div>
-                <p className="text-[15px] font-semibold text-foreground">{trip.city}, {trip.country}</p>
+                <p className="text-[15px] font-semibold text-foreground">{trip.city}{trip.country ? `, ${trip.country}` : ''}</p>
                 <p className="text-xs text-muted-foreground">{dateStr}</p>
               </div>
             </div>
