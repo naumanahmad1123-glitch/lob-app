@@ -6,6 +6,7 @@ export interface DbProfile {
   id: string;
   name: string;
   avatar: string;
+  avatar_photo_url: string | null;
   interests: string[];
   city: string | null;
   is_pro: boolean;
@@ -49,7 +50,7 @@ export function useUpdateProfile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (updates: { name?: string; avatar?: string; interests?: string[]; city?: string }) => {
+    mutationFn: async (updates: { name?: string; avatar?: string; interests?: string[]; city?: string; avatar_photo_url?: string | null }) => {
       if (!user) throw new Error('Not authenticated');
       const { error } = await supabase
         .from('profiles')

@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LobResponse, User } from '@/data/types';
 import { ShowRateBadge } from '@/components/lob/ShowRateBadge';
-import { useProfileMap, getProfileName, getProfileAvatar } from '@/hooks/useProfileMap';
+import { useProfileMap, getProfileName, getProfileAvatar, getProfilePhotoUrl } from '@/hooks/useProfileMap';
 import { useAuth } from '@/contexts/AuthContext';
+import { UserAvatar } from '@/components/UserAvatar';
 
 interface QuorumRingProps {
   current: number;
@@ -31,9 +32,13 @@ function AvatarWithTooltip({ userId, bgClass, profileMap }: { userId: string; bg
           e.stopPropagation();
           navigate(userId === user?.id ? '/profile' : `/user/${userId}`);
         }}
-        className={`w-7 h-7 rounded-full ${bgClass} border-2 border-card flex items-center justify-center text-sm transition-transform active:scale-90 cursor-pointer`}
+        className={`w-7 h-7 rounded-full ${bgClass} border-2 border-card flex items-center justify-center text-sm transition-transform active:scale-90 cursor-pointer overflow-hidden`}
       >
-        {getProfileAvatar(profileMap, userId)}
+        {getProfilePhotoUrl(profileMap, userId) ? (
+          <img src={getProfilePhotoUrl(profileMap, userId)!} alt="" className="w-full h-full object-cover" />
+        ) : (
+          getProfileAvatar(profileMap, userId)
+        )}
       </button>
     </div>
   );
@@ -203,9 +208,7 @@ export function QuorumRing({ current, target, responses, groupMembers = [] }: Qu
                             }}
                             className="w-full flex items-center gap-3 py-1.5 active:scale-[0.98] transition-transform cursor-pointer"
                           >
-                            <span className={`w-9 h-9 rounded-full ${sec.bgClass} flex items-center justify-center text-lg`}>
-                              {getProfileAvatar(profileMap, userId)}
-                            </span>
+                            <UserAvatar photoUrl={getProfilePhotoUrl(profileMap, userId)} emoji={getProfileAvatar(profileMap, userId)} size="sm" className={sec.bgClass} />
                             <span className="text-sm font-medium text-foreground flex-1 text-left">
                               {userId === user?.id ? 'You' : getProfileName(profileMap, userId)}
                             </span>

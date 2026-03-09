@@ -9,6 +9,7 @@ export interface TripMember {
   status: string;
   name: string;
   avatar: string;
+  avatar_photo_url: string | null;
 }
 
 export interface TripSuggestion {
@@ -21,6 +22,7 @@ export interface TripSuggestion {
   created_at: string;
   userName: string;
   userAvatar: string;
+  userPhotoUrl: string | null;
   votes: string[]; // user_ids who voted
 }
 
@@ -32,6 +34,7 @@ export interface TripComment {
   created_at: string;
   userName: string;
   userAvatar: string;
+  userPhotoUrl: string | null;
 }
 
 export function useTripMembers(tripId: string | undefined) {
@@ -49,14 +52,14 @@ export function useTripMembers(tripId: string | undefined) {
       if (error) throw error;
 
       const userIds = [...new Set((data || []).map(m => m.user_id))];
-      const profileMap: Record<string, { name: string; avatar: string }> = {};
+      const profileMap: Record<string, { name: string; avatar: string; avatar_photo_url: string | null }> = {};
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, name, avatar')
+          .select('id, name, avatar, avatar_photo_url')
           .in('id', userIds);
         (profiles || []).forEach(p => {
-          profileMap[p.id] = { name: p.name || 'Unknown', avatar: p.avatar || '🙂' };
+          profileMap[p.id] = { name: p.name || 'Unknown', avatar: p.avatar || '🙂', avatar_photo_url: p.avatar_photo_url || null };
         });
       }
 
@@ -66,6 +69,7 @@ export function useTripMembers(tripId: string | undefined) {
         status: m.status,
         name: profileMap[m.user_id]?.name || 'Unknown',
         avatar: profileMap[m.user_id]?.avatar || '🙂',
+        avatar_photo_url: profileMap[m.user_id]?.avatar_photo_url || null,
       })) as TripMember[];
     },
     staleTime: 10_000,
@@ -113,14 +117,14 @@ export function useTripSuggestions(tripId: string | undefined) {
       }
 
       const userIds = [...new Set((suggestions || []).map(s => s.user_id))];
-      const profileMap: Record<string, { name: string; avatar: string }> = {};
+      const profileMap: Record<string, { name: string; avatar: string; avatar_photo_url: string | null }> = {};
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, name, avatar')
+          .select('id, name, avatar, avatar_photo_url')
           .in('id', userIds);
         (profiles || []).forEach(p => {
-          profileMap[p.id] = { name: p.name || 'Unknown', avatar: p.avatar || '🙂' };
+          profileMap[p.id] = { name: p.name || 'Unknown', avatar: p.avatar || '🙂', avatar_photo_url: p.avatar_photo_url || null };
         });
       }
 
@@ -134,6 +138,7 @@ export function useTripSuggestions(tripId: string | undefined) {
         created_at: s.created_at,
         userName: profileMap[s.user_id]?.name || 'Unknown',
         userAvatar: profileMap[s.user_id]?.avatar || '🙂',
+        userPhotoUrl: profileMap[s.user_id]?.avatar_photo_url || null,
         votes: votesMap[s.id] || [],
       })) as TripSuggestion[];
     },
@@ -172,14 +177,14 @@ export function useTripComments(tripId: string | undefined) {
       if (error) throw error;
 
       const userIds = [...new Set((data || []).map(c => c.user_id))];
-      const profileMap: Record<string, { name: string; avatar: string }> = {};
+      const profileMap: Record<string, { name: string; avatar: string; avatar_photo_url: string | null }> = {};
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, name, avatar')
+          .select('id, name, avatar, avatar_photo_url')
           .in('id', userIds);
         (profiles || []).forEach(p => {
-          profileMap[p.id] = { name: p.name || 'Unknown', avatar: p.avatar || '🙂' };
+          profileMap[p.id] = { name: p.name || 'Unknown', avatar: p.avatar || '🙂', avatar_photo_url: p.avatar_photo_url || null };
         });
       }
 
@@ -191,6 +196,7 @@ export function useTripComments(tripId: string | undefined) {
         created_at: c.created_at,
         userName: profileMap[c.user_id]?.name || 'Unknown',
         userAvatar: profileMap[c.user_id]?.avatar || '🙂',
+        userPhotoUrl: profileMap[c.user_id]?.avatar_photo_url || null,
       })) as TripComment[];
     },
     staleTime: 10_000,

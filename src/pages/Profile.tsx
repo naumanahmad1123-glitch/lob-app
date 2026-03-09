@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, ChevronRight, Bell, Calendar, Shield, LogOut, Users, HelpCircle, X, Pencil } from 'lucide-react';
+import { Settings, ChevronRight, Bell, Calendar, Shield, LogOut, Users, HelpCircle, X, Pencil, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,6 +8,7 @@ import { useSupabaseProfile, useUpdateProfile } from '@/hooks/useSupabaseProfile
 import { useSupabaseLobs } from '@/hooks/useSupabaseLobs';
 import { useSupabaseGroups } from '@/hooks/useSupabaseGroups';
 import { ShowRateBadge } from '@/components/lob/ShowRateBadge';
+import { UserAvatar } from '@/components/UserAvatar';
 import { toast } from 'sonner';
 
 const AVATAR_OPTIONS = ['🙂', '😎', '🤙', '🏄', '🎯', '🎤', '🚀', '🎨', '🦊', '🐻', '🌟', '⚡', '🔥', '🎸', '🧠', '👾'];
@@ -35,6 +36,7 @@ const Profile = () => {
   const { data: allGroups = [] } = useSupabaseGroups();
   const updateProfile = useUpdateProfile();
   const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [showRateTooltip, setShowRateTooltip] = useState(false);
   const [showComingSoon, setShowComingSoon] = useState<string | null>(null);
@@ -42,6 +44,7 @@ const Profile = () => {
   const [editName, setEditName] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
   const [editInterests, setEditInterests] = useState<string[]>([]);
+  const [editPhotoUrl, setEditPhotoUrl] = useState<string | null>(null);
 
   const totalPlans = allLobs.filter(l => l.createdBy === user?.id).length;
   const totalGroups = allGroups.length;
@@ -51,7 +54,33 @@ const Profile = () => {
     setEditName(profile.name);
     setEditAvatar(profile.avatar);
     setEditInterests([...profile.interests]);
+    setEditPhotoUrl(profile.avatar_photo_url || null);
     setEditingProfile(true);
+  };
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Photo must be under 2MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setEditPhotoUrl(reader.result as string);
+      setEditAvatar(''); // photo takes priority
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setEditPhotoUrl(null);
+    if (!editAvatar) setEditAvatar('🙂');
+  };
+
+  const handleSelectEmoji = (emoji: string) => {
+    setEditAvatar(emoji);
+    setEditPhotoUrl(null); // emoji clears photo
   };
 
   const handleSaveProfile = async () => {
@@ -62,8 +91,9 @@ const Profile = () => {
     try {
       await updateProfile.mutateAsync({
         name: editName.trim(),
-        avatar: editAvatar,
+        avatar: editAvatar || '🙂',
         interests: editInterests,
+        avatar_photo_url: editPhotoUrl || null,
       });
       toast.success('Profile updated!');
       setEditingProfile(false);
@@ -108,44 +138,81 @@ const Profile = () => {
         <AnimatePresence>
           {editingProfile && (
             <>
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, pointerEvents: 'none' as any }} onClick={() => setEditingProfile(false)} className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm" />
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setEditingProfile(false)} className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm" />
               <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 300 }} className="fixed bottom-0 left-0 right-0 z-50 max-w-lg mx-auto">
-                <div className="bg-card rounded-t-3xl border border-border/50 shadow-card px-5 pb-8 pt-4 max-h-[85vh] overflow-y-auto">
-                  <div className="flex justify-center mb-3"><div className="w-10 h-1 rounded-full bg-muted-foreground/30" /></div>
-                  <div className="flex items-center justify-between mb-5">
-                    <h2 className="text-lg font-extrabold text-foreground">✏️ Edit Profile</h2>
-                    <button onClick={() => setEditingProfile(false)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center cursor-pointer"><X className="w-4 h-4 text-muted-foreground" /></button>
-                  </div>
-                  <div className="mb-4">
-                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Name</label>
-                    <input type="text" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Your name" className="w-full p-3 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  </div>
-                  <div className="mb-4">
-                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Avatar</label>
-                    <div className="grid grid-cols-8 gap-2">
-                      {AVATAR_OPTIONS.map(emoji => (
-                        <button key={emoji} onClick={() => setEditAvatar(emoji)} className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all cursor-pointer ${editAvatar === emoji ? 'bg-primary/15 border-2 border-primary scale-110' : 'bg-secondary border border-border hover:bg-muted'}`}>
-                          {emoji}
-                        </button>
-                      ))}
+                <div className="bg-card rounded-t-3xl border border-border/50 shadow-card flex flex-col max-h-[85vh]">
+                  {/* Header */}
+                  <div className="px-5 pt-4 pb-2">
+                    <div className="flex justify-center mb-3"><div className="w-10 h-1 rounded-full bg-muted-foreground/30" /></div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h2 className="text-lg font-extrabold text-foreground">✏️ Edit Profile</h2>
+                      <button onClick={() => setEditingProfile(false)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center cursor-pointer"><X className="w-4 h-4 text-muted-foreground" /></button>
                     </div>
                   </div>
-                  <div className="mb-5">
-                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Interests</label>
-                    <div className="flex flex-wrap gap-2">
-                      {INTEREST_OPTIONS.map(opt => {
-                        const active = editInterests.includes(opt.key);
-                        return (
-                          <button key={opt.key} onClick={() => toggleInterest(opt.key)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${active ? 'bg-primary/15 text-primary border border-primary/30' : 'bg-secondary text-muted-foreground border border-border'}`}>
-                            {opt.label}
+
+                  {/* Scrollable content */}
+                  <div className="flex-1 overflow-y-auto px-5 pb-4">
+                    {/* Name */}
+                    <div className="mb-4">
+                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Name</label>
+                      <input type="text" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Your name" className="w-full p-3 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                    </div>
+
+                    {/* Avatar with photo upload */}
+                    <div className="mb-4">
+                      <label className="text-xs font-medium text-muted-foreground mb-3 block">Avatar</label>
+                      
+                      {/* Photo preview + upload */}
+                      <div className="flex flex-col items-center mb-4">
+                        <div className="relative">
+                          <UserAvatar photoUrl={editPhotoUrl} emoji={editAvatar || '🙂'} size="xl" />
+                          <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-md cursor-pointer active:scale-95 transition-transform"
+                          >
+                            <Camera className="w-4 h-4 text-primary-foreground" />
                           </button>
-                        );
-                      })}
+                          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoSelect} />
+                        </div>
+                        {editPhotoUrl && (
+                          <button onClick={handleRemovePhoto} className="text-xs text-destructive mt-2 cursor-pointer hover:underline">
+                            Remove photo
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Emoji grid */}
+                      <div className="grid grid-cols-8 gap-2">
+                        {AVATAR_OPTIONS.map(emoji => (
+                          <button key={emoji} onClick={() => handleSelectEmoji(emoji)} className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all cursor-pointer ${editAvatar === emoji && !editPhotoUrl ? 'bg-primary/15 border-2 border-primary scale-110' : 'bg-secondary border border-border hover:bg-muted'}`}>
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Interests */}
+                    <div className="mb-2">
+                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Interests</label>
+                      <div className="flex flex-wrap gap-2">
+                        {INTEREST_OPTIONS.map(opt => {
+                          const active = editInterests.includes(opt.key);
+                          return (
+                            <button key={opt.key} onClick={() => toggleInterest(opt.key)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${active ? 'bg-primary/15 text-primary border border-primary/30' : 'bg-secondary text-muted-foreground border border-border'}`}>
+                              {opt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-                  <button onClick={handleSaveProfile} disabled={updateProfile.isPending} className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-50 cursor-pointer">
-                    {updateProfile.isPending ? 'Saving...' : 'Save Changes'}
-                  </button>
+
+                  {/* Pinned save button */}
+                  <div className="px-5 pt-3 border-t border-border/50" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+                    <button onClick={handleSaveProfile} disabled={updateProfile.isPending} className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-50 cursor-pointer mb-4">
+                      {updateProfile.isPending ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             </>
@@ -157,7 +224,9 @@ const Profile = () => {
           <button onClick={openEditSheet} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
             <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
           </button>
-          <div className="w-20 h-20 rounded-full bg-secondary mx-auto flex items-center justify-center text-4xl mb-3">{profile.avatar}</div>
+          <div className="mx-auto mb-3">
+            <UserAvatar photoUrl={profile.avatar_photo_url} emoji={profile.avatar} size="xl" className="mx-auto" />
+          </div>
           <h2 className="text-xl font-bold text-foreground">{profile.name}</h2>
           <p className="text-sm text-muted-foreground mt-1">Making plans since 2026</p>
 
