@@ -283,11 +283,11 @@ const LobDetail = () => {
             <>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, pointerEvents: 'none' as any }} onClick={() => setShowCancelDialog(false)} className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm" />
               <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-sm mx-auto bg-card rounded-2xl border border-border shadow-card p-6">
-                <h3 className="font-bold text-foreground text-lg mb-2">Cancel this plan?</h3>
+                <h3 className="font-bold text-foreground text-lg mb-2">Cancel this lob?</h3>
                 <p className="text-sm text-muted-foreground mb-5">Everyone will be notified.</p>
                 <div className="flex gap-3">
                   <button onClick={() => setShowCancelDialog(false)} className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground font-semibold text-sm cursor-pointer">Keep it</button>
-                  <button onClick={handleCancel} className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground font-semibold text-sm cursor-pointer">Cancel Plan</button>
+                  <button onClick={handleCancel} className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground font-semibold text-sm cursor-pointer">Cancel Lob</button>
                 </div>
               </motion.div>
             </>
