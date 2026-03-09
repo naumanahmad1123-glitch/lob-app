@@ -2,13 +2,19 @@ import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useComposer } from '@/hooks/useComposer';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Pencil, Sparkles, Globe, Lock, X } from 'lucide-react';
+import { ArrowLeft, Pencil, Sparkles, Globe, Lock, X, Trash2, CheckCircle2, Clock } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSupabaseTrips } from '@/hooks/useSupabaseTrips';
+import { useTripMembers, useTripSuggestions, useTripComments } from '@/hooks/useTripDetail';
+import { TripAttendees } from '@/components/trips/TripAttendees';
+import { TripVoting } from '@/components/trips/TripVoting';
+import { TripComments } from '@/components/trips/TripComments';
+import { TripInvitePicker } from '@/components/trips/TripInvitePicker';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { differenceInDays } from 'date-fns';
 
 const TripDetail = () => {
   const { id } = useParams();
@@ -17,11 +23,16 @@ const TripDetail = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: allTrips = [], isLoading } = useSupabaseTrips();
+  const { data: members = [] } = useTripMembers(id);
+  const { data: suggestions = [] } = useTripSuggestions(id);
+  const { data: comments = [] } = useTripComments(id);
 
   const trip = useMemo(() => allTrips.find(t => t.id === id), [allTrips, id]);
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editData, setEditData] = useState({
     city: '',
     country: '',
@@ -30,22 +41,8 @@ const TripDetail = () => {
     showOnProfile: true,
   });
 
-  // Fetch profiles for notify_user_ids
-  const notifyIds = trip?.notify_user_ids || [];
-  const { data: sharedUsers = [] } = useQuery({
-    queryKey: ['trip-shared-users', id, notifyIds],
-    enabled: notifyIds.length > 0,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, name, avatar, city')
-        .in('id', notifyIds);
-      return data || [];
-    },
-    staleTime: 30_000,
-  });
-
   const isOwner = trip?.user_id === user?.id;
+  const tripStatus = (trip as any)?.status || 'planning';
 
   const openEditSheet = () => {
     if (!trip) return;
@@ -85,6 +82,34 @@ const TripDetail = () => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!trip || !user) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('trips').delete().eq('id', trip.id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['supabase-trips'] });
+      toast.success('Trip deleted');
+      navigate('/trips');
+    } catch (err: any) {
+      toast.error('Failed to delete: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleConfirmTrip = async () => {
+    if (!trip || !isOwner) return;
+    try {
+      const { error } = await supabase.from('trips').update({ status: 'confirmed' }).eq('id', trip.id);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['supabase-trips'] });
+      toast.success('Trip confirmed! 🎉');
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   if (isLoading) {
     return (
       <AppLayout>
@@ -113,10 +138,11 @@ const TripDetail = () => {
   }
 
   const dateStr = `${new Date(trip.start_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} – ${new Date(trip.end_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+  const daysAway = differenceInDays(new Date(trip.start_date), new Date());
 
   return (
     <AppLayout>
-      <div className="max-w-lg mx-auto px-4">
+      <div className="max-w-lg mx-auto px-4 pb-24">
         {/* Header */}
         <div className="flex items-center justify-between pt-12 pb-6">
           <button
@@ -135,6 +161,92 @@ const TripDetail = () => {
           )}
         </div>
 
+        {/* Trip info */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-4">
+          <span className="text-5xl mb-3 block">{trip.emoji}</span>
+          <h1 className="text-2xl font-extrabold text-foreground">{trip.city}{trip.country ? `, ${trip.country}` : ''}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{dateStr}</p>
+
+          {/* Status & Countdown */}
+          <div className="flex items-center justify-center gap-2 mt-3 flex-wrap">
+            {trip.show_on_profile ? (
+              <span className="flex items-center gap-1 text-[11px] font-medium text-accent px-2.5 py-1 rounded-full bg-accent/10">
+                <Globe className="w-3 h-3" /> Visible on Profile
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground px-2.5 py-1 rounded-full bg-secondary">
+                <Lock className="w-3 h-3" /> Private
+              </span>
+            )}
+            {tripStatus === 'confirmed' ? (
+              <span className="flex items-center gap-1 text-[11px] font-medium text-accent px-2.5 py-1 rounded-full bg-accent/10">
+                <CheckCircle2 className="w-3 h-3" /> Confirmed
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-[11px] font-medium text-primary px-2.5 py-1 rounded-full bg-primary/10">
+                <Clock className="w-3 h-3" /> Planning
+              </span>
+            )}
+          </div>
+
+          <p className="text-xs text-muted-foreground mt-2">
+            {tripStatus === 'confirmed'
+              ? daysAway > 0 ? `${daysAway} day${daysAway !== 1 ? 's' : ''} away` : daysAway === 0 ? "Today! 🎉" : "Already happened"
+              : "Planning in progress"
+            }
+          </p>
+
+          {isOwner && tripStatus === 'planning' && (
+            <button
+              onClick={handleConfirmTrip}
+              className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl gradient-primary text-primary-foreground text-xs font-bold cursor-pointer active:scale-95"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" /> Confirm Trip
+            </button>
+          )}
+        </motion.div>
+
+        {/* Attendees */}
+        <TripAttendees
+          members={members}
+          isOwner={isOwner}
+          onInvite={() => setShowInvite(true)}
+        />
+
+        {/* Voting */}
+        {user && (
+          <TripVoting
+            tripId={trip.id}
+            userId={user.id}
+            isOwner={isOwner}
+            status={tripStatus}
+            suggestions={suggestions}
+          />
+        )}
+
+        {/* Comments */}
+        {user && (
+          <TripComments
+            tripId={trip.id}
+            userId={user.id}
+            comments={comments}
+          />
+        )}
+
+        {/* Lob the Group */}
+        {members.length > 0 && (
+          <motion.button
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            onClick={() => openComposer({ prefillUserIds: members.map(m => m.user_id) })}
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm shadow-glow mb-8 cursor-pointer active:scale-[0.98] transition-transform"
+          >
+            <Sparkles className="w-4 h-4" />
+            Lob the Group
+          </motion.button>
+        )}
+
         {/* Edit Sheet */}
         <AnimatePresence>
           {editing && (
@@ -143,7 +255,7 @@ const TripDetail = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, pointerEvents: 'none' as any }}
-                onClick={() => setEditing(false)}
+                onClick={() => { setEditing(false); setShowDeleteConfirm(false); }}
                 className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm"
               />
               <motion.div
@@ -159,7 +271,7 @@ const TripDetail = () => {
                   </div>
                   <div className="flex items-center justify-between mb-5">
                     <h2 className="text-lg font-extrabold text-foreground">✏️ Edit Trip</h2>
-                    <button onClick={() => setEditing(false)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center cursor-pointer">
+                    <button onClick={() => { setEditing(false); setShowDeleteConfirm(false); }} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center cursor-pointer">
                       <X className="w-4 h-4 text-muted-foreground" />
                     </button>
                   </div>
@@ -183,6 +295,32 @@ const TripDetail = () => {
                     <button onClick={handleSaveEdit} disabled={saving} className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm cursor-pointer disabled:opacity-50">
                       {saving ? 'Saving...' : 'Save Changes'}
                     </button>
+
+                    {/* Delete */}
+                    {!showDeleteConfirm ? (
+                      <button
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-destructive text-sm font-medium cursor-pointer hover:bg-destructive/5 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" /> Delete Trip
+                      </button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setShowDeleteConfirm(false)}
+                          className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleDelete}
+                          disabled={saving}
+                          className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-bold cursor-pointer disabled:opacity-50"
+                        >
+                          {saving ? 'Deleting...' : 'Confirm Delete'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -190,59 +328,13 @@ const TripDetail = () => {
           )}
         </AnimatePresence>
 
-        {/* Trip info */}
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
-          <span className="text-5xl mb-3 block">{trip.emoji}</span>
-          <h1 className="text-2xl font-extrabold text-foreground">{trip.city}{trip.country ? `, ${trip.country}` : ''}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{dateStr}</p>
-          <div className="flex items-center justify-center gap-1.5 mt-3">
-            {trip.show_on_profile ? (
-              <span className="flex items-center gap-1 text-[11px] font-medium text-accent px-2.5 py-1 rounded-full bg-accent/10">
-                <Globe className="w-3 h-3" /> Visible on Profile
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground px-2.5 py-1 rounded-full bg-secondary">
-                <Lock className="w-3 h-3" /> Private
-              </span>
-            )}
-          </div>
-        </motion.div>
-
-        {/* Shared with */}
-        {sharedUsers.length > 0 && (
-          <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8">
-            <h2 className="text-sm font-bold text-foreground mb-3">Shared With</h2>
-            <div className="space-y-2">
-              {sharedUsers.map(u => (
-                <motion.div
-                  key={u.id}
-                  onClick={() => navigate(`/user/${u.id}`)}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card cursor-pointer active:scale-[0.98] hover:border-primary/30 transition-all"
-                >
-                  <span className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg">
-                    {u.avatar}
-                  </span>
-                  <div className="flex-1 text-left">
-                    <p className="text-sm font-semibold text-foreground">{u.name}</p>
-                    {u.city && <p className="text-xs text-muted-foreground">{u.city}</p>}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.section>
-        )}
-
-        {/* Lob the group */}
-        <motion.button
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          onClick={() => openComposer({ prefillUserIds: trip.notify_user_ids })}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm shadow-glow mb-8 cursor-pointer active:scale-[0.98] transition-transform"
-        >
-          <Sparkles className="w-4 h-4" />
-          Lob the Group
-        </motion.button>
+        {/* Invite Picker */}
+        <TripInvitePicker
+          open={showInvite}
+          onClose={() => setShowInvite(false)}
+          tripId={trip.id}
+          existingMemberIds={members.map(m => m.user_id)}
+        />
       </div>
     </AppLayout>
   );

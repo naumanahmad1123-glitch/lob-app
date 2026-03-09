@@ -13,6 +13,7 @@ export interface DbTrip {
   end_date: string;
   notify_user_ids: string[];
   show_on_profile: boolean;
+  status: string;
   created_at: string;
   userName?: string;
   userAvatar?: string;
