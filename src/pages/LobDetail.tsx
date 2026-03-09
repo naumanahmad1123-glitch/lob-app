@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, MapPin, Clock, Share2, MessageCircle, CheckCircle2, Check, Users,
   Bell, MoreVertical, XCircle, Repeat, Send, Plus, CalendarIcon, UserPlus, Minus,
-  DoorOpen,
+  DoorOpen, Link2, Hand,
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { CATEGORY_CONFIG, ResponseType, LobComment, RECURRENCE_OPTIONS, TimeOption } from '@/data/types';
@@ -13,7 +13,7 @@ import { TripPlanningSection } from '@/components/trips/TripPlanningSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseLob, useLobRecipients } from '@/hooks/useSupabaseLobs';
 import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { ResponseButtons } from '@/components/lob/ResponseButtons';
 import { QuorumRing } from '@/components/lob/QuorumRing';
 import { StatusPill } from '@/components/lob/StatusPill';
@@ -23,10 +23,28 @@ import { BailSheet } from '@/components/lob/BailSheet';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { generateDayChips, generateTimeChips, isSameDay, parseTimeString } from '@/lib/lob-utils';
-import { useProfileMap, getProfileName, getProfileAvatar } from '@/hooks/useProfileMap';
+import { useProfileMap, getProfileName, getProfileAvatar, getProfilePhotoUrl } from '@/hooks/useProfileMap';
+import { UserAvatar } from '@/components/UserAvatar';
 
 const DAY_CHIPS = generateDayChips();
 const TIME_CHIPS = generateTimeChips();
+
+/** Fetch group member user IDs for a given group */
+function useGroupMemberIds(groupId: string | undefined) {
+  return useQuery({
+    queryKey: ['group-member-ids', groupId],
+    enabled: !!groupId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('group_members')
+        .select('user_id')
+        .eq('group_id', groupId!);
+      if (error) throw error;
+      return (data || []).map(r => r.user_id);
+    },
+    staleTime: 30_000,
+  });
+}
 
 const LobDetail = () => {
   const { id } = useParams();
@@ -35,18 +53,20 @@ const LobDetail = () => {
   const queryClient = useQueryClient();
   const { data: lob, isLoading } = useSupabaseLob(id);
   const { data: recipientIds = [] } = useLobRecipients(id);
+  const { data: groupMemberIds = [] } = useGroupMemberIds(lob?.groupId || undefined);
   const isIndividualLob = !lob?.groupId && recipientIds.length > 0;
   
-  // Collect all user IDs from responses, comments, and recipients for profile lookup
+  // Collect all user IDs from responses, comments, recipients, and group members for profile lookup
   const allUserIds = useMemo(() => {
-    if (!lob) return recipientIds;
+    if (!lob) return [...recipientIds, ...groupMemberIds];
     const ids = new Set<string>();
     ids.add(lob.createdBy);
     lob.responses.forEach(r => ids.add(r.userId));
     (lob.comments || []).forEach(c => ids.add(c.userId));
     recipientIds.forEach(rid => ids.add(rid));
+    groupMemberIds.forEach(gid => ids.add(gid));
     return Array.from(ids);
-  }, [lob, recipientIds]);
+  }, [lob, recipientIds, groupMemberIds]);
 
   const { data: profileMap } = useProfileMap(allUserIds);
 
@@ -57,10 +77,18 @@ const LobDetail = () => {
   const [showMenu, setShowMenu] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showBailSheet, setShowBailSheet] = useState(false);
+  const [nudging, setNudging] = useState(false);
 
   useEffect(() => {
     if (lob?.comments) setLocalComments(lob.comments);
   }, [lob?.comments]);
+
+  // Sync last_nudged_at from DB
+  useEffect(() => {
+    if (lob && (lob as any).lastNudgedAt) {
+      setLastNudgeTime(new Date((lob as any).lastNudgedAt).getTime());
+    }
+  }, [lob]);
 
   if (isLoading) {
     return <AppLayout><div className="flex items-center justify-center min-h-[60vh]"><p className="text-muted-foreground">Loading...</p></div></AppLayout>;
@@ -87,6 +115,16 @@ const LobDetail = () => {
 
   const canNudge = !lastNudgeTime || (Date.now() - lastNudgeTime > 2 * 60 * 60 * 1000);
 
+  // Non-responders from group members
+  const respondedIds = new Set(lob.responses.map(r => r.userId));
+  const nonResponders = groupMemberIds.filter(id => !respondedIds.has(id) && id !== lob.createdBy);
+
+  // Attendee names for "in" list
+  const inNames = inList.map(r => r.userId === user?.id ? 'You' : getProfileName(profileMap, r.userId).split(' ')[0]);
+
+  // Non-responder names for quorum section
+  const nonResponderNames = nonResponders.slice(0, 3).map(id => getProfileName(profileMap, id).split(' ')[0]);
+
   const handleResponse = async (response: ResponseType) => {
     if (!user) return;
     const existing = lob.responses.find(r => r.userId === user.id);
@@ -97,6 +135,37 @@ const LobDetail = () => {
     }
     queryClient.invalidateQueries({ queryKey: ['supabase-lob', id] });
     queryClient.invalidateQueries({ queryKey: ['supabase-lobs'] });
+  };
+
+  const handleNudge = async () => {
+    if (!user || !canNudge || nudging) return;
+    setNudging(true);
+    try {
+      // Update last_nudged_at
+      await supabase.from('lobs').update({ last_nudged_at: new Date().toISOString() } as any).eq('id', lob.id);
+
+      // Get creator name
+      const nudgerName = getProfileName(profileMap, user.id);
+
+      // Insert notifications for non-responders
+      const notifRows = nonResponders.map(userId => ({
+        user_id: userId,
+        lob_id: lob.id,
+        type: 'nudge',
+        title: `${nudgerName} nudged you`,
+        body: `You haven't responded to "${lob.title}" yet`,
+        emoji: '👋',
+      }));
+
+      if (notifRows.length > 0) {
+        await supabase.from('notifications').insert(notifRows);
+      }
+
+      setLastNudgeTime(Date.now());
+      toast.success(`Nudge sent to ${nonResponders.length} ${nonResponders.length === 1 ? 'person' : 'people'} 👋`);
+    } finally {
+      setNudging(false);
+    }
   };
 
   const handleAddComment = async () => {
@@ -125,6 +194,12 @@ const LobDetail = () => {
     toast.success('You bailed.');
   };
 
+  const handleShareLink = () => {
+    const shareUrl = `${window.location.origin}/lob/${lob.id}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast.success('Link copied!');
+  };
+
   const recurrenceLabel = lob.recurrence ? RECURRENCE_OPTIONS.find(r => r.key === lob.recurrence)?.label : null;
   const effectiveStatus = lob.status;
   const deadlinePassed = lob.deadline ? new Date(lob.deadline).getTime() < Date.now() : false;
@@ -136,8 +211,10 @@ const LobDetail = () => {
   const isGroupTrip = lob.category === 'group-trip';
   const showTripPlanning = isGroupTrip && lob.tripPlanningPhase && lob.tripPlanningPhase !== 'confirmed';
 
-  // Creator name from profiles
+  // Creator info
   const creatorName = isCreator ? 'You' : getProfileName(profileMap, lob.createdBy);
+  const creatorAvatar = getProfileAvatar(profileMap, lob.createdBy);
+  const creatorPhotoUrl = getProfilePhotoUrl(profileMap, lob.createdBy);
 
   return (
     <AppLayout>
@@ -204,7 +281,7 @@ const LobDetail = () => {
           </motion.div>
         )}
 
-        {/* Title */}
+        {/* Title + Creator Attribution (#7) */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <div className="flex items-center gap-3 mb-2">
             <span className="text-4xl">{config.emoji}</span>
@@ -214,10 +291,21 @@ const LobDetail = () => {
                 {isIndividualLob
                   ? recipientIds.map(rid => getProfileName(profileMap, rid).split(' ')[0]).join(', ')
                   : lob.groupName}
-                {' · by '}{creatorName}
               </p>
             </div>
           </div>
+
+          {/* Creator attribution */}
+          <button
+            onClick={() => navigate(isCreator ? '/profile' : `/user/${lob.createdBy}`)}
+            className="flex items-center gap-2 mt-2 active:scale-[0.98] transition-transform cursor-pointer"
+          >
+            <UserAvatar photoUrl={creatorPhotoUrl} emoji={creatorAvatar} size="sm" />
+            <span className="text-xs font-medium text-muted-foreground">
+              {isCreator ? 'You lobbed this' : `Lobbed by ${creatorName}`}
+            </span>
+          </button>
+
           {recurrenceLabel && (
             <div className="flex items-center gap-1.5 mt-2">
               <Repeat className="w-3.5 h-3.5 text-primary" />
@@ -249,18 +337,54 @@ const LobDetail = () => {
 
         {lob.location && <LocationMap location={lob.location} />}
 
-        {/* Status Banner */}
+        {/* Status Banner with Smarter Quorum Language (#3) */}
         {effectiveStatus === 'voting' && (
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={`rounded-2xl p-4 mb-4 flex items-center gap-3 ${quorumReached ? 'bg-lob-confirmed/10 border border-lob-confirmed/30' : 'bg-secondary/50 border border-border/50'}`}>
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={`rounded-2xl p-4 mb-4 ${quorumReached ? 'bg-lob-confirmed/10 border border-lob-confirmed/30' : 'bg-secondary/50 border border-border/50'}`}>
             {quorumReached ? (
-              <><CheckCircle2 className="w-6 h-6 text-lob-confirmed" /><div><p className="font-bold text-foreground text-sm">It's on! 🎉</p><p className="text-xs text-muted-foreground">Ready to confirm</p></div></>
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="w-6 h-6 text-lob-confirmed" />
+                <div>
+                  <p className="font-bold text-foreground text-sm">🎉 It's on! Plan confirmed</p>
+                  <p className="text-xs text-muted-foreground">{inCount} people are in</p>
+                </div>
+              </div>
             ) : (
-              <><Users className="w-6 h-6 text-primary" /><div><p className="font-bold text-foreground text-sm">Waiting on {lob.quorum - inCount} more</p><p className="text-xs text-muted-foreground">{inCount} in · {maybeCount} maybe</p></div></>
+              <div>
+                <div className="flex items-center gap-3 mb-1">
+                  <Users className="w-6 h-6 text-primary" />
+                  <div className="flex-1">
+                    <p className="font-bold text-foreground text-sm">
+                      {lob.quorum - inCount} away from locking in
+                    </p>
+                    {nonResponderNames.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Still waiting on {nonResponderNames.join(', ')}
+                        {nonResponders.length > 3 && ` +${nonResponders.length - 3} more`}
+                      </p>
+                    )}
+                    {nonResponderNames.length === 0 && (
+                      <p className="text-xs text-muted-foreground">{inCount} in · {maybeCount} maybe</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Nudge button (#4) */}
+                {(isCreator || myResponse === 'in') && nonResponders.length > 0 && (
+                  <button
+                    onClick={handleNudge}
+                    disabled={!canNudge || nudging}
+                    className="mt-3 w-full py-2.5 rounded-xl bg-primary/10 border border-primary/30 text-primary font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/20 transition-colors"
+                  >
+                    <Hand className="w-4 h-4" />
+                    {!canNudge ? 'Nudged recently' : `👋 Nudge ${nonResponders.length} ${nonResponders.length === 1 ? 'person' : 'people'}`}
+                  </button>
+                )}
+              </div>
             )}
           </motion.div>
         )}
 
-        {/* Response Buttons */}
+        {/* Response Buttons (#2) */}
         {effectiveStatus === 'voting' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-4">
             <ResponseButtons current={myResponse} onChange={handleResponse} />
@@ -282,13 +406,37 @@ const LobDetail = () => {
           )}
         </AnimatePresence>
 
-        {/* Attendance Ring */}
+        {/* Attendance Ring + Names (#1) */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="gradient-card rounded-2xl p-5 border border-border/50 shadow-card mb-4">
-          <p className="text-xs font-semibold text-muted-foreground mb-4">ATTENDANCE</p>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs font-semibold text-muted-foreground">ATTENDANCE</p>
+            {/* Open Invite indicator (#5) */}
+            {lob.openInviteEnabled && (
+              <span className="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">＋1 allowed</span>
+            )}
+          </div>
           <QuorumRing current={inCount} target={lob.quorum} responses={lob.responses} groupMembers={[]} />
+
+          {/* Attendee names under avatars */}
+          {inList.length > 0 && (
+            <p className="text-xs text-muted-foreground mt-3">
+              <span className="font-semibold text-foreground">{inNames.join(', ')}</span>
+              <span> · {inCount} in</span>
+            </p>
+          )}
+
+          {/* Share link for open invite (#5) */}
+          {lob.openInviteEnabled && (
+            <button
+              onClick={handleShareLink}
+              className="mt-3 w-full py-2 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 cursor-pointer hover:bg-secondary/80 transition-colors"
+            >
+              <Link2 className="w-4 h-4" /> Share link
+            </button>
+          )}
         </motion.div>
 
-        {/* Deadline */}
+        {/* Deadline (#6) */}
         {lob.deadline && effectiveStatus === 'voting' && (
           <div className="mb-4">
             <DeadlineCountdown deadline={lob.deadline} isCreator={isCreator} quorumReached={quorumReached} isMaybe={myResponse === 'maybe'} />

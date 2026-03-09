@@ -7,9 +7,9 @@ interface ResponseButtonsProps {
 }
 
 const options: { value: ResponseType; label: string; activeClass: string }[] = [
-  { value: 'in', label: "I'm In", activeClass: 'bg-lob-in text-primary-foreground' },
-  { value: 'maybe', label: 'Maybe', activeClass: 'bg-lob-maybe text-primary-foreground' },
-  { value: 'out', label: 'Out', activeClass: 'bg-lob-out text-primary-foreground' },
+  { value: 'in', label: "I'm In", activeClass: 'bg-orange-500 text-white' },
+  { value: 'maybe', label: 'Maybe', activeClass: 'bg-amber-600 text-white' },
+  { value: 'out', label: 'Out', activeClass: 'bg-red-900 text-white' },
 ];
 
 export function ResponseButtons({ current, onChange }: ResponseButtonsProps) {

@@ -337,6 +337,7 @@ export type Database = {
           group_id: string | null
           group_name: string | null
           id: string
+          last_nudged_at: string | null
           location: string | null
           open_invite_enabled: boolean
           open_invite_max_guests: number
@@ -361,6 +362,7 @@ export type Database = {
           group_id?: string | null
           group_name?: string | null
           id?: string
+          last_nudged_at?: string | null
           location?: string | null
           open_invite_enabled?: boolean
           open_invite_max_guests?: number
@@ -385,6 +387,7 @@ export type Database = {
           group_id?: string | null
           group_name?: string | null
           id?: string
+          last_nudged_at?: string | null
           location?: string | null
           open_invite_enabled?: boolean
           open_invite_max_guests?: number

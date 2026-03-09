@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Timer, RotateCw, XCircle, CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -10,39 +10,54 @@ interface DeadlineCountdownProps {
   deadline: string;
   isCreator: boolean;
   quorumReached: boolean;
-  /** Whether the current user is in 'maybe' state — shows a targeted warning */
   isMaybe?: boolean;
 }
 
-function getTimeLeft(deadline: string) {
-  const diff = new Date(deadline).getTime() - Date.now();
-  if (diff <= 0) return null;
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-  return { hours, minutes, seconds, total: diff };
+function getHumanDeadline(deadline: string): { text: string; urgency: 'normal' | 'warning' | 'critical' | 'closed' } {
+  const target = new Date(deadline);
+  const now = new Date();
+  const diff = target.getTime() - now.getTime();
+
+  if (diff <= 0) return { text: 'Closed', urgency: 'closed' };
+
+  const mins = differenceInMinutes(target, now);
+  const hours = differenceInHours(target, now);
+  const days = differenceInDays(target, now);
+
+  if (mins < 15) return { text: 'Closing soon 🔴', urgency: 'critical' };
+  if (mins < 60) return { text: `${mins} minutes left`, urgency: 'warning' };
+
+  // Under 24h → "Tonight at 8pm" / "Today at 3pm"
+  if (hours < 24) {
+    const hour = target.getHours();
+    const timeLabel = format(target, 'h:mm a');
+    const isTonight = hour >= 18;
+    return { text: `${isTonight ? 'Tonight' : 'Today'} at ${timeLabel}`, urgency: hours < 2 ? 'warning' : 'normal' };
+  }
+
+  // 24-48h → "Tomorrow at 8pm"
+  if (hours < 48) {
+    return { text: `Tomorrow at ${format(target, 'h:mm a')}`, urgency: 'normal' };
+  }
+
+  // >48h → "5 days left"
+  return { text: `${days} days left`, urgency: 'normal' };
 }
 
 export const DeadlineCountdown = ({ deadline, isCreator, quorumReached, isMaybe }: DeadlineCountdownProps) => {
-  const [timeLeft, setTimeLeft] = useState(getTimeLeft(deadline));
-  const [expired, setExpired] = useState(!getTimeLeft(deadline));
+  const [deadlineInfo, setDeadlineInfo] = useState(getHumanDeadline(deadline));
   const [showExtend, setShowExtend] = useState(false);
   const [extendDate, setExtendDate] = useState<Date | undefined>(undefined);
   const [extendTime, setExtendTime] = useState('');
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const tl = getTimeLeft(deadline);
-      setTimeLeft(tl);
-      if (!tl) {
-        setExpired(true);
-        clearInterval(interval);
-      }
+      setDeadlineInfo(getHumanDeadline(deadline));
     }, 1000);
     return () => clearInterval(interval);
   }, [deadline]);
 
-  if (expired && !quorumReached) {
+  if (deadlineInfo.urgency === 'closed' && !quorumReached) {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -128,9 +143,11 @@ export const DeadlineCountdown = ({ deadline, isCreator, quorumReached, isMaybe 
     );
   }
 
-  if (!timeLeft) return null;
+  if (deadlineInfo.urgency === 'closed') return null;
 
-  const isUrgent = timeLeft.total < 2 * 60 * 60 * 1000; // < 2 hours
+  const isCritical = deadlineInfo.urgency === 'critical';
+  const isWarning = deadlineInfo.urgency === 'warning';
+  const isUrgent = isCritical || isWarning;
 
   return (
     <div className="space-y-2">
@@ -139,22 +156,28 @@ export const DeadlineCountdown = ({ deadline, isCreator, quorumReached, isMaybe 
         animate={{ opacity: 1, y: 0 }}
         className={cn(
           'rounded-2xl p-4 border flex items-center gap-3',
-          isUrgent
+          isCritical
+            ? 'bg-destructive/5 border-destructive/20'
+            : isWarning
             ? 'bg-destructive/5 border-destructive/20'
             : 'bg-secondary/50 border-border/50'
         )}
       >
-        <Timer className={cn('w-5 h-5', isUrgent ? 'text-destructive' : 'text-primary')} />
+        <Timer className={cn(
+          'w-5 h-5',
+          isCritical ? 'text-destructive' : isWarning ? 'text-orange-500' : 'text-primary'
+        )} />
         <div className="flex-1">
           <p className="text-xs font-medium text-muted-foreground">Deadline</p>
-          <p className={cn('font-bold text-sm tabular-nums', isUrgent ? 'text-destructive' : 'text-foreground')}>
-            {timeLeft.hours > 0 && `${timeLeft.hours}h `}
-            {timeLeft.minutes}m {timeLeft.seconds}s left
+          <p className={cn(
+            'font-bold text-sm',
+            isCritical ? 'text-destructive animate-pulse' : isWarning ? 'text-orange-500' : 'text-foreground'
+          )}>
+            {deadlineInfo.text}
           </p>
         </div>
       </motion.div>
 
-      {/* Maybe auto-expiry warning */}
       {isMaybe && isUrgent && (
         <motion.div
           initial={{ opacity: 0, y: 5 }}
