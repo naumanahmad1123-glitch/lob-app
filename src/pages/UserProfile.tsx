@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, HelpCircle, ChevronRight, Zap } from 'lucide-react';
+import { UserAvatar } from '@/components/UserAvatar';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { CATEGORY_CONFIG } from '@/data/types';
 import { ShowRateBadge } from '@/components/lob/ShowRateBadge';
