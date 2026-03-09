@@ -33,6 +33,8 @@ const TripDetail = () => {
   const [saving, setSaving] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [editData, setEditData] = useState({
     city: '',
     country: '',
