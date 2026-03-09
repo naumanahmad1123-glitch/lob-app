@@ -1,0 +1,3 @@
+ALTER TABLE lob_responses DROP CONSTRAINT lob_responses_user_id_fkey;
+ALTER TABLE lob_comments DROP CONSTRAINT lob_comments_user_id_fkey;
+ALTER TABLE lob_time_votes DROP CONSTRAINT lob_time_votes_user_id_fkey;
