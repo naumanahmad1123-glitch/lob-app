@@ -208,9 +208,7 @@ export function QuorumRing({ current, target, responses, groupMembers = [] }: Qu
                             }}
                             className="w-full flex items-center gap-3 py-1.5 active:scale-[0.98] transition-transform cursor-pointer"
                           >
-                            <span className={`w-9 h-9 rounded-full ${sec.bgClass} flex items-center justify-center text-lg`}>
-                              {getProfileAvatar(profileMap, userId)}
-                            </span>
+                            <UserAvatar photoUrl={getProfilePhotoUrl(profileMap, userId)} emoji={getProfileAvatar(profileMap, userId)} size="sm" className={sec.bgClass} />
                             <span className="text-sm font-medium text-foreground flex-1 text-left">
                               {userId === user?.id ? 'You' : getProfileName(profileMap, userId)}
                             </span>
