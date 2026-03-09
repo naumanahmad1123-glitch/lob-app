@@ -124,7 +124,7 @@ const Profile = () => {
                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Avatar</label>
                     <div className="grid grid-cols-8 gap-2">
                       {AVATAR_OPTIONS.map(emoji => (
-                        <button key={emoji} onClick={() => setEditAvatar(emoji)} className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${editAvatar === emoji ? 'bg-primary/15 border-2 border-primary scale-110' : 'bg-secondary border border-border hover:bg-muted'}`}>
+                        <button key={emoji} onClick={() => setEditAvatar(emoji)} className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all cursor-pointer ${editAvatar === emoji ? 'bg-primary/15 border-2 border-primary scale-110' : 'bg-secondary border border-border hover:bg-muted'}`}>
                           {emoji}
                         </button>
                       ))}
