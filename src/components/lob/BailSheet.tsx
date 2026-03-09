@@ -29,8 +29,8 @@ export function BailSheet({ open, onClose, onConfirm, pastDeadline, userName }: 
         transition={{ type: 'spring', damping: 28, stiffness: 300 }}
         className="fixed bottom-0 left-0 right-0 z-[90] max-w-lg mx-auto"
       >
-        <div className="bg-card rounded-t-3xl border border-border/50 shadow-card px-5 pb-8 pt-3">
-          <div className="flex justify-center mb-4">
+        <div className="bg-card rounded-t-3xl border border-border/50 shadow-card px-5 pt-3 flex flex-col">
+          <div className="flex justify-center mb-4 shrink-0">
             <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
           </div>
 
@@ -58,7 +58,7 @@ export function BailSheet({ open, onClose, onConfirm, pastDeadline, userName }: 
             }
           </p>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 shrink-0" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
             <button
               onClick={onClose}
               className="flex-1 py-3 rounded-xl bg-lob-in text-primary-foreground font-semibold text-sm"
