@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useComposer } from '@/hooks/useComposer';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Pencil, Sparkles, Globe, Lock, X, Trash2, CheckCircle2, Clock } from 'lucide-react';
+import { ArrowLeft, Pencil, Sparkles, Globe, Lock, X, Trash2, CheckCircle2, Clock, MoreVertical, Link, XCircle } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSupabaseTrips } from '@/hooks/useSupabaseTrips';
 import { useTripMembers, useTripSuggestions, useTripComments } from '@/hooks/useTripDetail';
