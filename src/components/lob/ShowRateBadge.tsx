@@ -16,8 +16,7 @@ export function ShowRateBadge({ total, showed, compact = false }: ShowRateBadgeP
   const label = useMemo(() => {
     if (isNew) return 'New';
     return 'Show Rate';
-    return `Shows up ${ratio} times`;
-  }, [total, showed, isNew]);
+  }, [isNew]);
 
   const shortLabel = useMemo(() => {
     if (isNew) return '🆕';
