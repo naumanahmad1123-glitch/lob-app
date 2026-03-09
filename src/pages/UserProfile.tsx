@@ -179,7 +179,7 @@ const UserProfile = () => {
                 <button
                   key={mc.id}
                   onClick={() => navigate(`/user/${mc.id}`)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-secondary border border-border/50 active:scale-95 transition-transform"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-secondary border border-border/50 active:scale-95 transition-transform cursor-pointer"
                 >
                   <span className="text-base">{mc.avatar}</span>
                   <span className="text-xs font-medium text-foreground">{mc.name}</span>
