@@ -141,7 +141,7 @@ export function GroupTripComposer({ open, onClose, onCreated }: GroupTripCompose
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
             className="fixed bottom-0 left-0 right-0 z-[70] max-w-lg mx-auto"
           >
-            <div className="bg-card rounded-t-3xl border border-border/50 shadow-card px-5 pb-8 pt-4 max-h-[85vh] overflow-y-auto">
+            <div className="bg-card rounded-t-3xl border border-border/50 shadow-card pt-4 max-h-[85vh] flex flex-col">
               <div className="flex justify-center mb-3">
                 <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
               </div>
