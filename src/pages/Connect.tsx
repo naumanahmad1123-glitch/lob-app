@@ -253,18 +253,20 @@ const Connect = () => {
                   </Collapsible>
                 )}
 
-                {/* Requests */}
-                <section className="mb-8">
-                  <div className="flex items-center gap-2 mb-3">
+                <Collapsible defaultOpen className="mb-8">
+                  <CollapsibleTrigger className="flex items-center gap-2 mb-3 w-full cursor-pointer group">
                     <UserPlus className="w-4 h-4 text-muted-foreground" />
                     <h2 className="text-base font-bold text-foreground">Requests</h2>
-                  </div>
+                    <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto transition-transform group-data-[state=closed]:-rotate-90" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
                   <div className="gradient-card rounded-2xl border border-border/50 p-6 text-center">
                     <UserPlus className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">No pending requests</p>
                     <p className="text-xs text-muted-foreground/60 mt-1">Incoming requests will appear here</p>
                   </div>
-                </section>
+                  </CollapsibleContent>
+                </Collapsible>
               </motion.div>
             ) : (
               <motion.div
