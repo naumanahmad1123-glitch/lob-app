@@ -399,6 +399,45 @@ const TripDetail = () => {
           )}
         </AnimatePresence>
 
+        {/* Cancel Confirmation */}
+        <AnimatePresence>
+          {showCancelConfirm && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowCancelConfirm(false)}
+                className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="fixed inset-x-4 top-1/3 z-50 max-w-sm mx-auto bg-card rounded-2xl border border-border shadow-card p-6"
+              >
+                <h3 className="text-lg font-bold text-foreground mb-2">Cancel this trip?</h3>
+                <p className="text-sm text-muted-foreground mb-5">Everyone will be notified that this trip has been cancelled.</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowCancelConfirm(false)}
+                    className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium cursor-pointer"
+                  >
+                    Keep
+                  </button>
+                  <button
+                    onClick={handleCancelTrip}
+                    disabled={saving}
+                    className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-bold cursor-pointer disabled:opacity-50"
+                  >
+                    {saving ? 'Cancelling...' : 'Cancel Trip'}
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
         {/* Invite Picker */}
         <TripInvitePicker
           open={showInvite}
