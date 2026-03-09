@@ -85,7 +85,7 @@ const UserProfile = () => {
           <div className="flex-1" />
           <button
             onClick={() => openComposer({ prefillUserIds: user ? [user.id] : [] })}
-            className="px-4 py-2 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold flex items-center gap-1.5"
+            className="px-4 py-2 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold flex items-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
           >
             <Zap className="w-4 h-4" /> Lob them
           </button>
