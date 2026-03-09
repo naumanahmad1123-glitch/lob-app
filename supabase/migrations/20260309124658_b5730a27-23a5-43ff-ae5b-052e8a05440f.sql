@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN avatar_photo_url text DEFAULT null;
