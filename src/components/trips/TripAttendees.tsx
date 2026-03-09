@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
-import { Users, UserPlus } from 'lucide-react';
+import { Users, UserPlus, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { TripMember } from '@/hooks/useTripDetail';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface Props {
   members: TripMember[];
