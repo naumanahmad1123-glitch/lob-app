@@ -55,6 +55,7 @@ export function useSupabaseLobs() {
     queryKey: ['supabase-lobs'],
     enabled: !!user,
     queryFn: async () => {
+      // Fetch all lobs the user can see
       const { data, error } = await supabase
         .from('lobs')
         .select(`
@@ -65,7 +66,32 @@ export function useSupabaseLobs() {
         `)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data || []).map(mapDbLob);
+
+      // Fetch lob IDs where current user is a recipient
+      const { data: recipientRows } = await supabase
+        .from('lob_recipients')
+        .select('lob_id')
+        .eq('user_id', user!.id);
+      const recipientLobIds = new Set((recipientRows || []).map(r => r.lob_id));
+
+      // Fetch user's group IDs
+      const { data: memberRows } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .eq('user_id', user!.id);
+      const myGroupIds = new Set((memberRows || []).map(m => m.group_id));
+
+      const allLobs = (data || []).map(mapDbLob);
+
+      // Filter: show lobs where user is creator, in the group, or is a recipient
+      return allLobs.filter(lob => {
+        if (lob.createdBy === user!.id) return true;
+        if (lob.groupId && myGroupIds.has(lob.groupId)) return true;
+        if (recipientLobIds.has(lob.id)) return true;
+        // Also show if user has already responded
+        if (lob.responses.some(r => r.userId === user!.id)) return true;
+        return false;
+      });
     },
     staleTime: 10_000,
   });
@@ -79,6 +105,9 @@ export function useSupabaseLobs() {
         query.refetch();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'lob_responses' }, () => {
+        query.refetch();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lob_recipients' }, () => {
         query.refetch();
       })
       .subscribe();
@@ -109,5 +138,22 @@ export function useSupabaseLob(id: string | undefined) {
       return mapDbLob(data);
     },
     staleTime: 5_000,
+  });
+}
+
+/** Fetch recipient user IDs for a lob */
+export function useLobRecipients(lobId: string | undefined) {
+  return useQuery({
+    queryKey: ['lob-recipients', lobId],
+    enabled: !!lobId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('lob_recipients')
+        .select('user_id')
+        .eq('lob_id', lobId!);
+      if (error) throw error;
+      return (data || []).map(r => r.user_id);
+    },
+    staleTime: 30_000,
   });
 }

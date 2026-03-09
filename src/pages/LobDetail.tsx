@@ -11,7 +11,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { CATEGORY_CONFIG, ResponseType, LobComment, RECURRENCE_OPTIONS, TimeOption } from '@/data/types';
 import { TripPlanningSection } from '@/components/trips/TripPlanningSection';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSupabaseLob } from '@/hooks/useSupabaseLobs';
+import { useSupabaseLob, useLobRecipients } from '@/hooks/useSupabaseLobs';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { ResponseButtons } from '@/components/lob/ResponseButtons';
