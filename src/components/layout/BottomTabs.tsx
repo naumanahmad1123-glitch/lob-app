@@ -1,7 +1,7 @@
-import { Home, Users, Plane, User } from 'lucide-react';
+import { Home, Users, Plane, User, ChevronUp } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
-import { useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useCallback, useRef, useState, useEffect } from 'react';
 
 const tabs = [
   { path: '/', matchPaths: ['/'], icon: Home, label: 'Home' },
@@ -10,6 +10,8 @@ const tabs = [
   { path: '/profile', matchPaths: ['/profile'], icon: User, label: 'Profile' },
 ];
 
+const HINT_SEEN_KEY = 'lob-swipe-hint-seen';
+
 interface BottomTabsProps {
   onLobTap: () => void;
 }
@@ -17,18 +19,34 @@ interface BottomTabsProps {
 export function BottomTabs({ onLobTap }: BottomTabsProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const dragY = useMotionValue(0);
-  const isDraggingRef = useRef(false);
+  const touchStartY = useRef<number | null>(null);
+  const [pressed, setPressed] = useState(false);
+  const [showHint, setShowHint] = useState(false);
 
-  const ballScale = useTransform(dragY, [0, -80], [1, 1.25]);
-  const glowOpacity = useTransform(dragY, [0, -80], [0.3, 0.8]);
+  // Show swipe hint once after 2s on first visit
+  useEffect(() => {
+    if (localStorage.getItem(HINT_SEEN_KEY)) return;
+    const t = setTimeout(() => {
+      setShowHint(true);
+      localStorage.setItem(HINT_SEEN_KEY, '1');
+      setTimeout(() => setShowHint(false), 3000);
+    }, 2000);
+    return () => clearTimeout(t);
+  }, []);
 
-  const handleDragEnd = useCallback((_: any, info: PanInfo) => {
-    if (info.offset.y < -30 || info.velocity.y < -150) {
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    setPressed(true);
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    setPressed(false);
+    if (touchStartY.current === null) return;
+    const deltaY = touchStartY.current - e.changedTouches[0].clientY;
+    touchStartY.current = null;
+    if (deltaY > 20) {
       onLobTap();
     }
-    // Reset after a tick so click doesn't fire
-    requestAnimationFrame(() => { isDraggingRef.current = false; });
   }, [onLobTap]);
 
   const isTabActive = (tab: typeof tabs[0]) =>
@@ -59,32 +77,42 @@ export function BottomTabs({ onLobTap }: BottomTabsProps) {
           );
         })}
 
-        {/* Center Lob button - draggable upward */}
-        <div className="relative -mt-6 z-50 pointer-events-auto">
-          <motion.div
-            style={{ scale: ballScale }}
-            className="relative"
-          >
+        {/* Center Lob button with touch swipe-up */}
+        <div className="relative -mt-6 z-50 pointer-events-auto" style={{ touchAction: 'none' }}>
+          {/* Swipe hint — shown once */}
+          <AnimatePresence>
+            {showHint && (
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                className="absolute -top-8 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none"
+              >
+                <ChevronUp className="w-4 h-4 text-primary animate-bounce" />
+                <span className="text-[8px] font-bold text-primary whitespace-nowrap">Swipe up</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="relative">
             {/* Glow */}
             <motion.div
-              style={{ opacity: glowOpacity }}
+              animate={{ opacity: pressed ? 0.8 : 0.3 }}
               className="absolute inset-0 rounded-full bg-primary blur-xl scale-150 pointer-events-none"
             />
-            <motion.div
-              drag="y"
-              dragConstraints={{ top: -100, bottom: 0 }}
-              dragElastic={0.15}
-              dragMomentum={false}
-              onDragStart={() => { isDraggingRef.current = true; }}
-              onDragEnd={handleDragEnd}
-              style={{ y: dragY }}
+            <motion.button
+              onClick={onLobTap}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+              animate={{ scale: pressed ? 1.15 : 1 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 15 }}
               whileTap={{ scale: 0.9, rotate: -8 }}
-              onClick={() => !isDraggingRef.current && onLobTap()}
-              className="w-14 h-14 rounded-full gradient-primary flex items-center justify-center shadow-glow text-2xl cursor-grab active:cursor-grabbing relative z-10"
+              className="w-14 h-14 rounded-full gradient-primary flex items-center justify-center shadow-glow text-2xl relative z-10 cursor-pointer"
+              style={{ touchAction: 'none' }}
             >
               ✨
-            </motion.div>
-          </motion.div>
+            </motion.button>
+          </div>
           <span className="text-[9px] font-bold text-primary mt-0.5 block text-center">Lob</span>
         </div>
 
