@@ -188,7 +188,7 @@ const UserProfile = () => {
               {!showAllMutuals && mutualConnections.length > 5 && (
                 <button
                   onClick={() => setShowAllMutuals(true)}
-                  className="flex items-center px-3 py-1.5 rounded-full bg-secondary/60 border border-border/50 text-xs font-medium text-muted-foreground active:scale-95 transition-transform"
+                  className="flex items-center px-3 py-1.5 rounded-full bg-secondary/60 border border-border/50 text-xs font-medium text-muted-foreground active:scale-95 transition-transform cursor-pointer"
                 >
                   +{mutualConnections.length - 5} more
                 </button>
