@@ -43,7 +43,7 @@ const GroupDetail = () => {
           </div>
           <button
             onClick={() => openComposer()}
-            className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center"
+            className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
           >
             <Plus className="w-5 h-5 text-primary-foreground" />
           </button>
