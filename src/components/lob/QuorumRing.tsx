@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LobResponse, User } from '@/data/types';
 import { ShowRateBadge } from '@/components/lob/ShowRateBadge';
-import { useProfileMap, getProfileName, getProfileAvatar } from '@/hooks/useProfileMap';
+import { useProfileMap, getProfileName, getProfileAvatar, getProfilePhotoUrl } from '@/hooks/useProfileMap';
 import { useAuth } from '@/contexts/AuthContext';
+import { UserAvatar } from '@/components/UserAvatar';
 
 interface QuorumRingProps {
   current: number;
