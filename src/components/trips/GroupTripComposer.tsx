@@ -379,6 +379,7 @@ export function GroupTripComposer({ open, onClose, onCreated }: GroupTripCompose
                   </button>
                 </div>
               )}
+            </div>
           </motion.div>
         </>
       )}
