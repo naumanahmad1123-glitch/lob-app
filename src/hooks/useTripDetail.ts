@@ -34,6 +34,7 @@ export interface TripComment {
   created_at: string;
   userName: string;
   userAvatar: string;
+  userPhotoUrl: string | null;
 }
 
 export function useTripMembers(tripId: string | undefined) {
