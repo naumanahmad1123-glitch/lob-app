@@ -45,6 +45,7 @@ function mapDbLob(row: any): Lob {
     openInviteUsedGuests: row.open_invite_used_guests,
     fillASeatActive: row.fill_a_seat_active,
     fillASeatSpots: row.fill_a_seat_spots,
+    lastNudgedAt: row.last_nudged_at || undefined,
   };
 }
 
