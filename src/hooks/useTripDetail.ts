@@ -22,6 +22,7 @@ export interface TripSuggestion {
   created_at: string;
   userName: string;
   userAvatar: string;
+  userPhotoUrl: string | null;
   votes: string[]; // user_ids who voted
 }
 
