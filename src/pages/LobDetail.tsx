@@ -225,7 +225,7 @@ const LobDetail = () => {
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
           <div className="flex-1" />
-          <StatusPill status={effectiveStatus} />
+          <StatusPill status={effectiveStatus} deadlinePassed={deadlinePassed} quorumReached={quorumReached} />
           <button
             onClick={() => {
               if (navigator.share) navigator.share({ title: lob.title, url: window.location.href });
