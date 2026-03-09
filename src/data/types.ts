@@ -86,6 +86,7 @@ export interface Lob {
   tripVibes?: TripVibe[];
   destinationOptions?: { id: string; name: string; votes: string[] }[];
   dateRangeOptions?: { id: string; startDate: string; endDate: string; votes: string[] }[];
+  lastNudgedAt?: string;
 }
 
 export interface GuestInvite {
