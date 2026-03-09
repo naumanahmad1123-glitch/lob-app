@@ -168,8 +168,8 @@ const LobDetail = () => {
                 <h3 className="font-bold text-foreground text-lg mb-2">Cancel this plan?</h3>
                 <p className="text-sm text-muted-foreground mb-5">Everyone will be notified.</p>
                 <div className="flex gap-3">
-                  <button onClick={() => setShowCancelDialog(false)} className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground font-semibold text-sm">Keep it</button>
-                  <button onClick={handleCancel} className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground font-semibold text-sm">Cancel Plan</button>
+                  <button onClick={() => setShowCancelDialog(false)} className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground font-semibold text-sm cursor-pointer">Keep it</button>
+                  <button onClick={handleCancel} className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground font-semibold text-sm cursor-pointer">Cancel Plan</button>
                 </div>
               </motion.div>
             </>
