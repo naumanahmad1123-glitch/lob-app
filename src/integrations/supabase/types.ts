@@ -461,6 +461,137 @@ export type Database = {
         }
         Relationships: []
       }
+      trip_comments: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_comments_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_members: {
+        Row: {
+          created_at: string
+          id: string
+          status: string
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status?: string
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status?: string
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_members_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_suggestions: {
+        Row: {
+          content: string
+          created_at: string
+          extra: Json | null
+          id: string
+          trip_id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          extra?: Json | null
+          id?: string
+          trip_id: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          extra?: Json | null
+          id?: string
+          trip_id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_suggestions_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_votes: {
+        Row: {
+          created_at: string
+          id: string
+          suggestion_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          suggestion_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          suggestion_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_votes_suggestion_id_fkey"
+            columns: ["suggestion_id"]
+            isOneToOne: false
+            referencedRelation: "trip_suggestions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trips: {
         Row: {
           city: string
@@ -472,6 +603,7 @@ export type Database = {
           notify_user_ids: string[]
           show_on_profile: boolean
           start_date: string
+          status: string
           user_id: string
         }
         Insert: {
@@ -484,6 +616,7 @@ export type Database = {
           notify_user_ids?: string[]
           show_on_profile?: boolean
           start_date: string
+          status?: string
           user_id: string
         }
         Update: {
@@ -496,6 +629,7 @@ export type Database = {
           notify_user_ids?: string[]
           show_on_profile?: boolean
           start_date?: string
+          status?: string
           user_id?: string
         }
         Relationships: []
