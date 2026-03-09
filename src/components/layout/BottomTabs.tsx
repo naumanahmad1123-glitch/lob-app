@@ -5,7 +5,7 @@ import { useCallback, useState } from 'react';
 
 const tabs = [
   { path: '/', matchPaths: ['/'], icon: Home, label: 'Home' },
-  { path: '/connect', matchPaths: ['/connect', '/groups'], icon: Link2, label: 'Connect' },
+  { path: '/connect', matchPaths: ['/connect', '/groups'], icon: Users, label: 'Connect' },
   { path: '/trips', matchPaths: ['/trips'], icon: Plane, label: 'Trips' },
   { path: '/profile', matchPaths: ['/profile'], icon: User, label: 'Profile' },
 ];
