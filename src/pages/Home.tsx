@@ -176,9 +176,9 @@ const Home = () => {
                 transition={{ duration: 0.2 }}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <button onClick={prevMonth} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground">‹</button>
+                  <button onClick={prevMonth} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground cursor-pointer active:scale-95 transition-transform">‹</button>
                   <h2 className="text-base font-bold text-foreground">{monthLabel}</h2>
-                  <button onClick={nextMonth} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground">›</button>
+                  <button onClick={nextMonth} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground cursor-pointer active:scale-95 transition-transform">›</button>
                 </div>
                 <div className="grid grid-cols-7 mb-2">
                   {DAYS_OF_WEEK.map(d => (
