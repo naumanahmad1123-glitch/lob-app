@@ -143,7 +143,7 @@ const Profile = () => {
                       })}
                     </div>
                   </div>
-                  <button onClick={handleSaveProfile} disabled={updateProfile.isPending} className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-50">
+                  <button onClick={handleSaveProfile} disabled={updateProfile.isPending} className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-50 cursor-pointer">
                     {updateProfile.isPending ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
