@@ -12,6 +12,8 @@ interface Props {
   isOwner: boolean;
   status: string;
   suggestions: TripSuggestion[];
+  hasDestination: boolean;
+  hasDates: boolean;
 }
 
 function SuggestionCard({
