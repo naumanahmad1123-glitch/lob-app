@@ -121,7 +121,7 @@ export default function CreateGroup() {
                 <Input placeholder="e.g. Hoop Squad" value={groupName} onChange={e => setGroupName(e.target.value)} className="h-12 text-base bg-secondary border-border/50" autoFocus />
               </div>
 
-              <button onClick={() => { setCustomEmojiMode(false); setSelectedEmoji(autoSuggestEmoji(groupName)); }} className="flex items-center gap-2 text-sm font-medium text-primary active:scale-95 transition-transform">
+              <button onClick={() => { setCustomEmojiMode(false); setSelectedEmoji(autoSuggestEmoji(groupName)); }} className="flex items-center gap-2 text-sm font-medium text-primary active:scale-95 transition-transform cursor-pointer">
                 <Sparkles className="w-4 h-4" /> Auto-suggest emoji
               </button>
 
