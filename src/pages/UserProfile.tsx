@@ -136,9 +136,7 @@ const UserProfile = () => {
           animate={{ opacity: 1, y: 0 }}
           className="gradient-card rounded-2xl p-6 border border-border/50 shadow-card mb-6 text-center"
         >
-          <div className="w-20 h-20 rounded-full bg-secondary mx-auto flex items-center justify-center text-5xl mb-3">
-            {profile.avatar}
-          </div>
+          <UserAvatar photoUrl={profile.avatar_photo_url} emoji={profile.avatar} size="xl" className="mx-auto mb-3" />
           <h2 className="text-xl font-bold text-foreground">{profile.name || 'Unknown'}</h2>
           {profile.city && <p className="text-sm text-muted-foreground mt-1">{profile.city}</p>}
 
