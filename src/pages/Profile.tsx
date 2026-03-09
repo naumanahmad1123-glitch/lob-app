@@ -114,7 +114,7 @@ const Profile = () => {
                   <div className="flex justify-center mb-3"><div className="w-10 h-1 rounded-full bg-muted-foreground/30" /></div>
                   <div className="flex items-center justify-between mb-5">
                     <h2 className="text-lg font-extrabold text-foreground">✏️ Edit Profile</h2>
-                    <button onClick={() => setEditingProfile(false)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center"><X className="w-4 h-4 text-muted-foreground" /></button>
+                    <button onClick={() => setEditingProfile(false)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center cursor-pointer"><X className="w-4 h-4 text-muted-foreground" /></button>
                   </div>
                   <div className="mb-4">
                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Name</label>
