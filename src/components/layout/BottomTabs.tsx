@@ -1,7 +1,7 @@
 import { Home, Users, Plane, User } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef } from 'react';
 
 const tabs = [
   { path: '/', matchPaths: ['/'], icon: Home, label: 'Home' },
@@ -18,16 +18,17 @@ export function BottomTabs({ onLobTap }: BottomTabsProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const dragY = useMotionValue(0);
-  const [isDragging, setIsDragging] = useState(false);
+  const isDraggingRef = useRef(false);
 
   const ballScale = useTransform(dragY, [0, -80], [1, 1.25]);
   const glowOpacity = useTransform(dragY, [0, -80], [0.3, 0.8]);
 
   const handleDragEnd = useCallback((_: any, info: PanInfo) => {
-    setIsDragging(false);
-    if (info.offset.y < -40 || info.velocity.y < -200) {
+    if (info.offset.y < -30 || info.velocity.y < -150) {
       onLobTap();
     }
+    // Reset after a tick so click doesn't fire
+    requestAnimationFrame(() => { isDraggingRef.current = false; });
   }, [onLobTap]);
 
   const isTabActive = (tab: typeof tabs[0]) =>
@@ -59,7 +60,7 @@ export function BottomTabs({ onLobTap }: BottomTabsProps) {
         })}
 
         {/* Center Lob button - draggable upward */}
-        <div className="relative -mt-6">
+        <div className="relative -mt-6 z-50 pointer-events-auto">
           <motion.div
             style={{ scale: ballScale }}
             className="relative"
@@ -74,11 +75,11 @@ export function BottomTabs({ onLobTap }: BottomTabsProps) {
               dragConstraints={{ top: -100, bottom: 0 }}
               dragElastic={0.15}
               dragMomentum={false}
-              onDragStart={() => setIsDragging(true)}
+              onDragStart={() => { isDraggingRef.current = true; }}
               onDragEnd={handleDragEnd}
               style={{ y: dragY }}
               whileTap={{ scale: 0.9, rotate: -8 }}
-              onClick={() => !isDragging && onLobTap()}
+              onClick={() => !isDraggingRef.current && onLobTap()}
               className="w-14 h-14 rounded-full gradient-primary flex items-center justify-center shadow-glow text-2xl cursor-grab active:cursor-grabbing relative z-10"
             >
               ✨
