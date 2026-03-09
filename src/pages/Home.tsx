@@ -88,7 +88,7 @@ const Home = () => {
           </div>
           <button
             onClick={() => navigate('/notifications')}
-            className="relative w-10 h-10 rounded-full bg-secondary flex items-center justify-center"
+            className="relative w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
           >
             <Bell className="w-5 h-5 text-foreground" />
             {unreadCount > 0 && (
