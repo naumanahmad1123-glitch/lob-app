@@ -373,7 +373,7 @@ const LobDetail = () => {
                   <button
                     onClick={handleNudge}
                     disabled={!canNudge || nudging}
-                    className="mt-3 w-full py-2.5 rounded-xl bg-primary/10 border border-primary/30 text-primary font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/20 transition-colors"
+                    className="mt-3 w-full py-2.5 rounded-xl bg-orange-500 text-white font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-orange-600 transition-colors"
                   >
                     <Hand className="w-4 h-4" />
                     {!canNudge ? 'Nudged recently' : `👋 Nudge ${nonResponders.length} ${nonResponders.length === 1 ? 'person' : 'people'}`}
