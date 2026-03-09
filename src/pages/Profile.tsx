@@ -208,7 +208,7 @@ const Profile = () => {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               onClick={() => item.label === 'Notifications' ? navigate('/notifications') : (() => { setShowComingSoon(item.label); setTimeout(() => setShowComingSoon(null), 2000); })()}
-              className="w-full flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-secondary transition-all"
+              className="w-full flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-secondary transition-all cursor-pointer"
             >
               <item.icon className="w-5 h-5 text-primary" />
               <div className="flex-1 text-left">
