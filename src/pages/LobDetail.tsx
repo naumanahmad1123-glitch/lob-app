@@ -143,7 +143,7 @@ const LobDetail = () => {
           </button>
           {isCreator && (
             <div className="relative">
-              <button onClick={() => setShowMenu(!showMenu)} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+              <button onClick={() => setShowMenu(!showMenu)} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
                 <MoreVertical className="w-5 h-5 text-foreground" />
               </button>
               <AnimatePresence>
