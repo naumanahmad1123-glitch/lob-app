@@ -1,14 +1,13 @@
-import { Home, Users, Link2, Plane, User } from 'lucide-react';
+import { Home, Link2, Plane, User } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { useCallback, useState } from 'react';
 
 const tabs = [
-  { path: '/', icon: Home, label: 'Home' },
-  { path: '/groups', icon: Users, label: 'Groups' },
-  { path: '/connect', icon: Link2, label: 'Connect' },
-  { path: '/trips', icon: Plane, label: 'Trips' },
-  { path: '/profile', icon: User, label: 'Profile' },
+  { path: '/', matchPaths: ['/'], icon: Home, label: 'Home' },
+  { path: '/connect', matchPaths: ['/connect', '/groups'], icon: Link2, label: 'Connect' },
+  { path: '/trips', matchPaths: ['/trips'], icon: Plane, label: 'Trips' },
+  { path: '/profile', matchPaths: ['/profile'], icon: User, label: 'Profile' },
 ];
 
 interface BottomTabsProps {
@@ -31,11 +30,14 @@ export function BottomTabs({ onLobTap }: BottomTabsProps) {
     }
   }, [onLobTap]);
 
+  const isTabActive = (tab: typeof tabs[0]) =>
+    tab.matchPaths.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-xl border-t border-border">
       <div className="flex items-center justify-around max-w-lg mx-auto h-16 px-2">
         {tabs.slice(0, 2).map((tab) => {
-          const isActive = location.pathname === tab.path;
+          const isActive = isTabActive(tab);
           const Icon = tab.icon;
           return (
             <button
@@ -86,9 +88,8 @@ export function BottomTabs({ onLobTap }: BottomTabsProps) {
         </div>
 
         {tabs.slice(2).map((tab) => {
-          const isActive = location.pathname === tab.path;
+          const isActive = isTabActive(tab);
           const Icon = tab.icon;
-          
           return (
             <button
               key={tab.path}
