@@ -181,11 +181,32 @@ const LobDetail = () => {
 
   const handleCancel = async () => {
     await supabase.from('lobs').update({ status: 'cancelled' }).eq('id', lob.id);
+
+    // Notify all responders about cancellation
+    const creatorDisplayName = getProfileName(profileMap, lob.createdBy);
+    const respondentIds = lob.responses
+      .map(r => r.userId)
+      .filter(uid => uid !== user?.id);
+
+    if (respondentIds.length > 0) {
+      await supabase.from('notifications').insert(
+        respondentIds.map(uid => ({
+          user_id: uid,
+          lob_id: lob.id,
+          type: 'cancelled',
+          title: 'Lob cancelled',
+          body: `"${lob.title}" has been cancelled by ${creatorDisplayName}`,
+          emoji: '❌',
+        }))
+      );
+    }
+
     setShowCancelDialog(false);
     setShowMenu(false);
     queryClient.invalidateQueries({ queryKey: ['supabase-lob', id] });
     queryClient.invalidateQueries({ queryKey: ['supabase-lobs'] });
-    toast.success('Plan cancelled.');
+    toast.success('Lob cancelled');
+    navigate('/');
   };
 
   const handleBail = async () => {
