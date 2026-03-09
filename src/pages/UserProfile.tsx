@@ -79,7 +79,7 @@ const UserProfile = () => {
       <div className="max-w-lg mx-auto px-4 pb-8">
         {/* Header */}
         <div className="flex items-center gap-3 pt-12 pb-4">
-          <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
+          <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
             <ArrowLeft className="w-4 h-4 text-foreground" />
           </button>
           <div className="flex-1" />
