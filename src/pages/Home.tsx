@@ -102,7 +102,7 @@ const Home = () => {
         <div className="flex items-center gap-1 bg-secondary rounded-xl p-1 mb-6">
           <button
             onClick={() => setView('feed')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
               view === 'feed' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
             }`}
           >
