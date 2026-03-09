@@ -154,7 +154,7 @@ const UserProfile = () => {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   onClick={() => navigate(`/groups/${g.id}`)}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50 active:scale-[0.98] transition-transform"
+                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50 active:scale-[0.98] transition-transform cursor-pointer"
                 >
                   <span className="text-xl">{g.emoji}</span>
                   <div className="flex-1 text-left">
