@@ -136,7 +136,7 @@ const Profile = () => {
                       {INTEREST_OPTIONS.map(opt => {
                         const active = editInterests.includes(opt.key);
                         return (
-                          <button key={opt.key} onClick={() => toggleInterest(opt.key)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${active ? 'bg-primary/15 text-primary border border-primary/30' : 'bg-secondary text-muted-foreground border border-border'}`}>
+                          <button key={opt.key} onClick={() => toggleInterest(opt.key)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${active ? 'bg-primary/15 text-primary border border-primary/30' : 'bg-secondary text-muted-foreground border border-border'}`}>
                             {opt.label}
                           </button>
                         );
