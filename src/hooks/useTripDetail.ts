@@ -9,6 +9,7 @@ export interface TripMember {
   status: string;
   name: string;
   avatar: string;
+  avatar_photo_url: string | null;
 }
 
 export interface TripSuggestion {
