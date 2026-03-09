@@ -32,9 +32,13 @@ function AvatarWithTooltip({ userId, bgClass, profileMap }: { userId: string; bg
           e.stopPropagation();
           navigate(userId === user?.id ? '/profile' : `/user/${userId}`);
         }}
-        className={`w-7 h-7 rounded-full ${bgClass} border-2 border-card flex items-center justify-center text-sm transition-transform active:scale-90 cursor-pointer`}
+        className={`w-7 h-7 rounded-full ${bgClass} border-2 border-card flex items-center justify-center text-sm transition-transform active:scale-90 cursor-pointer overflow-hidden`}
       >
-        {getProfileAvatar(profileMap, userId)}
+        {getProfilePhotoUrl(profileMap, userId) ? (
+          <img src={getProfilePhotoUrl(profileMap, userId)!} alt="" className="w-full h-full object-cover" />
+        ) : (
+          getProfileAvatar(profileMap, userId)
+        )}
       </button>
     </div>
   );
