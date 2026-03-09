@@ -208,8 +208,8 @@ const Profile = () => {
                   </div>
 
                   {/* Pinned save button */}
-                  <div className="px-5 pt-3 border-t border-border/50" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
-                    <button onClick={handleSaveProfile} disabled={updateProfile.isPending} className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-50 cursor-pointer mb-4">
+                  <div className="px-5 pt-3 pb-24 border-t border-border/50" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
+                    <button onClick={handleSaveProfile} disabled={updateProfile.isPending} className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-50 cursor-pointer">
                       {updateProfile.isPending ? 'Saving...' : 'Save Changes'}
                     </button>
                   </div>
