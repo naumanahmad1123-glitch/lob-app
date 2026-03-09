@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Home from "./pages/Home";
 import Groups from "./pages/Groups";
+import Connect from "./pages/Connect";
 import GroupDetail from "./pages/GroupDetail";
 import CreateLob from "./pages/CreateLob";
 import LobDetail from "./pages/LobDetail";
@@ -40,6 +41,7 @@ const AppRoutes = () => (
     <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
     <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
     <Route path="/groups" element={<ProtectedRoute><Groups /></ProtectedRoute>} />
+    <Route path="/connect" element={<ProtectedRoute><Connect /></ProtectedRoute>} />
     <Route path="/groups/:id" element={<ProtectedRoute><GroupDetail /></ProtectedRoute>} />
     <Route path="/create" element={<ProtectedRoute><CreateLob /></ProtectedRoute>} />
     <Route path="/create-group" element={<ProtectedRoute><CreateGroup /></ProtectedRoute>} />

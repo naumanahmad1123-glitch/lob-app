@@ -1,4 +1,4 @@
-import { Home, Users, Plane, User } from 'lucide-react';
+import { Home, Users, Link2, Plane, User } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { useCallback, useState } from 'react';
@@ -6,6 +6,7 @@ import { useCallback, useState } from 'react';
 const tabs = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/groups', icon: Users, label: 'Groups' },
+  { path: '/connect', icon: Link2, label: 'Connect' },
   { path: '/trips', icon: Plane, label: 'Trips' },
   { path: '/profile', icon: User, label: 'Profile' },
 ];
@@ -40,7 +41,7 @@ export function BottomTabs({ onLobTap }: BottomTabsProps) {
             <button
               key={tab.path}
               onClick={() => navigate(tab.path)}
-              className="flex flex-col items-center gap-0.5 min-w-[48px] py-1"
+              className="flex flex-col items-center gap-0.5 min-w-[40px] py-1"
             >
               <div className="relative">
                 <Icon className={`w-5 h-5 transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
@@ -92,7 +93,7 @@ export function BottomTabs({ onLobTap }: BottomTabsProps) {
             <button
               key={tab.path}
               onClick={() => navigate(tab.path)}
-              className="flex flex-col items-center gap-0.5 min-w-[48px] py-1"
+              className="flex flex-col items-center gap-0.5 min-w-[40px] py-1"
             >
               <div className="relative">
                 <Icon className={`w-5 h-5 transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
