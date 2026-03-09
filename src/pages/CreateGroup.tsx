@@ -91,8 +91,8 @@ export default function CreateGroup() {
       <div className="max-w-lg mx-auto px-4 pb-8">
         <div className="flex items-center gap-3 pt-12 pb-4">
           <button
-            onClick={() => (step > 0 ? setStep(step - 1) : navigate('/groups'))}
-            className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center"
+            onClick={() => (step > 0 ? setStep(step - 1) : navigate('/connect'))}
+            className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
           >
             <ArrowLeft className="w-4 h-4 text-foreground" />
           </button>
@@ -121,7 +121,7 @@ export default function CreateGroup() {
                 <Input placeholder="e.g. Hoop Squad" value={groupName} onChange={e => setGroupName(e.target.value)} className="h-12 text-base bg-secondary border-border/50" autoFocus />
               </div>
 
-              <button onClick={() => { setCustomEmojiMode(false); setSelectedEmoji(autoSuggestEmoji(groupName)); }} className="flex items-center gap-2 text-sm font-medium text-primary active:scale-95 transition-transform">
+              <button onClick={() => { setCustomEmojiMode(false); setSelectedEmoji(autoSuggestEmoji(groupName)); }} className="flex items-center gap-2 text-sm font-medium text-primary active:scale-95 transition-transform cursor-pointer">
                 <Sparkles className="w-4 h-4" /> Auto-suggest emoji
               </button>
 
@@ -131,7 +131,7 @@ export default function CreateGroup() {
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{cat}</p>
                     <div className="flex flex-wrap gap-2">
                       {emojis.map(e => (
-                        <button key={e} onClick={() => { setSelectedEmoji(e); setCustomEmojiMode(false); }} className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${selectedEmoji === e && !customEmojiMode ? 'bg-primary/20 ring-2 ring-primary scale-110' : 'bg-secondary hover:bg-secondary/80 active:scale-95'}`}>
+                        <button key={e} onClick={() => { setSelectedEmoji(e); setCustomEmojiMode(false); }} className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all cursor-pointer ${selectedEmoji === e && !customEmojiMode ? 'bg-primary/20 ring-2 ring-primary scale-110' : 'bg-secondary hover:bg-secondary/80 active:scale-95'}`}>
                           {e}
                         </button>
                       ))}

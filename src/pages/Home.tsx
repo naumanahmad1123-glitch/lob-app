@@ -88,7 +88,7 @@ const Home = () => {
           </div>
           <button
             onClick={() => navigate('/notifications')}
-            className="relative w-10 h-10 rounded-full bg-secondary flex items-center justify-center"
+            className="relative w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
           >
             <Bell className="w-5 h-5 text-foreground" />
             {unreadCount > 0 && (
@@ -102,7 +102,7 @@ const Home = () => {
         <div className="flex items-center gap-1 bg-secondary rounded-xl p-1 mb-6">
           <button
             onClick={() => setView('feed')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
               view === 'feed' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
             }`}
           >
@@ -111,7 +111,7 @@ const Home = () => {
           </button>
           <button
             onClick={() => setView('calendar')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
               view === 'calendar' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
             }`}
           >
@@ -176,9 +176,9 @@ const Home = () => {
                 transition={{ duration: 0.2 }}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <button onClick={prevMonth} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground">‹</button>
+                  <button onClick={prevMonth} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground cursor-pointer active:scale-95 transition-transform">‹</button>
                   <h2 className="text-base font-bold text-foreground">{monthLabel}</h2>
-                  <button onClick={nextMonth} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground">›</button>
+                  <button onClick={nextMonth} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground cursor-pointer active:scale-95 transition-transform">›</button>
                 </div>
                 <div className="grid grid-cols-7 mb-2">
                   {DAYS_OF_WEEK.map(d => (
@@ -195,7 +195,7 @@ const Home = () => {
                       <button
                         key={i}
                         onClick={() => setSelectedDay(isSelected ? null : day)}
-                        className={`relative aspect-square rounded-xl flex flex-col items-center justify-center text-sm font-medium transition-all ${
+                        className={`relative aspect-square rounded-xl flex flex-col items-center justify-center text-sm font-medium transition-all cursor-pointer ${
                           isSelected ? 'bg-primary text-primary-foreground'
                             : isToday ? 'bg-accent/20 text-accent'
                             : 'text-foreground hover:bg-secondary'

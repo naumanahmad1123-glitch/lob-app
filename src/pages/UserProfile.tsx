@@ -79,13 +79,13 @@ const UserProfile = () => {
       <div className="max-w-lg mx-auto px-4 pb-8">
         {/* Header */}
         <div className="flex items-center gap-3 pt-12 pb-4">
-          <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
+          <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
             <ArrowLeft className="w-4 h-4 text-foreground" />
           </button>
           <div className="flex-1" />
           <button
             onClick={() => openComposer({ prefillUserIds: user ? [user.id] : [] })}
-            className="px-4 py-2 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold flex items-center gap-1.5"
+            className="px-4 py-2 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold flex items-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
           >
             <Zap className="w-4 h-4" /> Lob them
           </button>
@@ -109,7 +109,7 @@ const UserProfile = () => {
               <ShowRateBadge total={showRateTotal} showed={showRateShowed} />
               <button
                 onClick={() => setShowRateTooltip(!showRateTooltip)}
-                className="flex items-center gap-0.5 text-[11px] text-muted-foreground mx-auto mt-0.5"
+                className="flex items-center gap-0.5 text-[11px] text-muted-foreground mx-auto mt-0.5 cursor-pointer"
               >
                 <HelpCircle className="w-3 h-3" />
               </button>
@@ -154,7 +154,7 @@ const UserProfile = () => {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   onClick={() => navigate(`/groups/${g.id}`)}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50 active:scale-[0.98] transition-transform"
+                  className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50 active:scale-[0.98] transition-transform cursor-pointer"
                 >
                   <span className="text-xl">{g.emoji}</span>
                   <div className="flex-1 text-left">
@@ -179,7 +179,7 @@ const UserProfile = () => {
                 <button
                   key={mc.id}
                   onClick={() => navigate(`/user/${mc.id}`)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-secondary border border-border/50 active:scale-95 transition-transform"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-secondary border border-border/50 active:scale-95 transition-transform cursor-pointer"
                 >
                   <span className="text-base">{mc.avatar}</span>
                   <span className="text-xs font-medium text-foreground">{mc.name}</span>
@@ -188,7 +188,7 @@ const UserProfile = () => {
               {!showAllMutuals && mutualConnections.length > 5 && (
                 <button
                   onClick={() => setShowAllMutuals(true)}
-                  className="flex items-center px-3 py-1.5 rounded-full bg-secondary/60 border border-border/50 text-xs font-medium text-muted-foreground active:scale-95 transition-transform"
+                  className="flex items-center px-3 py-1.5 rounded-full bg-secondary/60 border border-border/50 text-xs font-medium text-muted-foreground active:scale-95 transition-transform cursor-pointer"
                 >
                   +{mutualConnections.length - 5} more
                 </button>
@@ -211,7 +211,7 @@ const UserProfile = () => {
                   <button
                     key={l.id}
                     onClick={() => navigate(`/lob/${l.id}`)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50 active:scale-[0.98] transition-transform text-left"
+                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50 active:scale-[0.98] transition-transform text-left cursor-pointer"
                   >
                     <span className="text-xl">{config.emoji}</span>
                     <div className="flex-1">

@@ -32,7 +32,7 @@ const GroupDetail = () => {
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
         <div className="flex items-center gap-3 pt-12 pb-4">
-          <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+          <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
           <div className="flex-1">
@@ -43,7 +43,7 @@ const GroupDetail = () => {
           </div>
           <button
             onClick={() => openComposer()}
-            className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center"
+            className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
           >
             <Plus className="w-5 h-5 text-primary-foreground" />
           </button>
@@ -52,15 +52,16 @@ const GroupDetail = () => {
         {/* Members */}
         <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 mb-4">
           {group.members.map(m => (
-            <div
+            <button
               key={m.id}
-              className="flex flex-col items-center gap-1 min-w-[56px]"
+              onClick={() => navigate(`/user/${m.user_id}`)}
+              className="flex flex-col items-center gap-1 min-w-[56px] cursor-pointer active:scale-95 transition-transform"
             >
               <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-xl">
                 {m.avatar}
               </div>
               <span className="text-[10px] text-muted-foreground font-medium">{m.name}</span>
-            </div>
+            </button>
           ))}
         </div>
 

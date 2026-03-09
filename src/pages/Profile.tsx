@@ -91,7 +91,7 @@ const Profile = () => {
       <div className="max-w-lg mx-auto px-4">
         <div className="flex items-center justify-between pt-12 pb-6">
           <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Profile</h1>
-          <button onClick={() => { setShowComingSoon('Settings'); setTimeout(() => setShowComingSoon(null), 2000); }} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+          <button onClick={() => { setShowComingSoon('Settings'); setTimeout(() => setShowComingSoon(null), 2000); }} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
             <Settings className="w-5 h-5 text-foreground" />
           </button>
         </div>
@@ -108,13 +108,13 @@ const Profile = () => {
         <AnimatePresence>
           {editingProfile && (
             <>
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setEditingProfile(false)} className="fixed inset-0 z-[60] bg-background/60 backdrop-blur-sm" />
-              <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 300 }} className="fixed bottom-0 left-0 right-0 z-[70] max-w-lg mx-auto">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, pointerEvents: 'none' as any }} onClick={() => setEditingProfile(false)} className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm" />
+              <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 300 }} className="fixed bottom-0 left-0 right-0 z-50 max-w-lg mx-auto">
                 <div className="bg-card rounded-t-3xl border border-border/50 shadow-card px-5 pb-8 pt-4 max-h-[85vh] overflow-y-auto">
                   <div className="flex justify-center mb-3"><div className="w-10 h-1 rounded-full bg-muted-foreground/30" /></div>
                   <div className="flex items-center justify-between mb-5">
                     <h2 className="text-lg font-extrabold text-foreground">✏️ Edit Profile</h2>
-                    <button onClick={() => setEditingProfile(false)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center"><X className="w-4 h-4 text-muted-foreground" /></button>
+                    <button onClick={() => setEditingProfile(false)} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center cursor-pointer"><X className="w-4 h-4 text-muted-foreground" /></button>
                   </div>
                   <div className="mb-4">
                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Name</label>
@@ -124,7 +124,7 @@ const Profile = () => {
                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Avatar</label>
                     <div className="grid grid-cols-8 gap-2">
                       {AVATAR_OPTIONS.map(emoji => (
-                        <button key={emoji} onClick={() => setEditAvatar(emoji)} className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${editAvatar === emoji ? 'bg-primary/15 border-2 border-primary scale-110' : 'bg-secondary border border-border hover:bg-muted'}`}>
+                        <button key={emoji} onClick={() => setEditAvatar(emoji)} className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all cursor-pointer ${editAvatar === emoji ? 'bg-primary/15 border-2 border-primary scale-110' : 'bg-secondary border border-border hover:bg-muted'}`}>
                           {emoji}
                         </button>
                       ))}
@@ -136,14 +136,14 @@ const Profile = () => {
                       {INTEREST_OPTIONS.map(opt => {
                         const active = editInterests.includes(opt.key);
                         return (
-                          <button key={opt.key} onClick={() => toggleInterest(opt.key)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${active ? 'bg-primary/15 text-primary border border-primary/30' : 'bg-secondary text-muted-foreground border border-border'}`}>
+                          <button key={opt.key} onClick={() => toggleInterest(opt.key)} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${active ? 'bg-primary/15 text-primary border border-primary/30' : 'bg-secondary text-muted-foreground border border-border'}`}>
                             {opt.label}
                           </button>
                         );
                       })}
                     </div>
                   </div>
-                  <button onClick={handleSaveProfile} disabled={updateProfile.isPending} className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-50">
+                  <button onClick={handleSaveProfile} disabled={updateProfile.isPending} className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-50 cursor-pointer">
                     {updateProfile.isPending ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
@@ -154,7 +154,7 @@ const Profile = () => {
 
         {/* Profile Card */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="gradient-card rounded-2xl p-6 border border-border/50 shadow-card mb-6 text-center relative">
-          <button onClick={openEditSheet} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+          <button onClick={openEditSheet} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
             <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
           </button>
           <div className="w-20 h-20 rounded-full bg-secondary mx-auto flex items-center justify-center text-4xl mb-3">{profile.avatar}</div>
@@ -172,7 +172,7 @@ const Profile = () => {
             </div>
             <div className="relative">
               <ShowRateBadge total={12} showed={11} />
-              <button onClick={() => setShowRateTooltip(!showRateTooltip)} className="flex items-center gap-0.5 text-[11px] text-muted-foreground mx-auto mt-0.5">
+              <button onClick={() => setShowRateTooltip(!showRateTooltip)} className="flex items-center gap-0.5 text-[11px] text-muted-foreground mx-auto mt-0.5 cursor-pointer">
                 <HelpCircle className="w-3 h-3" />
               </button>
               <AnimatePresence>
@@ -187,7 +187,7 @@ const Profile = () => {
         </motion.div>
 
         {/* Groups shortcut */}
-        <motion.button initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} onClick={() => navigate('/groups')} className="w-full flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-secondary transition-all mb-4">
+        <motion.button initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} onClick={() => navigate('/connect')} className="w-full flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-secondary transition-all mb-4 cursor-pointer">
           <Users className="w-5 h-5 text-primary" />
           <div className="flex-1 text-left">
             <p className="text-sm font-semibold text-foreground">My Groups</p>
@@ -208,7 +208,7 @@ const Profile = () => {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               onClick={() => item.label === 'Notifications' ? navigate('/notifications') : (() => { setShowComingSoon(item.label); setTimeout(() => setShowComingSoon(null), 2000); })()}
-              className="w-full flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-secondary transition-all"
+              className="w-full flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-secondary transition-all cursor-pointer"
             >
               <item.icon className="w-5 h-5 text-primary" />
               <div className="flex-1 text-left">
@@ -221,7 +221,7 @@ const Profile = () => {
         </div>
 
         {/* Sign out */}
-        <button onClick={handleSignOut} className="w-full flex items-center gap-3 p-4 rounded-xl border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 transition-all mb-8">
+        <button onClick={handleSignOut} className="w-full flex items-center gap-3 p-4 rounded-xl border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 transition-all mb-8 cursor-pointer">
           <LogOut className="w-5 h-5 text-destructive" />
           <span className="text-sm font-semibold text-destructive">Sign Out</span>
         </button>
