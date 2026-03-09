@@ -141,12 +141,12 @@ export function GroupTripComposer({ open, onClose, onCreated }: GroupTripCompose
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
             className="fixed bottom-0 left-0 right-0 z-[70] max-w-lg mx-auto"
           >
-            <div className="bg-card rounded-t-3xl border border-border/50 shadow-card px-5 pb-8 pt-4 max-h-[85vh] overflow-y-auto">
-              <div className="flex justify-center mb-3">
+            <div className="bg-card rounded-t-3xl border border-border/50 shadow-card pt-4 max-h-[85vh] flex flex-col">
+              <div className="flex justify-center mb-3 px-5">
                 <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
               </div>
 
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center justify-between mb-5 px-5">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">🌍</span>
                   <h2 className="text-lg font-extrabold text-foreground">Plan a Group Trip</h2>
@@ -156,6 +156,7 @@ export function GroupTripComposer({ open, onClose, onCreated }: GroupTripCompose
                 </button>
               </div>
 
+              <div className="flex-1 overflow-y-auto px-5">
               <AnimatePresence mode="wait">
                 {step === 'mode' ? (
                   <motion.div
@@ -362,17 +363,22 @@ export function GroupTripComposer({ open, onClose, onCreated }: GroupTripCompose
                         })}
                       </div>
                     </div>
-
-                    {/* Submit */}
-                    <button
-                      onClick={handleCreate}
-                      className="w-full py-3.5 rounded-xl gradient-primary text-primary-foreground font-bold text-sm mt-2 active:scale-[0.98] transition-transform"
-                    >
-                      🌍 Lob the Trip
-                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
+              </div>
+
+              {/* Pinned footer with submit button */}
+              {step === 'details' && (
+                <div className="px-5 pt-3 border-t border-border/50" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+                  <button
+                    onClick={handleCreate}
+                    className="w-full py-3.5 rounded-xl gradient-primary text-primary-foreground font-bold text-sm active:scale-[0.98] transition-transform"
+                  >
+                    🌍 Lob the Trip
+                  </button>
+                </div>
+              )}
             </div>
           </motion.div>
         </>
