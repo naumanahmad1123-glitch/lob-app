@@ -140,9 +140,9 @@ const Profile = () => {
             <>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setEditingProfile(false)} className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm" />
               <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 300 }} className="fixed bottom-0 left-0 right-0 z-50 max-w-lg mx-auto">
-                <div className="bg-card rounded-t-3xl border border-border/50 shadow-card flex flex-col max-h-[85vh]">
+                <div className="bg-card rounded-t-3xl border border-border/50 shadow-card flex flex-col max-h-[90vh]">
                   {/* Header */}
-                  <div className="px-5 pt-4 pb-2">
+                  <div className="px-5 pt-4 pb-2 shrink-0">
                     <div className="flex justify-center mb-3"><div className="w-10 h-1 rounded-full bg-muted-foreground/30" /></div>
                     <div className="flex items-center justify-between mb-2">
                       <h2 className="text-lg font-extrabold text-foreground">✏️ Edit Profile</h2>
@@ -207,8 +207,8 @@ const Profile = () => {
                     </div>
                   </div>
 
-                  {/* Pinned save button */}
-                  <div className="px-5 pt-3 pb-24 border-t border-border/50" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
+                  {/* Pinned save button — outside scroll area */}
+                  <div className="shrink-0 px-5 pt-3 border-t border-border/50 bg-card" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
                     <button onClick={handleSaveProfile} disabled={updateProfile.isPending} className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-50 cursor-pointer">
                       {updateProfile.isPending ? 'Saving...' : 'Save Changes'}
                     </button>

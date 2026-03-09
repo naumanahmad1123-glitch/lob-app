@@ -100,18 +100,18 @@ export function TripInvitePicker({ open, onClose, tripId, existingMemberIds }: P
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
             className="fixed bottom-0 left-0 right-0 z-[60] max-w-lg mx-auto"
           >
-            <div className="bg-card rounded-t-3xl border border-border/50 shadow-card px-5 pt-4 max-h-[70vh] flex flex-col">
-              <div className="flex justify-center mb-3">
+            <div className="bg-card rounded-t-3xl border border-border/50 shadow-card pt-4 max-h-[90vh] flex flex-col">
+              <div className="flex justify-center mb-3 px-5 shrink-0">
                 <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
               </div>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4 px-5 shrink-0">
                 <h2 className="text-lg font-extrabold text-foreground">👋 Invite Friends</h2>
                 <button onClick={onClose} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center cursor-pointer">
                   <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-2 mb-4 max-h-[45vh]">
+              <div className="flex-1 overflow-y-auto space-y-2 px-5 pb-4">
                 {available.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-6">No connections to invite</p>
                 ) : (
@@ -141,7 +141,7 @@ export function TripInvitePicker({ open, onClose, tripId, existingMemberIds }: P
               </div>
 
               {selected.length > 0 && (
-                <div className="border-t border-border/50 px-5 pt-3" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+                <div className="shrink-0 px-5 pt-3 border-t border-border/50 bg-card" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
                   <button
                     onClick={handleInvite}
                     disabled={saving}
