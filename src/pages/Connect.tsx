@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ChevronRight, UserPlus, Users, Sparkles, Plus } from 'lucide-react';
+import { Search, ChevronRight, ChevronDown, UserPlus, Users, Sparkles, Plus } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSupabaseGroups } from '@/hooks/useSupabaseGroups';
