@@ -142,7 +142,12 @@ export function TripVoting({ tripId, userId, isOwner, status, suggestions, hasDe
 
   return (
     <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-8">
-      <h2 className="text-sm font-bold text-foreground mb-3">Collaborative Planning</h2>
+      <Collapsible defaultOpen>
+        <CollapsibleTrigger className="flex items-center justify-between w-full mb-3 cursor-pointer group">
+          <h2 className="text-sm font-bold text-foreground">Plans</h2>
+          <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-data-[state=closed]:-rotate-90" />
+        </CollapsibleTrigger>
+        <CollapsibleContent>
 
       {hasDestination && hasDates && (
         <p className="text-xs text-accent font-medium mb-3">Destination and dates are locked in ✓</p>
