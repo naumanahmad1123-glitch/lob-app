@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useComposer } from '@/hooks/useComposer';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Pencil, Sparkles, Globe, Lock, X, Trash2, CheckCircle2, Clock } from 'lucide-react';
+import { ArrowLeft, Pencil, Sparkles, Globe, Lock, X, Trash2, CheckCircle2, Clock, MoreVertical, Link, XCircle } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSupabaseTrips } from '@/hooks/useSupabaseTrips';
 import { useTripMembers, useTripSuggestions, useTripComments } from '@/hooks/useTripDetail';
@@ -33,6 +33,8 @@ const TripDetail = () => {
   const [saving, setSaving] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [editData, setEditData] = useState({
     city: '',
     country: '',
@@ -100,6 +102,42 @@ const TripDetail = () => {
     }
   };
 
+  const handleCancelTrip = async () => {
+    if (!trip || !user) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('trips').update({ status: 'cancelled' }).eq('id', trip.id);
+      if (error) throw error;
+      // Notify all members
+      const memberNotifs = members
+        .filter(m => m.user_id !== user.id)
+        .map(m => ({
+          user_id: m.user_id,
+          trip_id: trip.id,
+          type: 'cancelled',
+          title: 'Trip cancelled',
+          body: `"${trip.city}" trip has been cancelled`,
+          emoji: '❌',
+        }));
+      if (memberNotifs.length > 0) {
+        await supabase.from('notifications').insert(memberNotifs);
+      }
+      queryClient.invalidateQueries({ queryKey: ['supabase-trips'] });
+      toast.success('Trip cancelled');
+      navigate('/trips');
+    } catch (err: any) {
+      toast.error('Failed to cancel: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(`https://lob-app.lovable.app/trips/${trip?.id}`);
+    toast.success('Link copied!');
+    setShowMenu(false);
+  };
+
   const handleConfirmTrip = async () => {
     if (!trip || !isOwner) return;
     try {
@@ -154,12 +192,41 @@ const TripDetail = () => {
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
           {isOwner && (
-            <button
-              onClick={openEditSheet}
-              className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
-            >
-              <Pencil className="w-4 h-4 text-foreground" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={openEditSheet}
+                className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+              >
+                <Pencil className="w-4 h-4 text-foreground" />
+              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowMenu(v => !v)}
+                  className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+                >
+                  <MoreVertical className="w-4 h-4 text-foreground" />
+                </button>
+                {showMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+                    <div className="absolute right-0 top-12 z-50 w-48 rounded-xl bg-card border border-border shadow-card py-1">
+                      <button
+                        onClick={handleCopyLink}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                      >
+                        <Link className="w-4 h-4" /> Copy link
+                      </button>
+                      <button
+                        onClick={() => { setShowMenu(false); setShowCancelConfirm(true); }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-destructive hover:bg-destructive/5 transition-colors cursor-pointer"
+                      >
+                        <XCircle className="w-4 h-4" /> Cancel trip
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           )}
         </div>
 
@@ -326,6 +393,45 @@ const TripDetail = () => {
                       </div>
                     )}
                   </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Cancel Confirmation */}
+        <AnimatePresence>
+          {showCancelConfirm && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowCancelConfirm(false)}
+                className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="fixed inset-x-4 top-1/3 z-50 max-w-sm mx-auto bg-card rounded-2xl border border-border shadow-card p-6"
+              >
+                <h3 className="text-lg font-bold text-foreground mb-2">Cancel this trip?</h3>
+                <p className="text-sm text-muted-foreground mb-5">Everyone will be notified that this trip has been cancelled.</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowCancelConfirm(false)}
+                    className="flex-1 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium cursor-pointer"
+                  >
+                    Keep
+                  </button>
+                  <button
+                    onClick={handleCancelTrip}
+                    disabled={saving}
+                    className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-bold cursor-pointer disabled:opacity-50"
+                  >
+                    {saving ? 'Cancelling...' : 'Cancel Trip'}
+                  </button>
                 </div>
               </motion.div>
             </>
