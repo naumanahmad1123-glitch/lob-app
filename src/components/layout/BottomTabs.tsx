@@ -18,16 +18,17 @@ export function BottomTabs({ onLobTap }: BottomTabsProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const dragY = useMotionValue(0);
-  const [isDragging, setIsDragging] = useState(false);
+  const isDraggingRef = useRef(false);
 
   const ballScale = useTransform(dragY, [0, -80], [1, 1.25]);
   const glowOpacity = useTransform(dragY, [0, -80], [0.3, 0.8]);
 
   const handleDragEnd = useCallback((_: any, info: PanInfo) => {
-    setIsDragging(false);
-    if (info.offset.y < -40 || info.velocity.y < -200) {
+    if (info.offset.y < -30 || info.velocity.y < -150) {
       onLobTap();
     }
+    // Reset after a tick so click doesn't fire
+    requestAnimationFrame(() => { isDraggingRef.current = false; });
   }, [onLobTap]);
 
   const isTabActive = (tab: typeof tabs[0]) =>
