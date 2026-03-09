@@ -264,8 +264,11 @@ const LobDetail = () => {
               <AnimatePresence>
                 {showMenu && (
                   <motion.div initial={{ opacity: 0, scale: 0.9, y: -5 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: -5 }} className="absolute right-0 top-12 z-50 w-48 rounded-xl bg-card border border-border shadow-card overflow-hidden">
+                    <button onClick={() => { setShowMenu(false); handleShareLink(); }} className="w-full flex items-center gap-2 px-4 py-3 text-sm text-foreground hover:bg-secondary/50 transition-colors cursor-pointer">
+                      <Link2 className="w-4 h-4" /> Copy link
+                    </button>
                     <button onClick={() => { setShowMenu(false); setShowCancelDialog(true); }} className="w-full flex items-center gap-2 px-4 py-3 text-sm text-destructive hover:bg-secondary/50 transition-colors cursor-pointer">
-                      <XCircle className="w-4 h-4" /> Cancel Plan
+                      <XCircle className="w-4 h-4" /> Cancel lob
                     </button>
                   </motion.div>
                 )}
