@@ -154,7 +154,7 @@ const Profile = () => {
 
         {/* Profile Card */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="gradient-card rounded-2xl p-6 border border-border/50 shadow-card mb-6 text-center relative">
-          <button onClick={openEditSheet} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+          <button onClick={openEditSheet} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
             <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
           </button>
           <div className="w-20 h-20 rounded-full bg-secondary mx-auto flex items-center justify-center text-4xl mb-3">{profile.avatar}</div>
