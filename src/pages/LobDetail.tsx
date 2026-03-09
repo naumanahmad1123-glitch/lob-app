@@ -11,7 +11,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { CATEGORY_CONFIG, ResponseType, LobComment, RECURRENCE_OPTIONS, TimeOption } from '@/data/types';
 import { TripPlanningSection } from '@/components/trips/TripPlanningSection';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSupabaseLob } from '@/hooks/useSupabaseLobs';
+import { useSupabaseLob, useLobRecipients } from '@/hooks/useSupabaseLobs';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { ResponseButtons } from '@/components/lob/ResponseButtons';
@@ -34,16 +34,19 @@ const LobDetail = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: lob, isLoading } = useSupabaseLob(id);
+  const { data: recipientIds = [] } = useLobRecipients(id);
+  const isIndividualLob = !lob?.groupId && recipientIds.length > 0;
   
-  // Collect all user IDs from responses and comments for profile lookup
+  // Collect all user IDs from responses, comments, and recipients for profile lookup
   const allUserIds = useMemo(() => {
-    if (!lob) return [];
+    if (!lob) return recipientIds;
     const ids = new Set<string>();
     ids.add(lob.createdBy);
     lob.responses.forEach(r => ids.add(r.userId));
     (lob.comments || []).forEach(c => ids.add(c.userId));
+    recipientIds.forEach(rid => ids.add(rid));
     return Array.from(ids);
-  }, [lob]);
+  }, [lob, recipientIds]);
 
   const { data: profileMap } = useProfileMap(allUserIds);
 
@@ -208,7 +211,10 @@ const LobDetail = () => {
             <div>
               <h1 className="text-2xl font-extrabold text-foreground leading-tight">{lob.title}</h1>
               <p className="text-sm text-muted-foreground">
-                {lob.groupName} · by {creatorName}
+                {isIndividualLob
+                  ? recipientIds.map(rid => getProfileName(profileMap, rid).split(' ')[0]).join(', ')
+                  : lob.groupName}
+                {' · by '}{creatorName}
               </p>
             </div>
           </div>

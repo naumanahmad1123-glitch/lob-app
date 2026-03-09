@@ -6,7 +6,7 @@ import { CATEGORY_CONFIG, LobCategory, Lob } from '@/data/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseGroups } from '@/hooks/useSupabaseGroups';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { usePersonalizedVibes, detectVibeFromChips } from '@/hooks/usePersonalizedVibes';
 import { CATEGORY_KEYWORDS, parseTimeToISO, detectCategory } from '@/lib/lob-utils';
 
@@ -82,6 +82,12 @@ function SwipeableCard({ onLob, card }: { onLob: () => void; card: React.ReactNo
   );
 }
 
+interface ConnectionInfo {
+  user_id: string;
+  name: string;
+  avatar: string;
+}
+
 interface LobComposerProps {
   open: boolean;
   onClose: () => void;
@@ -101,6 +107,23 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
   const [parsed, setParsed] = useState<ParsedLob>({ title: '', category: '', time: '', location: '', groupId: '', recipientType: 'group', selectedUserIds: [] });
   const [showConfirm, setShowConfirm] = useState(false);
   const [sending, setSending] = useState(false);
+
+  // Fetch connections (people sharing groups with current user)
+  const connections = useMemo<ConnectionInfo[]>(() => {
+    if (!user) return [];
+    const friendMap = new Map<string, ConnectionInfo>();
+    dbGroups.forEach(g => {
+      const iAmMember = g.members.some((m: any) => m.user_id === user.id);
+      if (!iAmMember) return;
+      g.members.forEach((m: any) => {
+        if (m.user_id === user.id) return;
+        if (!friendMap.has(m.user_id)) {
+          friendMap.set(m.user_id, { user_id: m.user_id, name: m.name || 'Unknown', avatar: m.avatar || '🙂' });
+        }
+      });
+    });
+    return Array.from(friendMap.values());
+  }, [dbGroups, user]);
 
   const vibeChips = usePersonalizedVibes(user?.id);
   const templates = useMemo(() => {
@@ -157,7 +180,8 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
     const category = (parsed.category || 'other') as LobCategory;
     const catConfig = CATEGORY_CONFIG[category];
     const timeIso = parsed.time || new Date().toISOString();
-    const groupId = parsed.recipientType === 'group' && parsed.groupId ? parsed.groupId : null;
+    const isIndividual = parsed.recipientType === 'individuals';
+    const groupId = !isIndividual && parsed.groupId ? parsed.groupId : null;
     const group = dbGroups.find(g => g.id === groupId);
 
     try {
@@ -171,7 +195,7 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
           group_name: group?.name || null,
           created_by: user.id,
           location: parsed.location || null,
-          quorum: catConfig.defaultQuorum,
+          quorum: isIndividual ? Math.min(parsed.selectedUserIds.length + 1, catConfig.defaultQuorum) : catConfig.defaultQuorum,
           status: 'voting',
           when_mode: 'specific',
         })
@@ -192,6 +216,16 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
         user_id: user.id,
         response: 'in',
       });
+
+      // Insert individual recipients if applicable
+      if (isIndividual && parsed.selectedUserIds.length > 0) {
+        await supabase.from('lob_recipients').insert(
+          parsed.selectedUserIds.map(uid => ({
+            lob_id: lobData.id,
+            user_id: uid,
+          }))
+        );
+      }
 
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['supabase-lobs'] });
@@ -222,10 +256,24 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
   }, [handleLobIt]);
 
   const selectedGroup = parsed.recipientType === 'group' ? dbGroups.find(g => g.id === parsed.groupId) : null;
+  const selectedPeople = parsed.selectedUserIds.map(uid => connections.find(c => c.user_id === uid)).filter(Boolean) as ConnectionInfo[];
   const recipientLabel = parsed.recipientType === 'group'
     ? selectedGroup?.name || 'a group'
-    : 'friends';
+    : selectedPeople.length > 0
+      ? selectedPeople.map(p => p.name.split(' ')[0]).join(', ')
+      : 'friends';
   const catConfig = parsed.category ? CATEGORY_CONFIG[parsed.category] : null;
+
+  const toggleUser = (uid: string) => {
+    setParsed(p => ({
+      ...p,
+      selectedUserIds: p.selectedUserIds.includes(uid)
+        ? p.selectedUserIds.filter(id => id !== uid)
+        : [...p.selectedUserIds, uid],
+    }));
+  };
+
+  const hasValidRecipient = parsed.recipientType === 'group' ? !!parsed.groupId : parsed.selectedUserIds.length > 0;
 
   return (
     <AnimatePresence>
@@ -244,7 +292,7 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
             style={lobLaunched ? undefined : (showConfirm ? { y: confirmDragY, opacity: confirmOpacity, scale: confirmScale } : { y, opacity })}
             className="fixed bottom-0 left-0 right-0 z-[70] max-w-lg mx-auto"
           >
-            <div className="bg-card rounded-t-3xl border border-border/50 shadow-card overflow-hidden max-h-[90vh] flex flex-col flex flex-col">
+            <div className="bg-card rounded-t-3xl border border-border/50 shadow-card overflow-hidden max-h-[90vh] flex flex-col">
               {showConfirm && !lobLaunched && (
                 <motion.div style={{ opacity: confirmHintOp }} className="flex justify-center pt-4 pb-1">
                   <motion.div animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 1.2, ease: 'easeInOut' }}>
@@ -324,28 +372,82 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
                         </div>
                       </div>
 
-                      {/* Group selector */}
+                      {/* Recipient type toggle */}
                       <div className="mb-3">
                         <p className="text-xs font-semibold text-muted-foreground mb-2">Send to</p>
-                        <div className="flex gap-2 overflow-x-auto pb-1">
-                          {dbGroups.map(g => (
-                            <button
-                              key={g.id}
-                              onClick={() => setParsed(p => ({ ...p, groupId: g.id, recipientType: 'group' }))}
-                              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium whitespace-nowrap transition-all ${
-                                parsed.groupId === g.id
-                                  ? 'border-primary bg-primary/10 text-foreground'
-                                  : 'border-border bg-secondary/50 text-muted-foreground'
-                              }`}
-                            >
-                              <span>{g.emoji}</span>
-                              {g.name}
-                            </button>
-                          ))}
-                          {dbGroups.length === 0 && (
-                            <p className="text-xs text-muted-foreground">Create a group first to send lobs</p>
-                          )}
+                        <div className="flex items-center gap-1 bg-secondary rounded-xl p-1 mb-3">
+                          <button
+                            onClick={() => setParsed(p => ({ ...p, recipientType: 'group', selectedUserIds: [] }))}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                              parsed.recipientType === 'group' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
+                            }`}
+                          >
+                            <Users className="w-4 h-4" />
+                            Group
+                          </button>
+                          <button
+                            onClick={() => setParsed(p => ({ ...p, recipientType: 'individuals', groupId: '' }))}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                              parsed.recipientType === 'individuals' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
+                            }`}
+                          >
+                            <User className="w-4 h-4" />
+                            People
+                          </button>
                         </div>
+
+                        {/* Group list */}
+                        {parsed.recipientType === 'group' && (
+                          <div className="flex gap-2 overflow-x-auto pb-1">
+                            {dbGroups.map(g => (
+                              <button
+                                key={g.id}
+                                onClick={() => setParsed(p => ({ ...p, groupId: g.id }))}
+                                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium whitespace-nowrap transition-all ${
+                                  parsed.groupId === g.id
+                                    ? 'border-primary bg-primary/10 text-foreground'
+                                    : 'border-border bg-secondary/50 text-muted-foreground'
+                                }`}
+                              >
+                                <span>{g.emoji}</span>
+                                {g.name}
+                              </button>
+                            ))}
+                            {dbGroups.length === 0 && (
+                              <p className="text-xs text-muted-foreground">Create a group first to send lobs</p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* People picker */}
+                        {parsed.recipientType === 'individuals' && (
+                          <div>
+                            {connections.length === 0 ? (
+                              <p className="text-xs text-muted-foreground">Join a group to find connections</p>
+                            ) : (
+                              <div className="flex flex-wrap gap-2">
+                                {connections.map(c => {
+                                  const isSelected = parsed.selectedUserIds.includes(c.user_id);
+                                  return (
+                                    <button
+                                      key={c.user_id}
+                                      onClick={() => toggleUser(c.user_id)}
+                                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${
+                                        isSelected
+                                          ? 'border-primary bg-primary/10 text-foreground'
+                                          : 'border-border bg-secondary/50 text-muted-foreground'
+                                      }`}
+                                    >
+                                      <span className="text-base">{c.avatar}</span>
+                                      <span>{c.name.split(' ')[0]}</span>
+                                      {isSelected && <Check className="w-3.5 h-3.5 text-primary" />}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   )}
@@ -357,7 +459,10 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
                           <span className="text-3xl">{catConfig?.emoji || '📌'}</span>
                           <div>
                             <h3 className="font-bold text-foreground text-lg">{parsed.title}</h3>
-                            <p className="text-sm text-muted-foreground">{recipientLabel}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {parsed.recipientType === 'individuals' && <User className="w-3.5 h-3.5 inline mr-1" />}
+                              {recipientLabel}
+                            </p>
                           </div>
                         </div>
                         {parsed.time && (

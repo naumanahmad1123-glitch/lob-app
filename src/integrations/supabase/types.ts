@@ -204,6 +204,35 @@ export type Database = {
           },
         ]
       }
+      lob_recipients: {
+        Row: {
+          created_at: string
+          id: string
+          lob_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lob_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lob_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lob_recipients_lob_id_fkey"
+            columns: ["lob_id"]
+            isOneToOne: false
+            referencedRelation: "lobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lob_responses: {
         Row: {
           comment: string | null
