@@ -102,6 +102,42 @@ const TripDetail = () => {
     }
   };
 
+  const handleCancelTrip = async () => {
+    if (!trip || !user) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.from('trips').update({ status: 'cancelled' }).eq('id', trip.id);
+      if (error) throw error;
+      // Notify all members
+      const memberNotifs = members
+        .filter(m => m.user_id !== user.id)
+        .map(m => ({
+          user_id: m.user_id,
+          trip_id: trip.id,
+          type: 'cancelled',
+          title: 'Trip cancelled',
+          body: `"${trip.city}" trip has been cancelled`,
+          emoji: '❌',
+        }));
+      if (memberNotifs.length > 0) {
+        await supabase.from('notifications').insert(memberNotifs);
+      }
+      queryClient.invalidateQueries({ queryKey: ['supabase-trips'] });
+      toast.success('Trip cancelled');
+      navigate('/trips');
+    } catch (err: any) {
+      toast.error('Failed to cancel: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(`https://lob-app.lovable.app/trips/${trip?.id}`);
+    toast.success('Link copied!');
+    setShowMenu(false);
+  };
+
   const handleConfirmTrip = async () => {
     if (!trip || !isOwner) return;
     try {
