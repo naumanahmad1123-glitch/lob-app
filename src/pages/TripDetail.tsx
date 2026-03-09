@@ -223,6 +223,8 @@ const TripDetail = () => {
             isOwner={isOwner}
             status={tripStatus}
             suggestions={suggestions}
+            hasDestination={hasDestination}
+            hasDates={hasDates}
           />
         )}
 

@@ -134,14 +134,18 @@ export function TripVoting({ tripId, userId, isOwner, status, suggestions, hasDe
   };
 
   const sections = [
-    { key: 'destination', label: 'Destinations', icon: MapPin, items: destSuggestions, show: status === 'planning' },
-    { key: 'date', label: 'Date Options', icon: Calendar, items: dateSuggestions, show: true },
+    { key: 'destination', label: 'Destinations', icon: MapPin, items: destSuggestions, show: !hasDestination },
+    { key: 'date', label: 'Date Options', icon: Calendar, items: dateSuggestions, show: !hasDates },
     { key: 'activity', label: 'Activities & Ideas', icon: Lightbulb, items: activitySuggestions, show: true },
   ];
 
   return (
     <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mb-8">
       <h2 className="text-sm font-bold text-foreground mb-3">Collaborative Planning</h2>
+
+      {hasDestination && hasDates && (
+        <p className="text-xs text-accent font-medium mb-3">Destination and dates are locked in ✓</p>
+      )}
 
       {sections.filter(s => s.show).map(section => (
         <div key={section.key} className="mb-5">
