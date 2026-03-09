@@ -75,11 +75,11 @@ export function BottomTabs({ onLobTap }: BottomTabsProps) {
               dragConstraints={{ top: -100, bottom: 0 }}
               dragElastic={0.15}
               dragMomentum={false}
-              onDragStart={() => setIsDragging(true)}
+              onDragStart={() => { isDraggingRef.current = true; }}
               onDragEnd={handleDragEnd}
               style={{ y: dragY }}
               whileTap={{ scale: 0.9, rotate: -8 }}
-              onClick={() => !isDragging && onLobTap()}
+              onClick={() => !isDraggingRef.current && onLobTap()}
               className="w-14 h-14 rounded-full gradient-primary flex items-center justify-center shadow-glow text-2xl cursor-grab active:cursor-grabbing relative z-10"
             >
               ✨
