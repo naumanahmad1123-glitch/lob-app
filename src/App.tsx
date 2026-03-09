@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Home from "./pages/Home";
 import Groups from "./pages/Groups";
+import Connect from "./pages/Connect";
 import GroupDetail from "./pages/GroupDetail";
 import CreateLob from "./pages/CreateLob";
 import LobDetail from "./pages/LobDetail";
