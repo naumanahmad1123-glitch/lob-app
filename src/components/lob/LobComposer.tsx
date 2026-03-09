@@ -334,7 +334,7 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
                         <input
                           ref={inputRef}
                           type="text"
-                          placeholder="Hoops 8pm..."
+                          placeholder="Hoops 8pm DHA..."
                           value={quickText}
                           onChange={e => setQuickText(e.target.value)}
                           onKeyDown={e => e.key === 'Enter' && handleQuickSubmit()}
@@ -372,26 +372,30 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
                         </div>
                       </div>
 
-                      {/* Recipient type toggle */}
-                      <div className="mb-3">
+                      {/* Recipient type toggle - pill style */}
+                      <div className="mb-4">
                         <p className="text-xs font-semibold text-muted-foreground mb-2">Send to</p>
-                        <div className="flex items-center gap-1 bg-secondary rounded-xl p-1 mb-3">
+                        <div className="flex items-center gap-2 mb-3">
                           <button
                             onClick={() => setParsed(p => ({ ...p, recipientType: 'group', selectedUserIds: [] }))}
-                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all ${
-                              parsed.recipientType === 'group' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                              parsed.recipientType === 'group'
+                                ? 'gradient-primary text-primary-foreground shadow-sm'
+                                : 'bg-secondary/80 text-muted-foreground border border-border/50 hover:border-primary/30'
                             }`}
                           >
-                            <Users className="w-4 h-4" />
+                            <Users className="w-3.5 h-3.5" />
                             Group
                           </button>
                           <button
                             onClick={() => setParsed(p => ({ ...p, recipientType: 'individuals', groupId: '' }))}
-                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all ${
-                              parsed.recipientType === 'individuals' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                              parsed.recipientType === 'individuals'
+                                ? 'gradient-primary text-primary-foreground shadow-sm'
+                                : 'bg-secondary/80 text-muted-foreground border border-border/50 hover:border-primary/30'
                             }`}
                           >
-                            <User className="w-4 h-4" />
+                            <User className="w-3.5 h-3.5" />
                             People
                           </button>
                         </div>
@@ -449,6 +453,15 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
                           </div>
                         )}
                       </div>
+
+                      {/* Build step by step link */}
+                      <button
+                        onClick={() => setStep('category')}
+                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-secondary/50 border border-border/50 text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+                      >
+                        <span>Build step by step instead</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
                     </motion.div>
                   )}
 
