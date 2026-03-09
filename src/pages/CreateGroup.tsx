@@ -91,8 +91,8 @@ export default function CreateGroup() {
       <div className="max-w-lg mx-auto px-4 pb-8">
         <div className="flex items-center gap-3 pt-12 pb-4">
           <button
-            onClick={() => (step > 0 ? setStep(step - 1) : navigate('/groups'))}
-            className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center"
+            onClick={() => (step > 0 ? setStep(step - 1) : navigate('/connect'))}
+            className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
           >
             <ArrowLeft className="w-4 h-4 text-foreground" />
           </button>
