@@ -42,6 +42,26 @@ export async function seedDemoData(userId: string) {
   // Index aliases
   const [jordanId, priyaId, marcusId, aishaId, tylerId, sofiaId] = fakeIds;
 
+  // --- SUGGESTION-ONLY PROFILES (not in any groups) ---
+  const suggestionProfiles = [
+    { name: 'Liam Patel', avatar: '🎸', interests: ['music', 'coffee', 'hiking'], city: 'Vancouver' },
+    { name: 'Zara Kim', avatar: '🦊', interests: ['travel', 'art', 'dinner'], city: 'Toronto' },
+    { name: 'Diego Morales', avatar: '⚡', interests: ['padel', 'gym', 'chill'], city: 'Miami' },
+    { name: 'Nadia Hassan', avatar: '🌟', interests: ['cooking', 'travel', 'music'], city: 'Toronto' },
+    { name: 'Kai Tanaka', avatar: '🚀', interests: ['gaming', 'sports', 'coffee'], city: 'New York' },
+    { name: 'Emma Dubois', avatar: '🎨', interests: ['art', 'hiking', 'dinner'], city: 'Montréal' },
+  ];
+
+  for (const sp of suggestionProfiles) {
+    await supabase.from('profiles').insert({
+      id: crypto.randomUUID(),
+      name: sp.name,
+      avatar: sp.avatar,
+      interests: sp.interests,
+      city: sp.city,
+    });
+  }
+
   // --- GROUPS ---
   const groups = [
     { name: 'Hoop Squad', emoji: '🏀', created_by: userId },
