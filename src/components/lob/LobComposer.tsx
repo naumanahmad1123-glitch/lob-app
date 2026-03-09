@@ -244,7 +244,7 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
             style={lobLaunched ? undefined : (showConfirm ? { y: confirmDragY, opacity: confirmOpacity, scale: confirmScale } : { y, opacity })}
             className="fixed bottom-0 left-0 right-0 z-[70] max-w-lg mx-auto"
           >
-            <div className="bg-card rounded-t-3xl border border-border/50 shadow-card overflow-hidden max-h-[85vh]">
+            <div className="bg-card rounded-t-3xl border border-border/50 shadow-card overflow-hidden max-h-[90vh] flex flex-col">
               {showConfirm && !lobLaunched && (
                 <motion.div style={{ opacity: confirmHintOp }} className="flex justify-center pt-4 pb-1">
                   <motion.div animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 1.2, ease: 'easeInOut' }}>
