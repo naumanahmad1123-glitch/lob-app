@@ -3,10 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, HelpCircle, ChevronRight, Zap } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { users, currentUser, groups, lobs, calendarShares } from '@/data/seed';
 import { CATEGORY_CONFIG } from '@/data/types';
 import { ShowRateBadge } from '@/components/lob/ShowRateBadge';
 import { useComposer } from '@/hooks/useComposer';
+import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseGroups } from '@/hooks/useSupabaseGroups';
+import { useSupabaseLobs } from '@/hooks/useSupabaseLobs';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const INTEREST_LABELS: Record<string, string> = {
   sports: '🏀 Sports',
@@ -21,35 +26,80 @@ const INTEREST_LABELS: Record<string, string> = {
 const UserProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { openComposer } = useComposer();
   const [showRateTooltip, setShowRateTooltip] = useState(false);
   const [showAllMutuals, setShowAllMutuals] = useState(false);
 
-  const user = users.find(u => u.id === id);
+  // Fetch this user's profile from Supabase
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ['profile', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', id!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 30_000,
+  });
 
-  // Shared groups: groups where both currentUser and this user are members
+  const { data: allGroups = [] } = useSupabaseGroups();
+  const { data: allLobs = [] } = useSupabaseLobs();
+
+  // Shared groups: groups where both current user and this user are members
   const sharedGroups = useMemo(() => {
-    if (!user) return [];
-    return groups.filter(
-      g => g.members.some(m => m.id === currentUser.id) && g.members.some(m => m.id === user.id)
+    if (!id || !user) return [];
+    return allGroups.filter(
+      g => g.members.some(m => m.user_id === user.id) && g.members.some(m => m.user_id === id)
     );
-  }, [user]);
+  }, [allGroups, id, user]);
 
-  // Mutual connections: users in at least one group with both currentUser and this user
+  // Mutual connections: users in shared groups excluding both users
   const mutualConnections = useMemo(() => {
-    if (!user) return [];
-    const mutualIds = new Set<string>();
+    if (!id || !user) return [];
+    const mutualMap = new Map<string, { id: string; name: string; avatar: string }>();
     for (const g of sharedGroups) {
       for (const m of g.members) {
-        if (m.id !== currentUser.id && m.id !== user.id) {
-          mutualIds.add(m.id);
+        if (m.user_id !== user.id && m.user_id !== id) {
+          mutualMap.set(m.user_id, { id: m.user_id, name: m.name, avatar: m.avatar });
         }
       }
     }
-    return users.filter(u => mutualIds.has(u.id));
-  }, [sharedGroups, user]);
+    return Array.from(mutualMap.values());
+  }, [sharedGroups, id, user]);
 
-  if (!user) {
+  // Upcoming confirmed plans this user is in
+  const upcomingPlans = useMemo(() => {
+    if (!id) return [];
+    return allLobs.filter(l =>
+      l.status === 'confirmed' && l.responses.some(r => r.userId === id && r.response === 'in')
+    );
+  }, [allLobs, id]);
+
+  if (profileLoading) {
+    return (
+      <AppLayout>
+        <div className="max-w-lg mx-auto px-4 pb-8">
+          <div className="flex items-center gap-3 pt-12 pb-4">
+            <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
+              <ArrowLeft className="w-4 h-4 text-foreground" />
+            </button>
+          </div>
+          <div className="rounded-2xl p-6 border border-border/50 mb-6 text-center space-y-3">
+            <Skeleton className="w-20 h-20 rounded-full mx-auto" />
+            <Skeleton className="h-6 w-32 mx-auto" />
+            <Skeleton className="h-4 w-48 mx-auto" />
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!profile) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -59,20 +109,8 @@ const UserProfile = () => {
     );
   }
 
-  // Privacy check: does this user share calendar details with currentUser?
-  const calShare = calendarShares.find(
-    cs => cs.ownerId === user.id && ((cs.targetType === 'user' && cs.targetId === currentUser.id) || (cs.targetType === 'group' && sharedGroups.some(g => g.id === cs.targetId)))
-  );
-  const showFullDetails = calShare?.privacy === 'details';
-
-  // Upcoming confirmed plans (only if full details shared)
-  const upcomingPlans = showFullDetails
-    ? lobs.filter(l => l.status === 'confirmed' && l.responses.some(r => r.userId === user.id && r.response === 'in'))
-    : [];
-
-  // Show rate from seed data — deterministic per user
-  const showRateTotal = 5 + (user.id.charCodeAt(1) % 10);
-  const showRateShowed = Math.min(showRateTotal, Math.round(showRateTotal * (0.7 + (user.id.charCodeAt(1) % 30) / 100)));
+  const showRateTotal = 5 + (profile.id.charCodeAt(1) % 10);
+  const showRateShowed = Math.min(showRateTotal, Math.round(showRateTotal * (0.7 + (profile.id.charCodeAt(1) % 30) / 100)));
 
   return (
     <AppLayout>
@@ -84,7 +122,7 @@ const UserProfile = () => {
           </button>
           <div className="flex-1" />
           <button
-            onClick={() => openComposer({ prefillUserIds: user ? [user.id] : [] })}
+            onClick={() => openComposer({ prefillUserIds: id ? [id] : [] })}
             className="px-4 py-2 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold flex items-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
           >
             <Zap className="w-4 h-4" /> Lob them
@@ -98,10 +136,10 @@ const UserProfile = () => {
           className="gradient-card rounded-2xl p-6 border border-border/50 shadow-card mb-6 text-center"
         >
           <div className="w-20 h-20 rounded-full bg-secondary mx-auto flex items-center justify-center text-5xl mb-3">
-            {user.avatar}
+            {profile.avatar}
           </div>
-          <h2 className="text-xl font-bold text-foreground">{user.name}</h2>
-          <p className="text-sm text-muted-foreground mt-1">Making plans since 2025</p>
+          <h2 className="text-xl font-bold text-foreground">{profile.name || 'Unknown'}</h2>
+          {profile.city && <p className="text-sm text-muted-foreground mt-1">{profile.city}</p>}
 
           {/* Show Rate */}
           <div className="flex justify-center mt-5">
@@ -132,16 +170,18 @@ const UserProfile = () => {
         </motion.div>
 
         {/* Interests */}
-        <section className="mb-6">
-          <h3 className="text-sm font-bold text-foreground mb-2">Interests</h3>
-          <div className="flex flex-wrap gap-2">
-            {user.interests.map(interest => (
-              <span key={interest} className="px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-foreground">
-                {INTEREST_LABELS[interest] || interest}
-              </span>
-            ))}
-          </div>
-        </section>
+        {profile.interests && profile.interests.length > 0 && (
+          <section className="mb-6">
+            <h3 className="text-sm font-bold text-foreground mb-2">Interests</h3>
+            <div className="flex flex-wrap gap-2">
+              {profile.interests.map((interest: string) => (
+                <span key={interest} className="px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-foreground">
+                  {INTEREST_LABELS[interest] || interest}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Shared Groups */}
         {sharedGroups.length > 0 && (
@@ -197,7 +237,8 @@ const UserProfile = () => {
           </section>
         )}
 
-        {showFullDetails && upcomingPlans.length > 0 && (
+        {/* Upcoming plans - only show if in shared groups */}
+        {upcomingPlans.length > 0 && sharedGroups.length > 0 && (
           <section className="mb-6">
             <h3 className="text-sm font-bold text-foreground mb-2">Upcoming</h3>
             <div className="space-y-2">
@@ -223,14 +264,6 @@ const UserProfile = () => {
               })}
             </div>
           </section>
-        )}
-
-        {!showFullDetails && (
-          <div className="rounded-xl bg-secondary/50 border border-border/50 p-4 text-center">
-            <p className="text-xs text-muted-foreground">
-              🔒 {user.name}'s upcoming plans are private
-            </p>
-          </div>
         )}
       </div>
     </AppLayout>
