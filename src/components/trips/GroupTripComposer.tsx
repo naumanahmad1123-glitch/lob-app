@@ -142,11 +142,11 @@ export function GroupTripComposer({ open, onClose, onCreated }: GroupTripCompose
             className="fixed bottom-0 left-0 right-0 z-[70] max-w-lg mx-auto"
           >
             <div className="bg-card rounded-t-3xl border border-border/50 shadow-card pt-4 max-h-[85vh] flex flex-col">
-              <div className="flex justify-center mb-3">
+              <div className="flex justify-center mb-3 px-5">
                 <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
               </div>
 
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center justify-between mb-5 px-5">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">🌍</span>
                   <h2 className="text-lg font-extrabold text-foreground">Plan a Group Trip</h2>
