@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,6 +23,7 @@ import { BailSheet } from '@/components/lob/BailSheet';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { generateDayChips, generateTimeChips, isSameDay, parseTimeString } from '@/lib/lob-utils';
+import { useProfileMap, getProfileName, getProfileAvatar } from '@/hooks/useProfileMap';
 
 const DAY_CHIPS = generateDayChips();
 const TIME_CHIPS = generateTimeChips();
@@ -34,6 +35,18 @@ const LobDetail = () => {
   const queryClient = useQueryClient();
   const { data: lob, isLoading } = useSupabaseLob(id);
   
+  // Collect all user IDs from responses and comments for profile lookup
+  const allUserIds = useMemo(() => {
+    if (!lob) return [];
+    const ids = new Set<string>();
+    ids.add(lob.createdBy);
+    lob.responses.forEach(r => ids.add(r.userId));
+    (lob.comments || []).forEach(c => ids.add(c.userId));
+    return Array.from(ids);
+  }, [lob]);
+
+  const { data: profileMap } = useProfileMap(allUserIds);
+
   const myResponse = lob?.responses.find(r => r.userId === user?.id)?.response as ResponseType | undefined;
   const [lastNudgeTime, setLastNudgeTime] = useState<number | null>(null);
   const [localComments, setLocalComments] = useState<LobComment[]>([]);
@@ -42,7 +55,6 @@ const LobDetail = () => {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showBailSheet, setShowBailSheet] = useState(false);
 
-  // Sync comments from DB
   useEffect(() => {
     if (lob?.comments) setLocalComments(lob.comments);
   }, [lob?.comments]);
@@ -74,7 +86,6 @@ const LobDetail = () => {
 
   const handleResponse = async (response: ResponseType) => {
     if (!user) return;
-    // Upsert response
     const existing = lob.responses.find(r => r.userId === user.id);
     if (existing) {
       await supabase.from('lob_responses').update({ response }).eq('lob_id', lob.id).eq('user_id', user.id);
@@ -121,6 +132,9 @@ const LobDetail = () => {
 
   const isGroupTrip = lob.category === 'group-trip';
   const showTripPlanning = isGroupTrip && lob.tripPlanningPhase && lob.tripPlanningPhase !== 'confirmed';
+
+  // Creator name from profiles
+  const creatorName = isCreator ? 'You' : getProfileName(profileMap, lob.createdBy);
 
   return (
     <AppLayout>
@@ -193,7 +207,9 @@ const LobDetail = () => {
             <span className="text-4xl">{config.emoji}</span>
             <div>
               <h1 className="text-2xl font-extrabold text-foreground leading-tight">{lob.title}</h1>
-              <p className="text-sm text-muted-foreground">{lob.groupName}</p>
+              <p className="text-sm text-muted-foreground">
+                {lob.groupName} · by {creatorName}
+              </p>
             </div>
           </div>
           {recurrenceLabel && (
@@ -282,15 +298,22 @@ const LobDetail = () => {
 
           {localComments.length > 0 ? (
             <div className="space-y-3 mb-3">
-              {localComments.map(c => (
-                <div key={c.id} className="flex gap-2">
-                  <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-sm shrink-0">💬</div>
-                  <div>
-                    <p className="text-sm text-foreground">{c.message}</p>
-                    <p className="text-[10px] text-muted-foreground">{new Date(c.createdAt).toLocaleString()}</p>
+              {localComments.map(c => {
+                const commentAuthor = c.userId === user?.id ? 'You' : getProfileName(profileMap, c.userId);
+                const commentAvatar = getProfileAvatar(profileMap, c.userId);
+                return (
+                  <div key={c.id} className="flex gap-2">
+                    <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-sm shrink-0">
+                      {commentAvatar}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">{commentAuthor}</p>
+                      <p className="text-sm text-foreground">{c.message}</p>
+                      <p className="text-[10px] text-muted-foreground">{new Date(c.createdAt).toLocaleString()}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="text-xs text-muted-foreground mb-3">No comments yet</p>

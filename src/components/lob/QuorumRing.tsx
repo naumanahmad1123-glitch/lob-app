@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { users } from '@/data/seed';
 import { LobResponse, User } from '@/data/types';
 import { ShowRateBadge } from '@/components/lob/ShowRateBadge';
+import { useProfileMap, getProfileName, getProfileAvatar } from '@/hooks/useProfileMap';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface QuorumRingProps {
   current: number;
@@ -13,27 +14,26 @@ interface QuorumRingProps {
   groupMembers?: User[];
 }
 
-const getName = (userId: string) => users.find(u => u.id === userId)?.name || 'Unknown';
-const getAvatar = (userId: string) => users.find(u => u.id === userId)?.avatar || '👤';
 const getShowRate = (userId: string) => {
   const total = 5 + (userId.charCodeAt(1) % 10);
   const showed = Math.min(total, Math.round(total * (0.7 + (userId.charCodeAt(1) % 30) / 100)));
   return { total, showed };
 };
 
-function AvatarWithTooltip({ userId, bgClass }: { userId: string; bgClass: string }) {
+function AvatarWithTooltip({ userId, bgClass, profileMap }: { userId: string; bgClass: string; profileMap?: Record<string, any> }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   return (
     <div className="relative">
       <button
         onClick={(e) => {
           e.stopPropagation();
-          navigate(userId === 'u1' ? '/profile' : `/user/${userId}`);
+          navigate(userId === user?.id ? '/profile' : `/user/${userId}`);
         }}
-        className={`w-7 h-7 rounded-full ${bgClass} border-2 border-card flex items-center justify-center text-sm transition-transform active:scale-90`}
+        className={`w-7 h-7 rounded-full ${bgClass} border-2 border-card flex items-center justify-center text-sm transition-transform active:scale-90 cursor-pointer`}
       >
-        {getAvatar(userId)}
+        {getProfileAvatar(profileMap, userId)}
       </button>
     </div>
   );
@@ -42,6 +42,17 @@ function AvatarWithTooltip({ userId, bgClass }: { userId: string; bgClass: strin
 export function QuorumRing({ current, target, responses, groupMembers = [] }: QuorumRingProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Collect all user IDs for profile lookup
+  const allUserIds = useMemo(() => {
+    const ids = responses.map(r => r.userId);
+    groupMembers.forEach(m => ids.push(m.id));
+    return ids;
+  }, [responses, groupMembers]);
+
+  const { data: profileMap } = useProfileMap(allUserIds);
+
   const pct = Math.min(current / target, 1);
   const reached = current >= target;
   const isEmpty = responses.length === 0;
@@ -53,7 +64,6 @@ export function QuorumRing({ current, target, responses, groupMembers = [] }: Qu
   const maybeList = responses.filter(r => r.response === 'maybe');
   const outList = responses.filter(r => r.response === 'out');
 
-  // Derive "no response" from group members who haven't responded
   const respondedIds = new Set(responses.map(r => r.userId));
   const noResponseList = groupMembers.filter(m => !respondedIds.has(m.id));
 
@@ -66,7 +76,7 @@ export function QuorumRing({ current, target, responses, groupMembers = [] }: Qu
 
   return (
     <>
-      <button onClick={() => setSheetOpen(true)} className="w-full text-left">
+      <button onClick={() => setSheetOpen(true)} className="w-full text-left cursor-pointer">
         <div className="flex items-center gap-5">
           {/* Ring */}
           <div className="relative w-32 h-32 flex-shrink-0">
@@ -113,13 +123,13 @@ export function QuorumRing({ current, target, responses, groupMembers = [] }: Qu
             </div>
           </div>
 
-          {/* Avatar stacks — 3 buckets */}
+          {/* Avatar stacks */}
           <div className="flex-1 space-y-2.5">
             {inList.length > 0 && (
               <div className="flex items-center gap-2">
                 <div className="flex -space-x-2">
                   {inList.slice(0, 5).map(r => (
-                    <AvatarWithTooltip key={r.userId} userId={r.userId} bgClass="bg-lob-in/20" />
+                    <AvatarWithTooltip key={r.userId} userId={r.userId} bgClass="bg-lob-in/20" profileMap={profileMap} />
                   ))}
                 </div>
                 <span className="text-xs font-semibold text-lob-in">{inList.length} in</span>
@@ -129,7 +139,7 @@ export function QuorumRing({ current, target, responses, groupMembers = [] }: Qu
               <div className="flex items-center gap-2">
                 <div className="flex -space-x-2">
                   {maybeList.slice(0, 5).map(r => (
-                    <AvatarWithTooltip key={r.userId} userId={r.userId} bgClass="bg-lob-maybe/20" />
+                    <AvatarWithTooltip key={r.userId} userId={r.userId} bgClass="bg-lob-maybe/20" profileMap={profileMap} />
                   ))}
                 </div>
                 <span className="text-xs font-semibold text-lob-maybe">{maybeList.length} maybe</span>
@@ -139,7 +149,7 @@ export function QuorumRing({ current, target, responses, groupMembers = [] }: Qu
               <div className="flex items-center gap-2">
                 <div className="flex -space-x-2">
                   {noResponseList.slice(0, 5).map(m => (
-                    <AvatarWithTooltip key={m.id} userId={m.id} bgClass="bg-secondary" />
+                    <AvatarWithTooltip key={m.id} userId={m.id} bgClass="bg-secondary" profileMap={profileMap} />
                   ))}
                 </div>
                 <span className="text-xs font-semibold text-muted-foreground">{noResponseList.length} no response</span>
@@ -159,7 +169,7 @@ export function QuorumRing({ current, target, responses, groupMembers = [] }: Qu
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              exit={{ opacity: 0, pointerEvents: 'none' as any }}
               onClick={() => setSheetOpen(false)}
               className="fixed inset-0 z-[60] bg-background/60 backdrop-blur-sm"
             />
@@ -189,14 +199,16 @@ export function QuorumRing({ current, target, responses, groupMembers = [] }: Qu
                             key={userId}
                             onClick={() => {
                               setSheetOpen(false);
-                              navigate(userId === 'u1' ? '/profile' : `/user/${userId}`);
+                              navigate(userId === user?.id ? '/profile' : `/user/${userId}`);
                             }}
-                            className="w-full flex items-center gap-3 py-1.5 active:scale-[0.98] transition-transform"
+                            className="w-full flex items-center gap-3 py-1.5 active:scale-[0.98] transition-transform cursor-pointer"
                           >
                             <span className={`w-9 h-9 rounded-full ${sec.bgClass} flex items-center justify-center text-lg`}>
-                              {getAvatar(userId)}
+                              {getProfileAvatar(profileMap, userId)}
                             </span>
-                            <span className="text-sm font-medium text-foreground flex-1">{getName(userId)}</span>
+                            <span className="text-sm font-medium text-foreground flex-1 text-left">
+                              {userId === user?.id ? 'You' : getProfileName(profileMap, userId)}
+                            </span>
                             {sec.key !== 'no-response' && (() => {
                               const sr = getShowRate(userId);
                               return <ShowRateBadge total={sr.total} showed={sr.showed} compact />;
