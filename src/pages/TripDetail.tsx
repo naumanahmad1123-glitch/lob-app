@@ -192,12 +192,41 @@ const TripDetail = () => {
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
           {isOwner && (
-            <button
-              onClick={openEditSheet}
-              className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
-            >
-              <Pencil className="w-4 h-4 text-foreground" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={openEditSheet}
+                className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+              >
+                <Pencil className="w-4 h-4 text-foreground" />
+              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowMenu(v => !v)}
+                  className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+                >
+                  <MoreVertical className="w-4 h-4 text-foreground" />
+                </button>
+                {showMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+                    <div className="absolute right-0 top-12 z-50 w-48 rounded-xl bg-card border border-border shadow-card py-1">
+                      <button
+                        onClick={handleCopyLink}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                      >
+                        <Link className="w-4 h-4" /> Copy link
+                      </button>
+                      <button
+                        onClick={() => { setShowMenu(false); setShowCancelConfirm(true); }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-destructive hover:bg-destructive/5 transition-colors cursor-pointer"
+                      >
+                        <XCircle className="w-4 h-4" /> Cancel trip
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           )}
         </div>
 
