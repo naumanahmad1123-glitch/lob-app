@@ -91,7 +91,7 @@ const Profile = () => {
       <div className="max-w-lg mx-auto px-4">
         <div className="flex items-center justify-between pt-12 pb-6">
           <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Profile</h1>
-          <button onClick={() => { setShowComingSoon('Settings'); setTimeout(() => setShowComingSoon(null), 2000); }} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+          <button onClick={() => { setShowComingSoon('Settings'); setTimeout(() => setShowComingSoon(null), 2000); }} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
             <Settings className="w-5 h-5 text-foreground" />
           </button>
         </div>
