@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TappableAvatarProps {
   userId: string;
@@ -13,11 +14,11 @@ interface TappableAvatarProps {
  */
 export function TappableAvatar({ userId, emoji, className = '', children }: TappableAvatarProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  // Don't link to self (currentUser = u1) – that goes to /profile
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (userId === 'u1') {
+    if (userId === user?.id) {
       navigate('/profile');
     } else {
       navigate(`/user/${userId}`);
