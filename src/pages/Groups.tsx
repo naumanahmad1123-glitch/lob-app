@@ -7,7 +7,6 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const Groups = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { data: allGroups = [], isLoading } = useSupabaseGroups();
 
   const friends = useMemo(() => {
