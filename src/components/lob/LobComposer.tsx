@@ -334,7 +334,7 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
                         <input
                           ref={inputRef}
                           type="text"
-                          placeholder="Hoops 8pm..."
+                          placeholder="Hoops 8pm DHA..."
                           value={quickText}
                           onChange={e => setQuickText(e.target.value)}
                           onKeyDown={e => e.key === 'Enter' && handleQuickSubmit()}
