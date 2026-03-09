@@ -221,7 +221,7 @@ const Profile = () => {
         </div>
 
         {/* Sign out */}
-        <button onClick={handleSignOut} className="w-full flex items-center gap-3 p-4 rounded-xl border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 transition-all mb-8">
+        <button onClick={handleSignOut} className="w-full flex items-center gap-3 p-4 rounded-xl border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 transition-all mb-8 cursor-pointer">
           <LogOut className="w-5 h-5 text-destructive" />
           <span className="text-sm font-semibold text-destructive">Sign Out</span>
         </button>

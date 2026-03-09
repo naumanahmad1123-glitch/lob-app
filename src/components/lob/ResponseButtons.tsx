@@ -22,7 +22,7 @@ export function ResponseButtons({ current, onChange }: ResponseButtonsProps) {
             key={value}
             whileTap={{ scale: 0.95 }}
             onClick={() => onChange(value)}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
               isActive ? activeClass : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
             }`}
           >

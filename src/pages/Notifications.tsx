@@ -75,7 +75,7 @@ const Notifications = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
                   onClick={() => handleTap(n)}
-                  className={`w-full text-left flex items-start gap-3 p-4 rounded-2xl border transition-colors ${
+                  className={`w-full text-left flex items-start gap-3 p-4 rounded-2xl border transition-colors cursor-pointer active:scale-[0.98] ${
                     n.read
                       ? 'bg-card border-border/30'
                       : 'gradient-card border-primary/20 shadow-card'

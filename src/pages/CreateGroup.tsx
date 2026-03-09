@@ -131,7 +131,7 @@ export default function CreateGroup() {
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{cat}</p>
                     <div className="flex flex-wrap gap-2">
                       {emojis.map(e => (
-                        <button key={e} onClick={() => { setSelectedEmoji(e); setCustomEmojiMode(false); }} className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${selectedEmoji === e && !customEmojiMode ? 'bg-primary/20 ring-2 ring-primary scale-110' : 'bg-secondary hover:bg-secondary/80 active:scale-95'}`}>
+                        <button key={e} onClick={() => { setSelectedEmoji(e); setCustomEmojiMode(false); }} className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all cursor-pointer ${selectedEmoji === e && !customEmojiMode ? 'bg-primary/20 ring-2 ring-primary scale-110' : 'bg-secondary hover:bg-secondary/80 active:scale-95'}`}>
                           {e}
                         </button>
                       ))}

@@ -61,7 +61,7 @@ const GroupDetail = () => {
                 {m.avatar}
               </div>
               <span className="text-[10px] text-muted-foreground font-medium">{m.name}</span>
-            </div>
+            </button>
           ))}
         </div>
 

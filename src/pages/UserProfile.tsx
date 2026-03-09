@@ -211,7 +211,7 @@ const UserProfile = () => {
                   <button
                     key={l.id}
                     onClick={() => navigate(`/lob/${l.id}`)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50 active:scale-[0.98] transition-transform text-left"
+                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border/50 active:scale-[0.98] transition-transform text-left cursor-pointer"
                   >
                     <span className="text-xl">{config.emoji}</span>
                     <div className="flex-1">

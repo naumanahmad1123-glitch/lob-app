@@ -195,7 +195,7 @@ const Home = () => {
                       <button
                         key={i}
                         onClick={() => setSelectedDay(isSelected ? null : day)}
-                        className={`relative aspect-square rounded-xl flex flex-col items-center justify-center text-sm font-medium transition-all ${
+                        className={`relative aspect-square rounded-xl flex flex-col items-center justify-center text-sm font-medium transition-all cursor-pointer ${
                           isSelected ? 'bg-primary text-primary-foreground'
                             : isToday ? 'bg-accent/20 text-accent'
                             : 'text-foreground hover:bg-secondary'

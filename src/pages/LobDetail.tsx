@@ -305,7 +305,7 @@ const LobDetail = () => {
               onKeyDown={e => e.key === 'Enter' && handleAddComment()}
               className="flex-1 p-2.5 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            <button onClick={handleAddComment} disabled={!newComment.trim()} className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center disabled:opacity-40">
+            <button onClick={handleAddComment} disabled={!newComment.trim()} className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center disabled:opacity-40 cursor-pointer">
               <Send className="w-4 h-4 text-primary-foreground" />
             </button>
           </div>
