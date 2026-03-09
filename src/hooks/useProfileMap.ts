@@ -5,6 +5,7 @@ export interface ProfileInfo {
   id: string;
   name: string;
   avatar: string;
+  avatar_photo_url: string | null;
   interests: string[];
   city: string | null;
   is_pro: boolean;
@@ -27,7 +28,7 @@ export function useProfileMap(userIds: string[]) {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, avatar, interests, city, is_pro')
+        .select('id, name, avatar, avatar_photo_url, interests, city, is_pro')
         .in('id', uniqueIds);
       if (error) throw error;
 
@@ -36,6 +37,7 @@ export function useProfileMap(userIds: string[]) {
           id: p.id,
           name: p.name || 'Unknown',
           avatar: p.avatar || '🙂',
+          avatar_photo_url: p.avatar_photo_url || null,
           interests: p.interests || [],
           city: p.city,
           is_pro: p.is_pro,
@@ -55,4 +57,9 @@ export function getProfileName(map: Record<string, ProfileInfo> | undefined, use
 /** Helper to get avatar from profile map with fallback */
 export function getProfileAvatar(map: Record<string, ProfileInfo> | undefined, userId: string): string {
   return map?.[userId]?.avatar || '🙂';
+}
+
+/** Helper to get avatar photo URL from profile map */
+export function getProfilePhotoUrl(map: Record<string, ProfileInfo> | undefined, userId: string): string | null {
+  return map?.[userId]?.avatar_photo_url || null;
 }
