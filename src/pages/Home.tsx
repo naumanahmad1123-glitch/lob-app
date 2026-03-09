@@ -111,7 +111,7 @@ const Home = () => {
           </button>
           <button
             onClick={() => setView('calendar')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
               view === 'calendar' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
             }`}
           >
