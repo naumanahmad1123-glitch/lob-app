@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Calendar, Lightbulb, Plus, ThumbsUp, Lock, X } from 'lucide-react';
+import { MapPin, Calendar, Lightbulb, Plus, ThumbsUp, Lock, X, ChevronDown } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { TripSuggestion } from '@/hooks/useTripDetail';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
