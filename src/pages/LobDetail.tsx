@@ -248,7 +248,7 @@ const LobDetail = () => {
         {/* Bail button */}
         {!isCreator && myResponse === 'in' && effectiveStatus !== 'cancelled' && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} className="mb-4">
-            <button onClick={() => setShowBailSheet(true)} className="w-full py-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive font-semibold text-sm flex items-center justify-center gap-2">
+            <button onClick={() => setShowBailSheet(true)} className="w-full py-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer">
               <DoorOpen className="w-4 h-4" /> Can't make it
             </button>
           </motion.div>
