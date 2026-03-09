@@ -172,7 +172,7 @@ const Profile = () => {
             </div>
             <div className="relative">
               <ShowRateBadge total={12} showed={11} />
-              <button onClick={() => setShowRateTooltip(!showRateTooltip)} className="flex items-center gap-0.5 text-[11px] text-muted-foreground mx-auto mt-0.5">
+              <button onClick={() => setShowRateTooltip(!showRateTooltip)} className="flex items-center gap-0.5 text-[11px] text-muted-foreground mx-auto mt-0.5 cursor-pointer">
                 <HelpCircle className="w-3 h-3" />
               </button>
               <AnimatePresence>
