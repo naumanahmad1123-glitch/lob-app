@@ -80,8 +80,8 @@ const Trips = () => {
         <AnimatePresence>
           {showAddTrip && (
             <>
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddTrip(false)} className="fixed inset-0 z-[60] bg-background/60 backdrop-blur-sm" />
-              <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 300 }} className="fixed bottom-0 left-0 right-0 z-[70] max-w-lg mx-auto">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, pointerEvents: 'none' as any }} onClick={() => setShowAddTrip(false)} className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm" />
+              <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 300 }} className="fixed bottom-0 left-0 right-0 z-50 max-w-lg mx-auto">
                 <div className="bg-card rounded-t-3xl border border-border/50 shadow-card px-5 pb-8 pt-4">
                   <div className="flex justify-center mb-3"><div className="w-10 h-1 rounded-full bg-muted-foreground/30" /></div>
                   <div className="flex items-center justify-between mb-5">
@@ -137,7 +137,7 @@ const Trips = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
                   onClick={() => navigate(`/trips/${trip.id}`)}
-                  className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card cursor-pointer active:scale-[0.98] transition-transform"
+                  className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card cursor-pointer active:scale-[0.98] hover:border-primary/30 hover:shadow-lg transition-all"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2.5">
@@ -180,7 +180,7 @@ const Trips = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
                   onClick={() => navigate(`/trips/${trip.id}/friend`)}
-                  className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card cursor-pointer active:scale-[0.98] transition-transform"
+                  className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card cursor-pointer active:scale-[0.98] hover:border-primary/30 hover:shadow-lg transition-all"
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-2xl">{trip.userAvatar || trip.emoji}</span>
