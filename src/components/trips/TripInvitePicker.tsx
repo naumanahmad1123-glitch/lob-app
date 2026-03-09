@@ -98,9 +98,9 @@ export function TripInvitePicker({ open, onClose, tripId, existingMemberIds }: P
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 max-w-lg mx-auto"
+            className="fixed bottom-0 left-0 right-0 z-[60] max-w-lg mx-auto"
           >
-            <div className="bg-card rounded-t-3xl border border-border/50 shadow-card px-5 pb-8 pt-4 max-h-[70vh] flex flex-col">
+            <div className="bg-card rounded-t-3xl border border-border/50 shadow-card px-5 pt-4 max-h-[70vh] flex flex-col">
               <div className="flex justify-center mb-3">
                 <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
               </div>
@@ -111,7 +111,7 @@ export function TripInvitePicker({ open, onClose, tripId, existingMemberIds }: P
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-2 mb-4">
+              <div className="flex-1 overflow-y-auto space-y-2 mb-4 max-h-[45vh]">
                 {available.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-6">No connections to invite</p>
                 ) : (
@@ -141,13 +141,15 @@ export function TripInvitePicker({ open, onClose, tripId, existingMemberIds }: P
               </div>
 
               {selected.length > 0 && (
-                <button
-                  onClick={handleInvite}
-                  disabled={saving}
-                  className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm cursor-pointer disabled:opacity-50"
-                >
-                  {saving ? 'Inviting...' : `Invite ${selected.length} Friend${selected.length > 1 ? 's' : ''}`}
-                </button>
+                <div style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+                  <button
+                    onClick={handleInvite}
+                    disabled={saving}
+                    className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm cursor-pointer disabled:opacity-50"
+                  >
+                    {saving ? 'Inviting...' : `Invite ${selected.length} Friend${selected.length > 1 ? 's' : ''}`}
+                  </button>
+                </div>
               )}
             </div>
           </motion.div>
