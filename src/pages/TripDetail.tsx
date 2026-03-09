@@ -42,7 +42,9 @@ const TripDetail = () => {
   });
 
   const isOwner = trip?.user_id === user?.id;
-  const tripStatus = (trip as any)?.status || 'planning';
+  const hasDestination = !!(trip?.city && trip.city.trim() && trip.city.trim().toLowerCase() !== 'tbd');
+  const hasDates = !!(trip?.start_date && trip?.end_date);
+  const tripStatus = (hasDestination && hasDates) ? 'confirmed' : ((trip as any)?.status || 'planning');
 
   const openEditSheet = () => {
     if (!trip) return;
