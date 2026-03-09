@@ -216,7 +216,7 @@ const LobDetail = () => {
   };
 
   const handleShareLink = () => {
-    const shareUrl = `${window.location.origin}/lob/${lob.id}`;
+    const shareUrl = `https://lob-app.lovable.app/lob/${lob.id}`;
     navigator.clipboard.writeText(shareUrl);
     toast.success('Link copied!');
   };
