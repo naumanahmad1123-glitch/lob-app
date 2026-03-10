@@ -55,6 +55,10 @@ export interface Lob {
   groupName: string;
   createdBy: string;
   location?: string;
+  locationName?: string;
+  locationAddress?: string;
+  locationLat?: number;
+  locationLng?: number;
   description?: string;
   timeOptions: TimeOption[];
   selectedTime?: string;
@@ -81,8 +85,8 @@ export interface Lob {
   tripEndDate?: string;
   tripPlanningMode?: TripPlanningMode;
   tripPlanningPhase?: TripPlanningPhase;
-  tripTimeframe?: string; // e.g. "August 2026", "Q3 2026"
-  tripBudget?: string; // e.g. "$1k-2k per person"
+  tripTimeframe?: string;
+  tripBudget?: string;
   tripVibes?: TripVibe[];
   destinationOptions?: { id: string; name: string; votes: string[] }[];
   dateRangeOptions?: { id: string; startDate: string; endDate: string; votes: string[] }[];

@@ -3,12 +3,16 @@ import { motion } from 'framer-motion';
 
 interface LocationMapProps {
   location: string;
+  lat?: number;
+  lng?: number;
 }
 
-export function LocationMap({ location }: LocationMapProps) {
-  const encodedLocation = encodeURIComponent(location);
-  const mapsEmbedUrl = `https://maps.google.com/maps?q=${encodedLocation}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
-  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedLocation}`;
+export function LocationMap({ location, lat, lng }: LocationMapProps) {
+  const query = lat && lng ? `${lat},${lng}` : encodeURIComponent(location);
+  const mapsEmbedUrl = `https://maps.google.com/maps?q=${query}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+  const directionsUrl = lat && lng
+    ? `https://www.google.com/maps/?q=${lat},${lng}`
+    : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(location)}`;
 
   return (
     <motion.div
