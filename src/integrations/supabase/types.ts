@@ -339,6 +339,10 @@ export type Database = {
           id: string
           last_nudged_at: string | null
           location: string | null
+          location_address: string | null
+          location_lat: number | null
+          location_lng: number | null
+          location_name: string | null
           open_invite_enabled: boolean
           open_invite_max_guests: number
           open_invite_used_guests: number
@@ -364,6 +368,10 @@ export type Database = {
           id?: string
           last_nudged_at?: string | null
           location?: string | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_name?: string | null
           open_invite_enabled?: boolean
           open_invite_max_guests?: number
           open_invite_used_guests?: number
@@ -389,6 +397,10 @@ export type Database = {
           id?: string
           last_nudged_at?: string | null
           location?: string | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          location_name?: string | null
           open_invite_enabled?: boolean
           open_invite_max_guests?: number
           open_invite_used_guests?: number
