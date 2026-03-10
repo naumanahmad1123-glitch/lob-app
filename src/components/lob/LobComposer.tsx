@@ -42,7 +42,7 @@ function parseLobText(text: string): ParsedLob {
   const dayMatch = lower.match(/(tonight|today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/);
   const rawDay = dayMatch ? dayMatch[1] : 'today';
   const time = rawTime ? parseTimeToISO(rawTime, rawDay) : '';
-  return { title: text, category, time, location: '', groupId: '', recipientType: 'group' as RecipientType, selectedUserIds: [] };
+  return { title: text, category, time, location: '', locationAddress: '', locationLat: null, locationLng: null, groupId: '', recipientType: 'group' as RecipientType, selectedUserIds: [] };
 }
 
 function SwipeableCard({ onLob, card }: { onLob: () => void; card: React.ReactNode }) {
