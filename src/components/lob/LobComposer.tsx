@@ -484,6 +484,23 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
                             <span>{parsed.time}</span>
                           </div>
                         )}
+                        {parsed.location ? (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <MapPin className="w-4 h-4 text-primary" />
+                            <span>{parsed.location}</span>
+                          </div>
+                        ) : (
+                          <div className="relative">
+                            <MapPin className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
+                            <input
+                              type="text"
+                              placeholder="Add a location (optional)"
+                              value={parsed.location}
+                              onChange={e => setParsed(p => ({ ...p, location: e.target.value }))}
+                              className="w-full p-2.5 pl-9 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          </div>
+                        )}
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Users className="w-4 h-4" />
                           <span>{catConfig?.defaultQuorum || 2} to make it happen</span>
