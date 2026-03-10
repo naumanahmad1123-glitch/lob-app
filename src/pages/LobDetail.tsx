@@ -351,15 +351,21 @@ const LobDetail = () => {
             <Clock className="w-4 h-4 text-primary" />
             <span>{formattedTime}</span>
           </div>
-          {lob.location && (
+          {(lob.locationName || lob.location) && (
             <div className="flex items-center gap-2 text-sm text-foreground">
               <MapPin className="w-4 h-4 text-primary" />
-              <span>{lob.location}</span>
+              <span>{lob.locationName || lob.location}</span>
             </div>
           )}
         </motion.div>
 
-        {lob.location && <LocationMap location={lob.location} />}
+        {(lob.locationName || lob.location) && (
+          <LocationMap
+            location={lob.locationName || lob.location!}
+            lat={lob.locationLat}
+            lng={lob.locationLng}
+          />
+        )}
 
         {/* Status Banner with Smarter Quorum Language (#3) */}
         {effectiveStatus === 'voting' && (

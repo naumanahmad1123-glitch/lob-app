@@ -194,10 +194,10 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
           <Clock className="w-3.5 h-3.5" />
           {formattedTime}
         </span>
-        {lob.location && (
-          <span className="flex items-center gap-1">
-            <MapPin className="w-3.5 h-3.5" />
-            {lob.location}
+        {(lob.locationName || lob.location) && (
+          <span className="flex items-center gap-1 truncate max-w-[150px]">
+            <MapPin className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">{lob.locationName || lob.location}</span>
           </span>
         )}
         {recurrenceLabel && (

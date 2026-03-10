@@ -12,7 +12,11 @@ function mapDbLob(row: any): Lob {
     groupId: row.group_id || '',
     groupName: row.group_name || '',
     createdBy: row.created_by,
-    location: row.location || undefined,
+    location: row.location || row.location_name || undefined,
+    locationName: row.location_name || undefined,
+    locationAddress: row.location_address || undefined,
+    locationLat: row.location_lat ?? undefined,
+    locationLng: row.location_lng ?? undefined,
     description: row.description || undefined,
     timeOptions: (row.lob_time_options || []).map((t: any) => ({
       id: t.id,

@@ -18,6 +18,9 @@ interface ParsedLob {
   category: LobCategory | '';
   time: string;
   location: string;
+  locationAddress: string;
+  locationLat: number | null;
+  locationLng: number | null;
   groupId: string;
   recipientType: RecipientType;
   selectedUserIds: string[];
@@ -39,7 +42,7 @@ function parseLobText(text: string): ParsedLob {
   const dayMatch = lower.match(/(tonight|today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/);
   const rawDay = dayMatch ? dayMatch[1] : 'today';
   const time = rawTime ? parseTimeToISO(rawTime, rawDay) : '';
-  return { title: text, category, time, location: '', groupId: '', recipientType: 'group' as RecipientType, selectedUserIds: [] };
+  return { title: text, category, time, location: '', locationAddress: '', locationLat: null, locationLng: null, groupId: '', recipientType: 'group' as RecipientType, selectedUserIds: [] };
 }
 
 function SwipeableCard({ onLob, card }: { onLob: () => void; card: React.ReactNode }) {
@@ -104,7 +107,7 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
   const inputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<ComposerStep>('quick');
   const [quickText, setQuickText] = useState('');
-  const [parsed, setParsed] = useState<ParsedLob>({ title: '', category: '', time: '', location: '', groupId: '', recipientType: 'group', selectedUserIds: [] });
+  const [parsed, setParsed] = useState<ParsedLob>({ title: '', category: '', time: '', location: '', locationAddress: '', locationLat: null, locationLng: null, groupId: '', recipientType: 'group', selectedUserIds: [] });
   const [showConfirm, setShowConfirm] = useState(false);
   const [sending, setSending] = useState(false);
 
@@ -145,6 +148,9 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
         category: '',
         time: '',
         location: '',
+        locationAddress: '',
+        locationLat: null,
+        locationLng: null,
         groupId: hasPrefillUsers ? '' : (dbGroups[0]?.id || ''),
         recipientType: hasPrefillUsers ? 'individuals' : 'group',
         selectedUserIds: hasPrefillUsers ? prefillUserIds : [],
@@ -195,6 +201,10 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
           group_name: group?.name || null,
           created_by: user.id,
           location: parsed.location || null,
+          location_name: parsed.location || null,
+          location_address: parsed.locationAddress || null,
+          location_lat: parsed.locationLat,
+          location_lng: parsed.locationLng,
           quorum: isIndividual ? Math.min(parsed.selectedUserIds.length + 1, catConfig.defaultQuorum) : catConfig.defaultQuorum,
           status: 'voting',
           when_mode: 'specific',
