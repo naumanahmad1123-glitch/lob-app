@@ -359,7 +359,13 @@ const LobDetail = () => {
           )}
         </motion.div>
 
-        {lob.location && <LocationMap location={lob.location} />}
+        {(lob.locationName || lob.location) && (
+          <LocationMap
+            location={lob.locationName || lob.location!}
+            lat={lob.locationLat}
+            lng={lob.locationLng}
+          />
+        )}
 
         {/* Status Banner with Smarter Quorum Language (#3) */}
         {effectiveStatus === 'voting' && (
