@@ -107,7 +107,7 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
   const inputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<ComposerStep>('quick');
   const [quickText, setQuickText] = useState('');
-  const [parsed, setParsed] = useState<ParsedLob>({ title: '', category: '', time: '', location: '', groupId: '', recipientType: 'group', selectedUserIds: [] });
+  const [parsed, setParsed] = useState<ParsedLob>({ title: '', category: '', time: '', location: '', locationAddress: '', locationLat: null, locationLng: null, groupId: '', recipientType: 'group', selectedUserIds: [] });
   const [showConfirm, setShowConfirm] = useState(false);
   const [sending, setSending] = useState(false);
 
