@@ -18,6 +18,9 @@ interface ParsedLob {
   category: LobCategory | '';
   time: string;
   location: string;
+  locationAddress: string;
+  locationLat: number | null;
+  locationLng: number | null;
   groupId: string;
   recipientType: RecipientType;
   selectedUserIds: string[];
