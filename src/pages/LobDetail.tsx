@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { generateDayChips, generateTimeChips, isSameDay, parseTimeString } from '@/lib/lob-utils';
 import { useProfileMap, getProfileName, getProfileAvatar, getProfilePhotoUrl } from '@/hooks/useProfileMap';
+import { PollsSection } from '@/components/polls/PollsSection';
 import { UserAvatar } from '@/components/UserAvatar';
 
 const DAY_CHIPS = generateDayChips();
@@ -106,7 +107,7 @@ const LobDetail = () => {
   const maybeCount = maybeList.length;
   const quorumReached = inCount >= lob.quorum;
 
-  const timeStr = lob.selectedTime || lob.timeOptions[0]?.datetime;
+  const timeStr = lob.selectedTime || (lob.timeOptions.length > 1 ? null : lob.timeOptions[0]?.datetime);
   const parsedDate = timeStr ? new Date(timeStr) : null;
   const isInvalidDate = !parsedDate || isNaN(parsedDate.getTime());
   const formattedTime = isInvalidDate
@@ -229,6 +230,20 @@ const LobDetail = () => {
     toast.success(`Trip locked in: ${destination} 🎉`);
   };
 
+  const handleVoteTime = async (timeOptionId: string) => {
+    if (!user) return;
+    const option = lob.timeOptions.find(o => o.id === timeOptionId);
+    if (!option) return;
+    const alreadyVoted = option.votes.includes(user.id);
+    if (alreadyVoted) {
+      await supabase.from('lob_time_votes').delete()
+        .eq('time_option_id', timeOptionId).eq('user_id', user.id);
+    } else {
+      await supabase.from('lob_time_votes').insert({ time_option_id: timeOptionId, user_id: user.id });
+    }
+    queryClient.invalidateQueries({ queryKey: ['supabase-lob', id] });
+  };
+
   const isGroupTrip = lob.category === 'group-trip';
   const showTripPlanning = isGroupTrip && lob.tripPlanningPhase && lob.tripPlanningPhase !== 'confirmed';
 
@@ -241,7 +256,7 @@ const LobDetail = () => {
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
         {/* Header */}
-        <div className="flex items-center gap-3 pt-12 pb-4">
+        <div className="flex items-center gap-3 pt-3 pb-4">
           <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
@@ -351,10 +366,15 @@ const LobDetail = () => {
             <Clock className="w-4 h-4 text-primary" />
             <span>{formattedTime}</span>
           </div>
-          {(lob.locationName || lob.location) && (
+          {(lob.locationName || lob.location) ? (
             <div className="flex items-center gap-2 text-sm text-foreground">
               <MapPin className="w-4 h-4 text-primary" />
               <span>{lob.locationName || lob.location}</span>
+            </div>
+          ) : isCreator && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>📍</span>
+              <span>Add a location</span>
             </div>
           )}
         </motion.div>
@@ -466,6 +486,39 @@ const LobDetail = () => {
           )}
         </motion.div>
 
+        {/* Time Poll */}
+        {effectiveStatus === 'voting' && lob.timeOptions.length > 1 && !lob.selectedTime && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card mb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="w-4 h-4 text-primary" />
+              <p className="text-xs font-semibold text-muted-foreground">VOTE ON A TIME</p>
+            </div>
+            <div className="space-y-2">
+              {lob.timeOptions.map(option => {
+                const voted = user ? option.votes.includes(user.id) : false;
+                const parsedOpt = new Date(option.datetime);
+                const isValidOpt = !isNaN(parsedOpt.getTime());
+                const optLabel = isValidOpt
+                  ? parsedOpt.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                  : option.datetime;
+                return (
+                  <button
+                    key={option.id}
+                    onClick={() => handleVoteTime(option.id)}
+                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${voted ? 'bg-primary/10 border-primary/40' : 'bg-secondary border-border hover:border-primary/30'}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {voted && <Check className="w-4 h-4 text-primary shrink-0" />}
+                      <span className="text-sm font-medium text-foreground">{optLabel}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{option.votes.length} vote{option.votes.length !== 1 ? 's' : ''}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+
         {/* Deadline (#6) */}
         {lob.deadline && effectiveStatus === 'voting' && (
           <div className="mb-4">
@@ -517,6 +570,11 @@ const LobDetail = () => {
             </button>
           </div>
         </motion.div>
+
+        {/* Polls */}
+        {user && (
+          <PollsSection lobId={lob.id} userId={user.id} />
+        )}
 
         <div className="h-8" />
       </div>

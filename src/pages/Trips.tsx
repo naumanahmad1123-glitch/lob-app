@@ -61,7 +61,7 @@ const Trips = () => {
   return (
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
-        <div className="flex items-center justify-between pt-12 pb-4">
+        <div className="flex items-center justify-between pt-3 pb-4">
           <div>
             <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Trips</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Travel plans & friend visits</p>

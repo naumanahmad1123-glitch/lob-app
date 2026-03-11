@@ -93,7 +93,7 @@ const Connect = () => {
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
         {/* Header */}
-        <div className="flex items-center justify-between pt-12 pb-2">
+        <div className="flex items-center justify-between pt-3 pb-2">
           <div>
             <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Connect</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Your people & groups</p>

@@ -26,7 +26,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   return (
     <ComposerContext.Provider value={{ openComposer }}>
       <div className="min-h-screen bg-background flex flex-col">
-        <main className="flex-1 pb-20 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
           {children}
         </main>
 

@@ -39,15 +39,17 @@ export function LocationMap({ location, lat, lng }: LocationMapProps) {
           <MapPin className="w-4 h-4 text-primary shrink-0" />
           <span className="text-sm font-medium text-foreground truncate">{location}</span>
         </div>
-        <a
-          href={directionsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold shrink-0 hover:opacity-90 transition-opacity"
+        <button
+          onClick={() => {
+            window.location.href = lat && lng
+              ? `maps://?q=${lat},${lng}&ll=${lat},${lng}`
+              : `maps://?q=${encodeURIComponent(location)}`;
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold shrink-0 hover:opacity-90 transition-opacity cursor-pointer"
         >
           <Navigation className="w-3.5 h-3.5" />
           Directions
-        </a>
+        </button>
       </div>
     </motion.div>
   );

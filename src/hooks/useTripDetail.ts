@@ -37,6 +37,47 @@ export interface TripComment {
   userPhotoUrl: string | null;
 }
 
+export interface TripLobSummary {
+  id: string;
+  title: string;
+  category: string;
+  status: string;
+  inCount: number;
+  quorum: number;
+}
+
+export function useTripLobs(memberIds: string[]) {
+  const sorted = [...memberIds].sort().join(',');
+  return useQuery({
+    queryKey: ['trip-lobs', sorted],
+    enabled: memberIds.length > 0,
+    queryFn: async () => {
+      if (!memberIds.length) return [] as TripLobSummary[];
+      const { data: recs } = await supabase
+        .from('lob_recipients')
+        .select('lob_id')
+        .in('user_id', memberIds);
+      const lobIds = [...new Set((recs || []).map((r: any) => r.lob_id))];
+      if (!lobIds.length) return [] as TripLobSummary[];
+      const { data } = await supabase
+        .from('lobs')
+        .select('id, title, category, status, quorum, lob_responses(response)')
+        .in('id', lobIds)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      return ((data || []) as any[]).map(l => ({
+        id: l.id,
+        title: l.title,
+        category: l.category as string,
+        status: l.status as string,
+        inCount: (l.lob_responses || []).filter((r: any) => r.response === 'in').length,
+        quorum: l.quorum || 2,
+      })) as TripLobSummary[];
+    },
+    staleTime: 15_000,
+  });
+}
+
 export function useTripMembers(tripId: string | undefined) {
   const { user } = useAuth();
   const queryClient = useQueryClient();

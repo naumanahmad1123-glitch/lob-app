@@ -1,11 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useComposer } from '@/hooks/useComposer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Pencil, Sparkles, Globe, Lock, X, Trash2, CheckCircle2, Clock, MoreVertical, Link, XCircle } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSupabaseTrips } from '@/hooks/useSupabaseTrips';
-import { useTripMembers, useTripSuggestions, useTripComments } from '@/hooks/useTripDetail';
+import { useTripMembers, useTripSuggestions, useTripComments, useTripLobs } from '@/hooks/useTripDetail';
+import { PollsSection } from '@/components/polls/PollsSection';
+import { CATEGORY_CONFIG } from '@/data/types';
 import { TripAttendees } from '@/components/trips/TripAttendees';
 import { TripVoting } from '@/components/trips/TripVoting';
 import { TripComments } from '@/components/trips/TripComments';
@@ -15,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { differenceInDays } from 'date-fns';
+import { LocationMap } from '@/components/lob/LocationMap';
 
 const TripDetail = () => {
   const { id } = useParams();
@@ -26,6 +29,8 @@ const TripDetail = () => {
   const { data: members = [] } = useTripMembers(id);
   const { data: suggestions = [] } = useTripSuggestions(id);
   const { data: comments = [] } = useTripComments(id);
+  const memberIds = useMemo(() => members.map(m => m.user_id), [members]);
+  const { data: tripLobs = [] } = useTripLobs(memberIds);
 
   const trip = useMemo(() => allTrips.find(t => t.id === id), [allTrips, id]);
 
@@ -42,6 +47,13 @@ const TripDetail = () => {
     endDate: '',
     showOnProfile: true,
   });
+
+  // Scroll to top on mount — AppLayout uses a scrollable <main>, not window
+  useEffect(() => {
+    const main = document.querySelector('main');
+    if (main) main.scrollTop = 0;
+    window.scrollTo(0, 0);
+  }, []);
 
   const isOwner = trip?.user_id === user?.id;
   const hasDestination = !!(trip?.city && trip.city.trim() && trip.city.trim().toLowerCase() !== 'tbd');
@@ -164,7 +176,7 @@ const TripDetail = () => {
     return (
       <AppLayout>
         <div className="max-w-lg mx-auto px-4">
-          <div className="pt-12 pb-6">
+          <div className="pt-3 pb-6">
             <button onClick={() => navigate('/trips')} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
               <ArrowLeft className="w-5 h-5 text-foreground" />
             </button>
@@ -184,7 +196,7 @@ const TripDetail = () => {
     <AppLayout>
       <div className="max-w-lg mx-auto px-4 pb-24">
         {/* Header */}
-        <div className="flex items-center justify-between pt-12 pb-6">
+        <div className="flex items-center justify-between pt-3 pb-6">
           <button
             onClick={() => navigate('/trips')}
             className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
@@ -275,6 +287,13 @@ const TripDetail = () => {
           )}
         </motion.div>
 
+        {/* Location Map */}
+        {hasDestination && (
+          <LocationMap
+            location={`${trip.city}${trip.country ? `, ${trip.country}` : ''}`}
+          />
+        )}
+
         {/* Attendees */}
         <TripAttendees
           members={members}
@@ -302,6 +321,41 @@ const TripDetail = () => {
             userId={user.id}
             comments={comments}
           />
+        )}
+
+        {/* Lobs associated with trip members */}
+        {tripLobs.length > 0 && (
+          <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }} className="mb-8">
+            <h2 className="text-sm font-bold text-foreground mb-3">Lobs</h2>
+            <div className="space-y-2">
+              {tripLobs.map(lob => {
+                const config = CATEGORY_CONFIG[lob.category as keyof typeof CATEGORY_CONFIG];
+                return (
+                  <button
+                    key={lob.id}
+                    onClick={() => navigate(`/lob/${lob.id}`)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card cursor-pointer active:scale-[0.98] hover:border-primary/30 transition-all text-left"
+                  >
+                    <span className="text-xl shrink-0">{config?.emoji || '📅'}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{lob.title}</p>
+                      <p className="text-xs text-muted-foreground">{lob.inCount}/{lob.quorum} in</p>
+                    </div>
+                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${
+                      lob.status === 'confirmed' ? 'bg-accent/10 text-accent' :
+                      lob.status === 'cancelled' ? 'bg-destructive/10 text-destructive' :
+                      'bg-primary/10 text-primary'
+                    }`}>{lob.status}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </motion.section>
+        )}
+
+        {/* Polls */}
+        {user && (
+          <PollsSection tripId={trip.id} userId={user.id} />
         )}
 
         {/* Lob the Group */}

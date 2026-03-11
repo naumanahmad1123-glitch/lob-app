@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Bell, List, CalendarDays } from 'lucide-react';
+import { Bell, List, CalendarDays, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LobCard } from '@/components/lob/LobCard';
@@ -44,9 +44,25 @@ const Home = () => {
     }
   }, [user?.id, isLoading, allLobs.length]);
 
-  const activeLobs = allLobs.filter(l => l.status === 'voting');
-  const confirmedLobs = allLobs.filter(l => l.status === 'confirmed');
   const allUpcoming = allLobs.filter(l => l.status === 'voting' || l.status === 'confirmed');
+
+  // 4 feed sections
+  const needsVote = allLobs.filter(l =>
+    l.status === 'voting' &&
+    l.createdBy !== user?.id &&
+    !l.responses.some(r => r.userId === user?.id)
+  );
+  const yourLobs = allLobs.filter(l =>
+    l.status === 'voting' &&
+    l.createdBy === user?.id
+  );
+  const confirmedLobs = allLobs.filter(l => l.status === 'confirmed');
+  const closedLobs = allLobs.filter(l => l.status === 'cancelled' || l.status === 'expired');
+
+  const [needsVoteOpen, setNeedsVoteOpen] = useState(true);
+  const [yourLobsOpen, setYourLobsOpen] = useState(true);
+  const [confirmedOpen, setConfirmedOpen] = useState(false);
+  const [closedOpen, setClosedOpen] = useState(false);
 
   const lobsByDay = useMemo(() => {
     const map = new Map<number, Lob[]>();
@@ -81,7 +97,7 @@ const Home = () => {
   return (
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
-        <div className="flex items-center justify-between pt-12 pb-4">
+        <div className="flex items-center justify-between pt-3 pb-4">
           <div>
             <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Lob</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Make plans, not excuses</p>
@@ -134,37 +150,144 @@ const Home = () => {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
               >
-                {activeLobs.length > 0 && (
-                  <section className="mb-8">
-                    <div className="flex items-center justify-between mb-3">
-                      <h2 className="text-base font-bold text-foreground">Needs Your Vote</h2>
-                      <span className="text-xs font-semibold text-primary">{activeLobs.length} active</span>
-                    </div>
-                    <div className="space-y-3">
-                      {activeLobs.map((lob, i) => (
-                        <LobCard key={lob.id} lob={lob} index={i} />
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                {confirmedLobs.length > 0 && (
-                  <section className="mb-8">
-                    <h2 className="text-base font-bold text-foreground mb-3">Upcoming</h2>
-                    <div className="space-y-3">
-                      {confirmedLobs.map((lob, i) => (
-                        <LobCard key={lob.id} lob={lob} index={i} />
-                      ))}
-                    </div>
-                  </section>
-                )}
-
                 {allLobs.length === 0 && (
                   <div className="gradient-card rounded-2xl border border-border/50 p-8 text-center">
                     <span className="text-4xl mb-3 block">🏐</span>
                     <p className="text-sm font-semibold text-foreground">No plans yet</p>
                     <p className="text-xs text-muted-foreground mt-1">Lob something to get started!</p>
                   </div>
+                )}
+
+                {/* 1. Needs Your Vote */}
+                {needsVote.length > 0 && (
+                  <section className="mb-4">
+                    <button
+                      onClick={() => setNeedsVoteOpen(v => !v)}
+                      className="w-full flex items-center justify-between mb-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-base font-bold text-foreground">Needs Your Vote</h2>
+                        <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">{needsVote.length}</span>
+                      </div>
+                      <motion.div animate={{ rotate: needsVoteOpen ? 0 : -180 }} transition={{ duration: 0.2 }}>
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                      </motion.div>
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {needsVoteOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="space-y-3 pb-2">
+                            {needsVote.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </section>
+                )}
+
+                {/* 2. Your Lobs */}
+                {yourLobs.length > 0 && (
+                  <section className="mb-4">
+                    <button
+                      onClick={() => setYourLobsOpen(v => !v)}
+                      className="w-full flex items-center justify-between mb-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-base font-bold text-foreground">Your Lobs</h2>
+                        <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">{yourLobs.length}</span>
+                      </div>
+                      <motion.div animate={{ rotate: yourLobsOpen ? 0 : -180 }} transition={{ duration: 0.2 }}>
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                      </motion.div>
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {yourLobsOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="space-y-3 pb-2">
+                            {yourLobs.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </section>
+                )}
+
+                {/* 3. Confirmed */}
+                {confirmedLobs.length > 0 && (
+                  <section className="mb-4">
+                    <button
+                      onClick={() => setConfirmedOpen(v => !v)}
+                      className="w-full flex items-center justify-between mb-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-base font-bold text-foreground">Confirmed</h2>
+                        <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">{confirmedLobs.length}</span>
+                      </div>
+                      <motion.div animate={{ rotate: confirmedOpen ? 0 : -180 }} transition={{ duration: 0.2 }}>
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                      </motion.div>
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {confirmedOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="space-y-3 pb-2">
+                            {confirmedLobs.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </section>
+                )}
+
+                {/* 4. Closed */}
+                {closedLobs.length > 0 && (
+                  <section className="mb-4">
+                    <button
+                      onClick={() => setClosedOpen(v => !v)}
+                      className="w-full flex items-center justify-between mb-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-base font-bold text-foreground">Closed</h2>
+                        <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">{closedLobs.length}</span>
+                      </div>
+                      <motion.div animate={{ rotate: closedOpen ? 0 : -180 }} transition={{ duration: 0.2 }}>
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                      </motion.div>
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {closedOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="space-y-3 pb-2">
+                            {closedLobs.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </section>
                 )}
               </motion.div>
             ) : (

@@ -11,7 +11,7 @@ const Groups = () => {
   return (
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
-        <div className="flex items-center justify-between pt-12 pb-6">
+        <div className="flex items-center justify-between pt-3 pb-6">
           <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Groups</h1>
           <button
             onClick={() => navigate('/create-group')}

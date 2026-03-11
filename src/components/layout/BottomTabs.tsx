@@ -53,7 +53,7 @@ export function BottomTabs({ onLobTap }: BottomTabsProps) {
     tab.matchPaths.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-xl border-t border-border">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-xl border-t border-border" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="flex items-center justify-around max-w-lg mx-auto h-16 px-2">
         {tabs.slice(0, 2).map((tab) => {
           const isActive = isTabActive(tab);

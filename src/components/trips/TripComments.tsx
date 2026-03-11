@@ -17,8 +17,13 @@ export function TripComments({ tripId, userId, comments }: Props) {
   const [sending, setSending] = useState(false);
   const queryClient = useQueryClient();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const initialMount = useRef(true);
 
   useEffect(() => {
+    if (initialMount.current) {
+      initialMount.current = false;
+      return;
+    }
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [comments.length]);
 
