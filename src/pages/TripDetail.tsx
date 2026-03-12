@@ -176,7 +176,7 @@ const TripDetail = () => {
     return (
       <AppLayout>
         <div className="max-w-lg mx-auto px-4">
-          <div className="pt-3 pb-6">
+          <div className="pt-2 pb-3">
             <button onClick={() => navigate('/trips')} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
               <ArrowLeft className="w-5 h-5 text-foreground" />
             </button>
@@ -196,7 +196,7 @@ const TripDetail = () => {
     <AppLayout>
       <div className="max-w-lg mx-auto px-4 pb-24">
         {/* Header */}
-        <div className="flex items-center justify-between pt-3 pb-6">
+        <div className="flex items-center justify-between pt-2 pb-3">
           <button
             onClick={() => navigate('/trips')}
             className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
@@ -243,9 +243,9 @@ const TripDetail = () => {
         </div>
 
         {/* Trip info */}
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-4">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-2">
           <span className="text-5xl mb-3 block">{trip.emoji}</span>
-          <h1 className="text-2xl font-extrabold text-foreground">{trip.city}{trip.country ? `, ${trip.country}` : ''}</h1>
+          <h1 className="text-xl font-extrabold text-foreground">{trip.city}{trip.country ? `, ${trip.country}` : ''}</h1>
           <p className="text-sm text-muted-foreground mt-1">{dateStr}</p>
 
           {/* Status & Countdown */}
@@ -325,7 +325,7 @@ const TripDetail = () => {
 
         {/* Lobs associated with trip members */}
         {tripLobs.length > 0 && (
-          <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }} className="mb-8">
+          <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }} className="mb-4">
             <h2 className="text-sm font-bold text-foreground mb-3">Lobs</h2>
             <div className="space-y-2">
               {tripLobs.map(lob => {
@@ -354,9 +354,10 @@ const TripDetail = () => {
         )}
 
         {/* Polls */}
-        {user && (
-          <PollsSection tripId={trip.id} userId={user.id} />
-        )}
+        {user && (() => {
+          console.log('[TripDetail] PollsSection props:', { tripId: trip.id, userId: user?.id });
+          return <PollsSection tripId={trip.id} userId={user.id} />;
+        })()}
 
         {/* Lob the Group */}
         {members.length > 0 && (
@@ -365,7 +366,7 @@ const TripDetail = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
             onClick={() => openComposer({ prefillUserIds: members.map(m => m.user_id) })}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm shadow-glow mb-8 cursor-pointer active:scale-[0.98] transition-transform"
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm shadow-glow mb-4 cursor-pointer active:scale-[0.98] transition-transform"
           >
             <Sparkles className="w-4 h-4" />
             Lob the Group

@@ -93,9 +93,9 @@ const Connect = () => {
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
         {/* Header */}
-        <div className="flex items-center justify-between pt-3 pb-2">
+        <div className="flex items-center justify-between pt-2 pb-2">
           <div>
-            <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Connect</h1>
+            <h1 className="text-xl font-extrabold text-foreground tracking-tight">Connect</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Your people & groups</p>
           </div>
           {activeTab === 'groups' && (
@@ -117,7 +117,7 @@ const Connect = () => {
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex gap-1 p-1 rounded-xl bg-secondary/60 mb-4">
+        <div className="flex gap-1 p-1 rounded-xl bg-secondary/60 mb-2">
           {([
             { key: 'connections' as TabKey, label: 'Connections', count: friends.length },
             { key: 'groups' as TabKey, label: 'Groups', count: allGroups.length },
@@ -165,10 +165,10 @@ const Connect = () => {
                 exit={{ opacity: 0, x: 10 }}
                 transition={{ duration: 0.15 }}
               >
-                <Collapsible defaultOpen className="mb-8">
-                  <CollapsibleTrigger className="flex items-center gap-2 mb-3 w-full cursor-pointer group">
+                <Collapsible defaultOpen className="mb-4">
+                  <CollapsibleTrigger className="flex items-center gap-2 mb-2 w-full cursor-pointer group">
                     <Users className="w-4 h-4 text-primary" />
-                    <h2 className="text-base font-bold text-foreground">Your Connections</h2>
+                    <h2 className="text-sm font-bold text-foreground">Your Connections</h2>
                     <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto transition-transform group-data-[state=closed]:-rotate-90" />
                   </CollapsibleTrigger>
                   <CollapsibleContent>
@@ -214,10 +214,10 @@ const Connect = () => {
                 </Collapsible>
 
                 {filteredSuggestions.length > 0 && (
-                  <Collapsible defaultOpen className="mb-8">
-                    <CollapsibleTrigger className="flex items-center gap-2 mb-3 w-full cursor-pointer group">
+                  <Collapsible defaultOpen className="mb-4">
+                    <CollapsibleTrigger className="flex items-center gap-2 mb-2 w-full cursor-pointer group">
                       <Sparkles className="w-4 h-4 text-primary" />
-                      <h2 className="text-base font-bold text-foreground">People You May Know</h2>
+                      <h2 className="text-sm font-bold text-foreground">People You May Know</h2>
                       <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto transition-transform group-data-[state=closed]:-rotate-90" />
                     </CollapsibleTrigger>
                     <CollapsibleContent>
@@ -253,10 +253,10 @@ const Connect = () => {
                   </Collapsible>
                 )}
 
-                <Collapsible defaultOpen className="mb-8">
-                  <CollapsibleTrigger className="flex items-center gap-2 mb-3 w-full cursor-pointer group">
+                <Collapsible defaultOpen className="mb-4">
+                  <CollapsibleTrigger className="flex items-center gap-2 mb-2 w-full cursor-pointer group">
                     <UserPlus className="w-4 h-4 text-muted-foreground" />
-                    <h2 className="text-base font-bold text-foreground">Requests</h2>
+                    <h2 className="text-sm font-bold text-foreground">Requests</h2>
                     <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto transition-transform group-data-[state=closed]:-rotate-90" />
                   </CollapsibleTrigger>
                   <CollapsibleContent>
@@ -276,7 +276,7 @@ const Connect = () => {
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.15 }}
               >
-                <section className="mb-8">
+                <section className="mb-4">
                   {filteredGroups.length === 0 ? (
                     <div className="gradient-card rounded-2xl border border-border/50 p-8 text-center">
                       <span className="text-4xl mb-3 block">👥</span>
@@ -292,7 +292,7 @@ const Connect = () => {
                       </button>
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       {filteredGroups.map((group, i) => (
                         <motion.div
                           key={group.id}
@@ -300,7 +300,7 @@ const Connect = () => {
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: i * 0.05 }}
                           onClick={() => navigate(`/groups/${group.id}`)}
-                          className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card cursor-pointer active:scale-[0.98] hover:border-primary/30 hover:shadow-lg transition-all"
+                          className="gradient-card rounded-2xl p-3 border border-border/50 shadow-card cursor-pointer active:scale-[0.98] hover:border-primary/30 hover:shadow-lg transition-all"
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">

@@ -119,8 +119,8 @@ const Profile = () => {
   return (
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
-        <div className="flex items-center justify-between pt-3 pb-6">
-          <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Profile</h1>
+        <div className="flex items-center justify-between pt-2 pb-3">
+          <h1 className="text-xl font-extrabold text-foreground tracking-tight">Profile</h1>
           <button onClick={() => { setShowComingSoon('Settings'); setTimeout(() => setShowComingSoon(null), 2000); }} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
             <Settings className="w-5 h-5 text-foreground" />
           </button>
@@ -220,7 +220,7 @@ const Profile = () => {
         </AnimatePresence>
 
         {/* Profile Card */}
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="gradient-card rounded-2xl p-6 border border-border/50 shadow-card mb-6 text-center relative">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="gradient-card rounded-2xl p-5 border border-border/50 shadow-card mb-3 text-center relative">
           <button onClick={openEditSheet} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
             <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
           </button>
@@ -256,7 +256,7 @@ const Profile = () => {
         </motion.div>
 
         {/* Groups shortcut */}
-        <motion.button initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} onClick={() => navigate('/connect')} className="w-full flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-secondary transition-all mb-4 cursor-pointer">
+        <motion.button initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} onClick={() => navigate('/connect')} className="w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:bg-secondary transition-all mb-2 cursor-pointer">
           <Users className="w-5 h-5 text-primary" />
           <div className="flex-1 text-left">
             <p className="text-sm font-semibold text-foreground">My Groups</p>
@@ -266,7 +266,7 @@ const Profile = () => {
         </motion.button>
 
         {/* Menu items */}
-        <div className="space-y-2 mb-6">
+        <div className="space-y-2 mb-3">
           {[
             { icon: Bell, label: 'Notifications', desc: 'Manage alerts' },
             { icon: Calendar, label: 'Calendar Sync', desc: 'Connect calendars' },
@@ -277,7 +277,7 @@ const Profile = () => {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               onClick={() => item.label === 'Notifications' ? navigate('/notifications') : (() => { setShowComingSoon(item.label); setTimeout(() => setShowComingSoon(null), 2000); })()}
-              className="w-full flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-secondary transition-all cursor-pointer"
+              className="w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:bg-secondary transition-all cursor-pointer"
             >
               <item.icon className="w-5 h-5 text-primary" />
               <div className="flex-1 text-left">
@@ -290,7 +290,7 @@ const Profile = () => {
         </div>
 
         {/* Sign out */}
-        <button onClick={handleSignOut} className="w-full flex items-center gap-3 p-4 rounded-xl border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 transition-all mb-8 cursor-pointer">
+        <button onClick={handleSignOut} className="w-full flex items-center gap-3 p-3 rounded-xl border border-destructive/30 bg-destructive/5 hover:bg-destructive/10 transition-all mb-4 cursor-pointer">
           <LogOut className="w-5 h-5 text-destructive" />
           <span className="text-sm font-semibold text-destructive">Sign Out</span>
         </button>

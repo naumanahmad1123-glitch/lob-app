@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
-import { X, MapPin, Users, ChevronRight, User, Check, ChevronUp, ArrowLeft } from 'lucide-react';
+import { X, MapPin, Users, ChevronRight, User, Check, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CATEGORY_CONFIG, LobCategory, Lob } from '@/data/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,61 +22,6 @@ interface ParsedLob {
   groupId: string;
   recipientType: RecipientType;
   selectedUserIds: string[];
-}
-
-function SwipeableCard({ onLob, card, disabled }: { onLob: () => void; card: React.ReactNode; disabled?: boolean }) {
-  const cardY = useMotionValue(0);
-  const cardOpacity = useTransform(cardY, [0, -120], [1, 0.3]);
-  const cardScale = useTransform(cardY, [0, -120], [1, 0.92]);
-  const hintOp = useTransform(cardY, [0, -30], [1, 0]);
-  const [launched, setLaunched] = useState(false);
-
-  const onDragEnd = useCallback((_: any, info: PanInfo) => {
-    if (disabled) return;
-    if (info.offset.y < -60 || info.velocity.y < -300) setLaunched(true);
-  }, [disabled]);
-
-  useEffect(() => {
-    if (launched) {
-      const t = setTimeout(() => { onLob(); setLaunched(false); }, 500);
-      return () => clearTimeout(t);
-    }
-  }, [launched, onLob]);
-
-  if (launched) {
-    return (
-      <div className="relative h-36 flex items-center justify-center overflow-hidden">
-        <motion.div initial={{ y: 0, opacity: 1, scale: 1 }} animate={{ y: -300, opacity: 0, scale: 0.7 }} transition={{ duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }} className="gradient-card rounded-2xl p-5 border border-border/50 w-full">
-          {card}
-        </motion.div>
-      </div>
-    );
-  }
-
-  return (
-    <div className={`relative select-none transition-opacity ${disabled ? 'opacity-40' : ''}`}>
-      <motion.div
-        drag={disabled ? false : 'y'}
-        dragConstraints={{ top: -150, bottom: 0 }}
-        dragElastic={0.15}
-        dragMomentum={false}
-        onDragEnd={onDragEnd}
-        style={{ y: cardY, opacity: cardOpacity, scale: cardScale }}
-        whileTap={disabled ? undefined : { cursor: 'grabbing' }}
-        className={`gradient-card rounded-2xl p-5 border border-border/50 ${disabled ? 'cursor-default' : 'cursor-grab'}`}
-      >
-        {card}
-      </motion.div>
-      {!disabled && (
-        <motion.p style={{ opacity: hintOp }} className="text-center text-[11px] font-semibold text-muted-foreground mt-2 flex items-center justify-center gap-1">
-          <ChevronUp className="w-3.5 h-3.5" /> Swipe card up to lob it
-        </motion.p>
-      )}
-      {disabled && (
-        <p className="text-center text-[11px] text-muted-foreground/50 mt-2">Add a title and recipient to lob</p>
-      )}
-    </div>
-  );
 }
 
 interface ConnectionInfo {
@@ -291,15 +236,22 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
             drag='y'
-            dragConstraints={{ top: 0 }}
-            dragElastic={0.2}
-            onDragEnd={(_: any, info: PanInfo) => { if (info.offset.y > 100) onClose(); }}
+            dragConstraints={{ top: -800, bottom: 100 }}
+            dragElastic={0.15}
+            onDragEnd={(_: any, info: PanInfo) => {
+              if (info.offset.y > 100) { onClose(); return; }
+              if ((info.offset.y < -80 || info.velocity.y < -400) && step === 'quick' && quickCardReady) { handleQuickLobIt(); }
+            }}
             style={{ y, opacity }}
             className="fixed bottom-0 left-0 right-0 z-[70] max-w-lg mx-auto"
           >
             <div className="bg-card rounded-t-3xl border border-border/50 shadow-card overflow-hidden max-h-[90vh] flex flex-col">
               <div className="flex justify-center pt-3 pb-1">
-                <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+                {step === 'quick' && quickCardReady ? (
+                  <p className="text-[11px] font-semibold text-primary">↑ Swipe up to lob it</p>
+                ) : (
+                  <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+                )}
               </div>
 
               <div className="flex-1 px-5 pb-6 overflow-y-auto">
@@ -424,26 +376,11 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
                           setBuildQuorum(2);
                           setStep('build');
                         }}
-                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-secondary/50 border border-border/50 text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors mb-4"
+                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-secondary/50 border border-border/50 text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
                       >
                         <span>Build step by step</span>
                         <ChevronRight className="w-4 h-4" />
                       </button>
-
-                      {/* Swipe card */}
-                      <SwipeableCard
-                        disabled={!quickCardReady}
-                        onLob={handleQuickLobIt}
-                        card={
-                          <div className="flex items-center gap-3">
-                            <span className="text-3xl shrink-0">🏐</span>
-                            <div className="min-w-0">
-                              <p className="font-bold text-foreground truncate">{quickText || 'Your lob title'}</p>
-                              <p className="text-sm text-muted-foreground truncate">→ {recipientLabel}</p>
-                            </div>
-                          </div>
-                        }
-                      />
                     </motion.div>
                   )}
 

@@ -65,7 +65,7 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.05, duration: 0.3 }}
         onClick={() => navigate(`/lob/${lob.id}`)}
-        className="relative rounded-2xl p-4 shadow-card cursor-pointer active:scale-[0.98] transition-transform overflow-hidden border border-primary/20"
+        className="relative rounded-2xl p-3 shadow-card cursor-pointer active:scale-[0.98] transition-transform overflow-hidden border border-primary/20"
         style={{
           background: 'linear-gradient(145deg, hsl(18 100% 60% / 0.08), hsl(30 100% 65% / 0.04), hsl(240 8% 9%))',
         }}
@@ -73,8 +73,8 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
         {/* Accent stripe */}
         <div className="absolute top-0 left-0 right-0 h-1 gradient-primary" />
 
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-2.5">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-2">
             <div className="relative w-10 h-10 rounded-xl gradient-primary flex items-center justify-center text-lg">
               {modeIcon}
               {isYours && (
@@ -106,7 +106,7 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
           {phaseInfo.label}
         </div>
 
-        <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
+        <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
           {lob.tripTimeframe && (
             <span className="flex items-center gap-1">
               <CalendarRange className="w-3.5 h-3.5" />
@@ -126,7 +126,7 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
 
         {/* Destination voting progress */}
         {lob.tripPlanningPhase === 'voting-destination' && lob.destinationOptions && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
+          <div className="flex flex-wrap gap-1.5 mb-2">
             {lob.destinationOptions.map(d => (
               <span key={d.id} className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-secondary/80 text-muted-foreground">
                 {d.name} · {d.votes.length}
@@ -137,7 +137,7 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
 
         {/* Date voting progress */}
         {lob.tripPlanningPhase === 'voting-dates' && lob.dateRangeOptions && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
+          <div className="flex flex-wrap gap-1.5 mb-2">
             {lob.dateRangeOptions.map(dr => {
               const s = new Date(dr.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
               const e = new Date(dr.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -164,10 +164,10 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, duration: 0.3 }}
       onClick={() => navigate(`/lob/${lob.id}`)}
-      className="gradient-card rounded-2xl p-4 shadow-card border border-border/50 cursor-pointer active:scale-[0.98] transition-transform"
+      className="gradient-card rounded-2xl p-3 shadow-card border border-border/50 cursor-pointer active:scale-[0.98] transition-transform"
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2.5">
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2">
           <span className="relative text-2xl">
             {config.emoji}
             {isYours && (
@@ -189,7 +189,7 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
         <StatusPill status={lob.status} />
       </div>
 
-      <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
+      <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
         <span className="flex items-center gap-1">
           <Clock className="w-3.5 h-3.5" />
           {formattedTime}

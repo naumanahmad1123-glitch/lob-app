@@ -97,9 +97,9 @@ const Home = () => {
   return (
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
-        <div className="flex items-center justify-between pt-3 pb-4">
+        <div className="flex items-center justify-between pt-2 pb-2">
           <div>
-            <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Lob</h1>
+            <h1 className="text-xl font-extrabold text-foreground tracking-tight">Lob</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Make plans, not excuses</p>
           </div>
           <button
@@ -115,7 +115,7 @@ const Home = () => {
           </button>
         </div>
 
-        <div className="flex items-center gap-1 bg-secondary rounded-xl p-1 mb-6">
+        <div className="flex items-center gap-1 bg-secondary rounded-xl p-1 mb-3">
           <button
             onClick={() => setView('feed')}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
@@ -160,13 +160,13 @@ const Home = () => {
 
                 {/* 1. Needs Your Vote */}
                 {needsVote.length > 0 && (
-                  <section className="mb-4">
+                  <section className="mb-2">
                     <button
                       onClick={() => setNeedsVoteOpen(v => !v)}
-                      className="w-full flex items-center justify-between mb-3"
+                      className="w-full flex items-center justify-between mb-2"
                     >
                       <div className="flex items-center gap-2">
-                        <h2 className="text-base font-bold text-foreground">Needs Your Vote</h2>
+                        <h2 className="text-sm font-bold text-foreground">Needs Your Vote</h2>
                         <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">{needsVote.length}</span>
                       </div>
                       <motion.div animate={{ rotate: needsVoteOpen ? 0 : -180 }} transition={{ duration: 0.2 }}>
@@ -182,7 +182,7 @@ const Home = () => {
                           transition={{ duration: 0.2 }}
                           className="overflow-hidden"
                         >
-                          <div className="space-y-3 pb-2">
+                          <div className="space-y-2 pb-2">
                             {needsVote.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}
                           </div>
                         </motion.div>
@@ -193,13 +193,13 @@ const Home = () => {
 
                 {/* 2. Your Lobs */}
                 {yourLobs.length > 0 && (
-                  <section className="mb-4">
+                  <section className="mb-2">
                     <button
                       onClick={() => setYourLobsOpen(v => !v)}
-                      className="w-full flex items-center justify-between mb-3"
+                      className="w-full flex items-center justify-between mb-2"
                     >
                       <div className="flex items-center gap-2">
-                        <h2 className="text-base font-bold text-foreground">Your Lobs</h2>
+                        <h2 className="text-sm font-bold text-foreground">Your Lobs</h2>
                         <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">{yourLobs.length}</span>
                       </div>
                       <motion.div animate={{ rotate: yourLobsOpen ? 0 : -180 }} transition={{ duration: 0.2 }}>
@@ -215,7 +215,7 @@ const Home = () => {
                           transition={{ duration: 0.2 }}
                           className="overflow-hidden"
                         >
-                          <div className="space-y-3 pb-2">
+                          <div className="space-y-2 pb-2">
                             {yourLobs.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}
                           </div>
                         </motion.div>
@@ -226,13 +226,13 @@ const Home = () => {
 
                 {/* 3. Confirmed */}
                 {confirmedLobs.length > 0 && (
-                  <section className="mb-4">
+                  <section className="mb-2">
                     <button
                       onClick={() => setConfirmedOpen(v => !v)}
-                      className="w-full flex items-center justify-between mb-3"
+                      className="w-full flex items-center justify-between mb-2"
                     >
                       <div className="flex items-center gap-2">
-                        <h2 className="text-base font-bold text-foreground">Confirmed</h2>
+                        <h2 className="text-sm font-bold text-foreground">Confirmed</h2>
                         <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">{confirmedLobs.length}</span>
                       </div>
                       <motion.div animate={{ rotate: confirmedOpen ? 0 : -180 }} transition={{ duration: 0.2 }}>
@@ -248,7 +248,7 @@ const Home = () => {
                           transition={{ duration: 0.2 }}
                           className="overflow-hidden"
                         >
-                          <div className="space-y-3 pb-2">
+                          <div className="space-y-2 pb-2">
                             {confirmedLobs.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}
                           </div>
                         </motion.div>
@@ -259,13 +259,13 @@ const Home = () => {
 
                 {/* 4. Closed */}
                 {closedLobs.length > 0 && (
-                  <section className="mb-4">
+                  <section className="mb-2">
                     <button
                       onClick={() => setClosedOpen(v => !v)}
-                      className="w-full flex items-center justify-between mb-3"
+                      className="w-full flex items-center justify-between mb-2"
                     >
                       <div className="flex items-center gap-2">
-                        <h2 className="text-base font-bold text-foreground">Closed</h2>
+                        <h2 className="text-sm font-bold text-foreground">Closed</h2>
                         <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">{closedLobs.length}</span>
                       </div>
                       <motion.div animate={{ rotate: closedOpen ? 0 : -180 }} transition={{ duration: 0.2 }}>
@@ -281,7 +281,7 @@ const Home = () => {
                           transition={{ duration: 0.2 }}
                           className="overflow-hidden"
                         >
-                          <div className="space-y-3 pb-2">
+                          <div className="space-y-2 pb-2">
                             {closedLobs.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}
                           </div>
                         </motion.div>
@@ -298,9 +298,9 @@ const Home = () => {
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.2 }}
               >
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-2">
                   <button onClick={prevMonth} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground cursor-pointer active:scale-95 transition-transform">‹</button>
-                  <h2 className="text-base font-bold text-foreground">{monthLabel}</h2>
+                  <h2 className="text-sm font-bold text-foreground">{monthLabel}</h2>
                   <button onClick={nextMonth} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground cursor-pointer active:scale-95 transition-transform">›</button>
                 </div>
                 <div className="grid grid-cols-7 mb-2">
@@ -308,7 +308,7 @@ const Home = () => {
                     <div key={d} className="text-center text-xs font-semibold text-muted-foreground py-1">{d}</div>
                   ))}
                 </div>
-                <div className="grid grid-cols-7 gap-1 mb-4">
+                <div className="grid grid-cols-7 gap-1 mb-2">
                   {calendarDays.map((day, i) => {
                     if (day === null) return <div key={i} />;
                     const hasLobs = lobsByDay.has(day);
@@ -333,11 +333,11 @@ const Home = () => {
                 <AnimatePresence mode="wait">
                   {selectedDay && (
                     <motion.div key={selectedDay} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={{ duration: 0.15 }}>
-                      <h3 className="text-sm font-bold text-foreground mb-3">
+                      <h3 className="text-sm font-bold text-foreground mb-2">
                         {new Date(calMonth.year, calMonth.month, selectedDay).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                       </h3>
                       {selectedDayLobs.length > 0 ? (
-                        <div className="space-y-3">{selectedDayLobs.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}</div>
+                        <div className="space-y-2">{selectedDayLobs.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}</div>
                       ) : (
                         <div className="gradient-card rounded-2xl border border-border/50 p-6 text-center">
                           <p className="text-sm text-muted-foreground">No plans this day</p>

@@ -82,17 +82,17 @@ export function QuorumRing({ current, target, responses, groupMembers = [] }: Qu
   return (
     <>
       <button onClick={() => setSheetOpen(true)} className="w-full text-left cursor-pointer">
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-3">
           {/* Ring */}
-          <div className="relative w-32 h-32 flex-shrink-0">
+          <div className="relative w-16 h-16 flex-shrink-0">
             <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-              <circle cx="60" cy="60" r={radius} fill="none" stroke="hsl(var(--secondary))" strokeWidth="8" />
+              <circle cx="60" cy="60" r={radius} fill="none" stroke="hsl(var(--secondary))" strokeWidth="10" />
               {isEmpty ? (
                 <motion.circle
                   cx="60" cy="60" r={radius}
                   fill="none"
                   stroke="hsl(var(--primary))"
-                  strokeWidth="8"
+                  strokeWidth="10"
                   strokeLinecap="round"
                   strokeDasharray={`${circumference * 0.15} ${circumference * 0.85}`}
                   animate={{ rotate: [0, 360] }}
@@ -105,7 +105,7 @@ export function QuorumRing({ current, target, responses, groupMembers = [] }: Qu
                   cx="60" cy="60" r={radius}
                   fill="none"
                   stroke={reached ? 'hsl(var(--lob-confirmed))' : 'hsl(var(--primary))'}
-                  strokeWidth="8"
+                  strokeWidth="10"
                   strokeLinecap="round"
                   strokeDasharray={circumference}
                   initial={{ strokeDashoffset: circumference }}
@@ -116,53 +116,42 @@ export function QuorumRing({ current, target, responses, groupMembers = [] }: Qu
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               {reached ? (
-                <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', delay: 0.5 }} className="text-2xl">🎉</motion.span>
+                <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', delay: 0.5 }} className="text-base">🎉</motion.span>
               ) : isEmpty ? (
-                <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }} className="text-[10px] font-medium text-muted-foreground text-center px-2">Waiting…</motion.span>
+                <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }} className="text-[9px] font-medium text-muted-foreground text-center px-1">Waiting…</motion.span>
               ) : (
                 <>
-                  <span className="text-2xl font-extrabold text-foreground">{current}</span>
-                  <span className="text-[10px] font-medium text-muted-foreground">of {target}</span>
+                  <span className="text-lg font-extrabold text-foreground leading-none">{current}</span>
+                  <span className="text-[9px] font-medium text-muted-foreground">of {target}</span>
                 </>
               )}
             </div>
           </div>
 
-          {/* Avatar stacks */}
-          <div className="flex-1 space-y-2.5">
-            {inList.length > 0 && (
-              <div className="flex items-center gap-2">
-                <div className="flex -space-x-2">
-                  {inList.slice(0, 5).map(r => (
-                    <AvatarWithTooltip key={r.userId} userId={r.userId} bgClass="bg-lob-in/20" profileMap={profileMap} />
-                  ))}
-                </div>
-                <span className="text-xs font-semibold text-lob-in">{inList.length} in</span>
-              </div>
-            )}
-            {maybeList.length > 0 && (
-              <div className="flex items-center gap-2">
-                <div className="flex -space-x-2">
-                  {maybeList.slice(0, 5).map(r => (
-                    <AvatarWithTooltip key={r.userId} userId={r.userId} bgClass="bg-lob-maybe/20" profileMap={profileMap} />
-                  ))}
-                </div>
-                <span className="text-xs font-semibold text-lob-maybe">{maybeList.length} maybe</span>
-              </div>
-            )}
-            {noResponseList.length > 0 && (
-              <div className="flex items-center gap-2">
-                <div className="flex -space-x-2">
-                  {noResponseList.slice(0, 5).map(m => (
-                    <AvatarWithTooltip key={m.id} userId={m.id} bgClass="bg-secondary" profileMap={profileMap} />
-                  ))}
-                </div>
-                <span className="text-xs font-semibold text-muted-foreground">{noResponseList.length} no response</span>
-              </div>
-            )}
-            {isEmpty && noResponseList.length === 0 && (
-              <p className="text-xs text-muted-foreground">No responses yet — be the first!</p>
-            )}
+          {/* Compact counts + names */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {inList.length > 0 && (
+                <span className="text-[11px] font-semibold text-lob-in bg-lob-in/10 px-2 py-0.5 rounded-full">{inList.length} in</span>
+              )}
+              {maybeList.length > 0 && (
+                <span className="text-[11px] font-semibold text-lob-maybe bg-lob-maybe/10 px-2 py-0.5 rounded-full">{maybeList.length} maybe</span>
+              )}
+              {outList.length > 0 && (
+                <span className="text-[11px] font-semibold text-lob-out bg-lob-out/10 px-2 py-0.5 rounded-full">{outList.length} out</span>
+              )}
+              {noResponseList.length > 0 && (
+                <span className="text-[11px] font-semibold text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{noResponseList.length} pending</span>
+              )}
+            </div>
+            {inList.length > 0 ? (
+              <p className="text-xs text-muted-foreground mt-1 truncate">
+                {inList.slice(0, 4).map(r => r.userId === user?.id ? 'You' : getProfileName(profileMap, r.userId).split(' ')[0]).join(', ')}
+                {inList.length > 4 && ` +${inList.length - 4}`}
+              </p>
+            ) : isEmpty && noResponseList.length === 0 ? (
+              <p className="text-xs text-muted-foreground mt-1">No responses yet — be the first!</p>
+            ) : null}
           </div>
         </div>
       </button>

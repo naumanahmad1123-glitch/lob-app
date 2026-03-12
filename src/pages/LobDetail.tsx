@@ -256,7 +256,7 @@ const LobDetail = () => {
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
         {/* Header */}
-        <div className="flex items-center gap-3 pt-3 pb-4">
+        <div className="flex items-center gap-3 pt-2 pb-2">
           <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
@@ -311,7 +311,7 @@ const LobDetail = () => {
 
         {/* Cancelled banner */}
         {effectiveStatus === 'cancelled' && (
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="rounded-2xl p-4 bg-destructive/10 border border-destructive/30 mb-4 flex items-center gap-3">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="rounded-2xl p-3 bg-destructive/10 border border-destructive/30 mb-2 flex items-center gap-3">
             <XCircle className="w-6 h-6 text-destructive" />
             <div>
               <p className="font-bold text-foreground text-sm">Plan cancelled</p>
@@ -321,11 +321,11 @@ const LobDetail = () => {
         )}
 
         {/* Title + Creator Attribution (#7) */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-3">
           <div className="flex items-center gap-3 mb-2">
             <span className="text-4xl">{config.emoji}</span>
             <div>
-              <h1 className="text-2xl font-extrabold text-foreground leading-tight">{lob.title}</h1>
+              <h1 className="text-xl font-extrabold text-foreground leading-tight">{lob.title}</h1>
               <p className="text-sm text-muted-foreground">
                 {isIndividualLob
                   ? recipientIds.map(rid => getProfileName(profileMap, rid).split(' ')[0]).join(', ')
@@ -355,13 +355,13 @@ const LobDetail = () => {
 
         {/* Trip Planning Section */}
         {showTripPlanning && (
-          <div className="mb-4">
+          <div className="mb-2">
             <TripPlanningSection lob={lob} isCreator={isCreator} onLockIn={handleLockIn} />
           </div>
         )}
 
         {/* Details */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card mb-4 space-y-3">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="gradient-card rounded-2xl p-3 border border-border/50 shadow-card mb-2 space-y-3">
           <div className="flex items-center gap-2 text-sm text-foreground">
             <Clock className="w-4 h-4 text-primary" />
             <span>{formattedTime}</span>
@@ -389,7 +389,7 @@ const LobDetail = () => {
 
         {/* Status Banner with Smarter Quorum Language (#3) */}
         {effectiveStatus === 'voting' && (
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={`rounded-2xl p-4 mb-4 ${quorumReached ? 'bg-lob-confirmed/10 border border-lob-confirmed/30' : 'bg-secondary/50 border border-border/50'}`}>
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={`rounded-2xl p-3 mb-2 ${quorumReached ? 'bg-lob-confirmed/10 border border-lob-confirmed/30' : 'bg-secondary/50 border border-border/50'}`}>
             {quorumReached ? (
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="w-6 h-6 text-lob-confirmed" />
@@ -436,14 +436,14 @@ const LobDetail = () => {
 
         {/* Response Buttons (#2) */}
         {effectiveStatus === 'voting' && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-4">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-2">
             <ResponseButtons current={myResponse} onChange={handleResponse} />
           </motion.div>
         )}
 
         {/* Bail button */}
         {!isCreator && myResponse === 'in' && effectiveStatus !== 'cancelled' && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} className="mb-4">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} className="mb-2">
             <button onClick={() => setShowBailSheet(true)} className="w-full py-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer">
               <DoorOpen className="w-4 h-4" /> Can't make it
             </button>
@@ -457,8 +457,8 @@ const LobDetail = () => {
         </AnimatePresence>
 
         {/* Attendance Ring + Names (#1) */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="gradient-card rounded-2xl p-5 border border-border/50 shadow-card mb-4">
-          <div className="flex items-center justify-between mb-4">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="gradient-card rounded-2xl p-3 border border-border/50 shadow-card mb-2">
+          <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-semibold text-muted-foreground">ATTENDANCE</p>
             {/* Open Invite indicator (#5) */}
             {lob.openInviteEnabled && (
@@ -467,19 +467,11 @@ const LobDetail = () => {
           </div>
           <QuorumRing current={inCount} target={lob.quorum} responses={lob.responses} groupMembers={[]} />
 
-          {/* Attendee names under avatars */}
-          {inList.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-3">
-              <span className="font-semibold text-foreground">{inNames.join(', ')}</span>
-              <span> · {inCount} in</span>
-            </p>
-          )}
-
           {/* Share link for open invite (#5) */}
           {lob.openInviteEnabled && (
             <button
               onClick={handleShareLink}
-              className="mt-3 w-full py-2 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 cursor-pointer hover:bg-secondary/80 transition-colors"
+              className="mt-2 w-full py-2 rounded-xl bg-secondary text-foreground text-sm font-medium flex items-center justify-center gap-2 cursor-pointer hover:bg-secondary/80 transition-colors"
             >
               <Link2 className="w-4 h-4" /> Share link
             </button>
@@ -488,7 +480,7 @@ const LobDetail = () => {
 
         {/* Time Poll */}
         {effectiveStatus === 'voting' && lob.timeOptions.length > 1 && !lob.selectedTime && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card mb-4">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="gradient-card rounded-2xl p-3 border border-border/50 shadow-card mb-2">
             <div className="flex items-center gap-2 mb-3">
               <Clock className="w-4 h-4 text-primary" />
               <p className="text-xs font-semibold text-muted-foreground">VOTE ON A TIME</p>
@@ -521,13 +513,13 @@ const LobDetail = () => {
 
         {/* Deadline (#6) */}
         {lob.deadline && effectiveStatus === 'voting' && (
-          <div className="mb-4">
+          <div className="mb-2">
             <DeadlineCountdown deadline={lob.deadline} isCreator={isCreator} quorumReached={quorumReached} isMaybe={myResponse === 'maybe'} />
           </div>
         )}
 
         {/* Comments */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card mb-4">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="gradient-card rounded-2xl p-3 border border-border/50 shadow-card mb-2">
           <div className="flex items-center gap-2 mb-3">
             <MessageCircle className="w-4 h-4 text-primary" />
             <p className="text-xs font-semibold text-muted-foreground">COMMENTS</p>

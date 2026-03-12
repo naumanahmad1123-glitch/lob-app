@@ -61,9 +61,9 @@ const Trips = () => {
   return (
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
-        <div className="flex items-center justify-between pt-3 pb-4">
+        <div className="flex items-center justify-between pt-2 pb-2">
           <div>
-            <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Trips</h1>
+            <h1 className="text-xl font-extrabold text-foreground tracking-tight">Trips</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Travel plans & friend visits</p>
           </div>
           <div className="flex items-center gap-2">
@@ -118,18 +118,18 @@ const Trips = () => {
         <GroupTripComposer open={showGroupTrip} onClose={() => setShowGroupTrip(false)} />
 
         {groupTripLobs.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-base font-bold text-foreground mb-3">Group Trips</h2>
-            <div className="space-y-3">{groupTripLobs.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}</div>
+          <section className="mb-4">
+            <h2 className="text-sm font-bold text-foreground mb-2">Group Trips</h2>
+            <div className="space-y-2">{groupTripLobs.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}</div>
           </section>
         )}
 
-        <section className="mb-8">
-          <h2 className="text-base font-bold text-foreground mb-3">Your Trips</h2>
+        <section className="mb-4">
+          <h2 className="text-sm font-bold text-foreground mb-2">Your Trips</h2>
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading...</p>
           ) : myTrips.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {myTrips.map((trip, i) => (
                 <motion.div
                   key={trip.id}
@@ -137,7 +137,7 @@ const Trips = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
                   onClick={() => navigate(`/trips/${trip.id}`)}
-                  className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card cursor-pointer active:scale-[0.98] hover:border-primary/30 hover:shadow-lg transition-all"
+                  className="gradient-card rounded-2xl p-3 border border-border/50 shadow-card cursor-pointer active:scale-[0.98] hover:border-primary/30 hover:shadow-lg transition-all"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2.5">
@@ -170,9 +170,9 @@ const Trips = () => {
         </section>
 
         {friendTrips.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-base font-bold text-foreground mb-3">Friends Visiting</h2>
-            <div className="space-y-3">
+          <section className="mb-4">
+            <h2 className="text-sm font-bold text-foreground mb-2">Friends Visiting</h2>
+            <div className="space-y-2">
               {friendTrips.map((trip, i) => (
                 <motion.div
                   key={trip.id}
@@ -180,7 +180,7 @@ const Trips = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
                   onClick={() => navigate(`/trips/${trip.id}/friend`, { state: { trip } })}
-                  className="gradient-card rounded-2xl p-4 border border-border/50 shadow-card cursor-pointer active:scale-[0.98] hover:border-primary/30 hover:shadow-lg transition-all"
+                  className="gradient-card rounded-2xl p-3 border border-border/50 shadow-card cursor-pointer active:scale-[0.98] hover:border-primary/30 hover:shadow-lg transition-all"
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-2xl">{trip.userAvatar || trip.emoji}</span>

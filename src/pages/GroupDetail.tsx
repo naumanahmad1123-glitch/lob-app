@@ -31,7 +31,7 @@ const GroupDetail = () => {
   return (
     <AppLayout>
       <div className="max-w-lg mx-auto px-4">
-        <div className="flex items-center gap-3 pt-3 pb-4">
+        <div className="flex items-center gap-3 pt-2 pb-2">
           <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
@@ -50,7 +50,7 @@ const GroupDetail = () => {
         </div>
 
         {/* Members */}
-        <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 mb-4">
+        <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 mb-2">
           {group.members.map(m => (
             <button
               key={m.id}
@@ -66,9 +66,9 @@ const GroupDetail = () => {
         </div>
 
         {/* Lobs */}
-        <h2 className="text-base font-bold text-foreground mb-3">Lobs</h2>
+        <h2 className="text-sm font-bold text-foreground mb-2">Lobs</h2>
         {groupLobs.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {groupLobs.map((lob, i) => (
               <LobCard key={lob.id} lob={lob} index={i} />
             ))}

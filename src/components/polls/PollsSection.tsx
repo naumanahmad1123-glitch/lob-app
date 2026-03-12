@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { BarChart2, Plus, X, Trash2, Send } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence, PanInfo } from 'framer-motion';
+import { BarChart2, Plus, X, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -148,27 +148,52 @@ export function PollsSection({ lobId, tripId, userId }: PollsSectionProps) {
       toast.error('Add a question and at least 2 options');
       return;
     }
+    if (!lobId && !tripId) {
+      console.error('[PollsSection] Cannot create poll: neither lobId nor tripId provided');
+      toast.error('Cannot create poll — missing context');
+      return;
+    }
     setSaving(true);
     try {
       const sb = supabase as any;
+      console.log('[PollsSection] lobId:', lobId, 'tripId:', tripId, 'userId:', userId);
       const pollData: any = { created_by: userId, question: question.trim() };
       if (lobId) pollData.lob_id = lobId;
       if (tripId) pollData.trip_id = tripId;
 
-      const { data: poll, error } = await sb.from('polls').insert(pollData).select('id').single();
-      if (error) throw error;
+      console.log('[PollsSection] pollData:', pollData);
 
-      await sb.from('poll_options').insert(
-        validOptions.map((label, i) => ({ poll_id: poll.id, label: label.trim(), order_index: i }))
-      );
+      const { data: pollId, error } = await sb.rpc('create_poll', {
+        p_created_by: userId,
+        p_question: question.trim(),
+        p_lob_id: lobId || null,
+        p_trip_id: tripId || null,
+      });
+      if (error) {
+        console.error('[PollsSection] polls insert error:', JSON.stringify(error));
+        console.error('[PollsSection] full error:', JSON.stringify(error, null, 2));
+        throw error;
+      }
+
+      console.log('[PollsSection] Poll created, id:', pollId);
+
+      const optionsPayload = validOptions.map((label, i) => ({ poll_id: pollId, label: label.trim(), order_index: i }));
+      console.log('[PollsSection] Inserting options:', JSON.stringify(optionsPayload));
+
+      const { error: optionsError } = await sb.from('poll_options').insert(optionsPayload);
+      if (optionsError) {
+        console.error('[PollsSection] poll_options insert error:', JSON.stringify(optionsError));
+        throw optionsError;
+      }
 
       setQuestion('');
       setOptions(['', '']);
       setShowCreate(false);
       invalidate();
       toast.success('Poll created!');
-    } catch {
-      toast.error('Failed to create poll — make sure polls tables exist in Supabase');
+    } catch (err: any) {
+      console.error('[PollsSection] FULL ERROR:', err?.message, err?.code, err?.details, err?.hint);
+      toast.error('Failed: ' + (err?.message || 'unknown error'));
     } finally {
       setSaving(false);
     }
@@ -267,13 +292,27 @@ export function PollsSection({ lobId, tripId, userId }: PollsSectionProps) {
             <motion.div
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              drag="y"
+              dragConstraints={{ top: -800, bottom: 0 }}
+              dragElastic={0.15}
+              onDragEnd={(_: any, info: PanInfo) => {
+                if (info.offset.y > 100) { dismissKeyboard(); setShowCreate(false); return; }
+                const pollReady = !!question.trim() && options.filter(o => o.trim()).length >= 2;
+                if ((info.offset.y < -80 || info.velocity.y < -400) && pollReady) { handleCreate(); }
+              }}
               className="fixed bottom-0 left-0 right-0 z-50 max-w-lg mx-auto"
               style={{ paddingBottom: extraBottom }}
             >
               <div className="bg-card rounded-t-3xl border border-border/50 shadow-card flex flex-col max-h-[85vh]">
                 {/* Header */}
                 <div className="px-5 pt-4 pb-2 shrink-0">
-                  <div className="flex justify-center mb-3"><div className="w-10 h-1 rounded-full bg-muted-foreground/30" /></div>
+                  <div className="flex justify-center mb-3">
+                    {!!question.trim() && options.filter(o => o.trim()).length >= 2 ? (
+                      <p className="text-[11px] font-semibold text-primary">↑ Swipe up to send poll</p>
+                    ) : (
+                      <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+                    )}
+                  </div>
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-extrabold text-foreground">📊 Create Poll</h2>
                     <button
@@ -287,7 +326,8 @@ export function PollsSection({ lobId, tripId, userId }: PollsSectionProps) {
 
                 {/* Scrollable content — tapping empty area dismisses keyboard */}
                 <div
-                  className="flex-1 overflow-y-auto px-4 pt-4"
+                  className="flex-1 overflow-y-auto px-4 pt-4 pb-4"
+                  style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
                   onClick={e => { if (e.target === e.currentTarget) dismissKeyboard(); }}
                 >
                   <div className="mb-4">
@@ -301,7 +341,7 @@ export function PollsSection({ lobId, tripId, userId }: PollsSectionProps) {
                       autoFocus
                     />
                   </div>
-                  <div className="mb-6">
+                  <div className="mb-4">
                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Options</label>
                     <div className="space-y-2">
                       {options.map((opt, i) => (
@@ -330,21 +370,6 @@ export function PollsSection({ lobId, tripId, userId }: PollsSectionProps) {
                       </button>
                     )}
                   </div>
-                </div>
-
-                {/* Pinned footer — always visible above keyboard */}
-                <div
-                  className="shrink-0 p-4 border-t border-white/10 bg-card"
-                  style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
-                >
-                  <button
-                    onClick={handleCreate}
-                    disabled={saving || !question.trim() || options.filter(o => o.trim()).length < 2}
-                    className="w-full py-3 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <Send className="w-4 h-4" />
-                    {saving ? 'Creating...' : 'Create Poll'}
-                  </button>
                 </div>
               </div>
             </motion.div>
