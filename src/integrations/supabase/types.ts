@@ -475,6 +475,93 @@ export type Database = {
           },
         ]
       }
+      poll_options: {
+        Row: {
+          id: string
+          label: string
+          order_index: number
+          poll_id: string
+        }
+        Insert: {
+          id?: string
+          label: string
+          order_index?: number
+          poll_id: string
+        }
+        Update: {
+          id?: string
+          label?: string
+          order_index?: number
+          poll_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_options_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_votes: {
+        Row: {
+          id: string
+          poll_option_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          poll_option_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          poll_option_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_votes_poll_option_id_fkey"
+            columns: ["poll_option_id"]
+            isOneToOne: false
+            referencedRelation: "poll_options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      polls: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          lob_id: string
+          question: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          lob_id: string
+          question: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          lob_id?: string
+          question?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "polls_lob_id_fkey"
+            columns: ["lob_id"]
+            isOneToOne: false
+            referencedRelation: "lobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar: string
