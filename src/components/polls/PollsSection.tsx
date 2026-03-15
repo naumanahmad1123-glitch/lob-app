@@ -163,12 +163,8 @@ export function PollsSection({ lobId, tripId, userId }: PollsSectionProps) {
 
       console.log('[PollsSection] pollData:', pollData);
 
-      const { data: pollId, error } = await sb.rpc('create_poll', {
-        p_created_by: userId,
-        p_question: question.trim(),
-        p_lob_id: lobId || null,
-        p_trip_id: tripId || null,
-      });
+      const { data: pollArr, error } = await sb.from('polls').insert(pollData).select('id');
+      const pollId = pollArr?.[0]?.id;
       if (error) {
         console.error('[PollsSection] polls insert error:', JSON.stringify(error));
         console.error('[PollsSection] full error:', JSON.stringify(error, null, 2));

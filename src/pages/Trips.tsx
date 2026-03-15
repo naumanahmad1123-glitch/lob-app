@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plane, Plus, ChevronRight, Globe, Lock, X, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -14,6 +14,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 const Trips = () => {
+  const pageRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { openComposer } = useComposer();
   const { user } = useAuth();
@@ -24,6 +25,14 @@ const Trips = () => {
   const [showGroupTrip, setShowGroupTrip] = useState(false);
   const [newTrip, setNewTrip] = useState({ city: '', country: '', startDate: '', endDate: '', showOnProfile: true });
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading) {
+      const main = document.querySelector('main');
+      if (main) main.scrollTop = 0;
+      window.scrollTo(0, 0);
+    }
+  }, [isLoading]);
 
   const groupTripLobs = useMemo(() => allLobs.filter(l => l.category === 'group-trip'), [allLobs]);
   const myTrips = useMemo(() => allTrips.filter(t => t.user_id === user?.id), [allTrips, user]);
@@ -60,7 +69,7 @@ const Trips = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-lg mx-auto px-4">
+      <div ref={pageRef} className="max-w-lg mx-auto px-4">
         <div className="flex items-center justify-between pt-2 pb-2">
           <div>
             <h1 className="text-xl font-extrabold text-foreground tracking-tight">Trips</h1>

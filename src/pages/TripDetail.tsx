@@ -6,7 +6,7 @@ import { ArrowLeft, Pencil, Sparkles, Globe, Lock, X, Trash2, CheckCircle2, Cloc
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSupabaseTrips } from '@/hooks/useSupabaseTrips';
 import { useTripMembers, useTripSuggestions, useTripComments, useTripLobs } from '@/hooks/useTripDetail';
-import { PollsSection } from '@/components/polls/PollsSection';
+
 import { CATEGORY_CONFIG } from '@/data/types';
 import { TripAttendees } from '@/components/trips/TripAttendees';
 import { TripVoting } from '@/components/trips/TripVoting';
@@ -353,11 +353,7 @@ const TripDetail = () => {
           </motion.section>
         )}
 
-        {/* Polls */}
-        {user && (() => {
-          console.log('[TripDetail] PollsSection props:', { tripId: trip.id, userId: user?.id });
-          return <PollsSection tripId={trip.id} userId={user.id} />;
-        })()}
+
 
         {/* Lob the Group */}
         {members.length > 0 && (

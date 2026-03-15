@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo, animate } from 'framer-motion';
 import { X, MapPin, Users, ChevronRight, User, Check, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { CATEGORY_CONFIG, LobCategory, Lob } from '@/data/types';
+import { CATEGORY_CONFIG, LobCategory } from '@/data/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseGroups } from '@/hooks/useSupabaseGroups';
-import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 
 type ComposerStep = 'quick' | 'build';
 type RecipientType = 'group' | 'individuals';
@@ -23,6 +23,36 @@ interface ParsedLob {
   recipientType: RecipientType;
   selectedUserIds: string[];
 }
+
+const SUGGESTIONS = [
+  'Pickup basketball 🏀',
+  'Grab dinner 🍽️',
+  'Coffee ☕',
+  'Watch the game 📺',
+  'Beach day 🏖️',
+  'Hike 🥾',
+  'Movie night 🎬',
+  'Game night 🎲',
+];
+
+const inferCategory = (title: string): { category: LobCategory | ''; emoji: string } => {
+  const t = title.toLowerCase();
+  if (/padel/i.test(t))
+    return { category: 'padel', emoji: CATEGORY_CONFIG.padel.emoji };
+  if (/basketball|soccer|football|tennis|golf|run|surf|ski|climb|yoga|swim|workout|pickleball|volleyball/i.test(t))
+    return { category: 'sports', emoji: CATEGORY_CONFIG.sports.emoji };
+  if (/gym|lift|weights/i.test(t))
+    return { category: 'gym', emoji: CATEGORY_CONFIG.gym.emoji };
+  if (/dinner|lunch|brunch|breakfast|drinks|bar|restaurant|eat|food|taco|pizza|sushi|bbq/i.test(t))
+    return { category: 'dinner', emoji: CATEGORY_CONFIG.dinner.emoji };
+  if (/coffee|café|cafe/i.test(t))
+    return { category: 'coffee', emoji: CATEGORY_CONFIG.coffee.emoji };
+  if (/beach|lake|park|camp|hike|road trip|travel|explore|adventure|outdoor|trip/i.test(t))
+    return { category: 'travel', emoji: CATEGORY_CONFIG.travel.emoji };
+  if (/chill|hang|movie|film|concert|game night|karaoke|study|cowork/i.test(t))
+    return { category: 'chill', emoji: CATEGORY_CONFIG.chill.emoji };
+  return { category: '', emoji: '' };
+};
 
 interface ConnectionInfo {
   user_id: string;
@@ -69,8 +99,8 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
     return Array.from(friendMap.values());
   }, [dbGroups, user]);
 
-  const y = useMotionValue(0);
-  const opacity = useTransform(y, [0, 300], [1, 0.3]);
+  const sheetY = useMotionValue(0);
+  const isNearThreshold = useTransform(sheetY, [-300, -150, 0], [1, 1, 0]);
 
   useEffect(() => {
     if (open) {
@@ -105,13 +135,14 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
     if (!groupId && (!isIndividual || parsed.selectedUserIds.length === 0)) return;
     setSending(true);
     const group = dbGroups.find(g => g.id === groupId);
+    const { category: inferredCategory } = inferCategory(quickText);
 
     try {
       const { data: lobData, error: lobError } = await supabase
         .from('lobs')
         .insert({
           title: quickText.trim(),
-          category: 'other',
+          category: inferredCategory || 'other',
           group_id: groupId,
           group_name: group?.name || null,
           created_by: user.id,
@@ -155,9 +186,26 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
     if (!user || sending || !parsed.title.trim()) return;
     setSending(true);
     const category = (parsed.category || 'other') as LobCategory;
-    const timeIso = buildDate
-      ? (buildTime ? `${buildDate}T${buildTime}` : `${buildDate}T12:00`)
-      : new Date().toISOString();
+    const WHEN_CHIPS = ['Today', 'Tomorrow', 'This week', 'Next week'];
+    let timeIso: string | undefined;
+    if (parsed.time && !WHEN_CHIPS.includes(parsed.time)) {
+      // Freeform text — store as-is in the time field
+      timeIso = parsed.time;
+    } else if (parsed.time === 'Today') {
+      const d = new Date(); d.setHours(12, 0, 0, 0);
+      timeIso = d.toISOString();
+    } else if (parsed.time === 'Tomorrow') {
+      const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(12, 0, 0, 0);
+      timeIso = d.toISOString();
+    } else if (parsed.time === 'This week') {
+      timeIso = 'This week';
+    } else if (parsed.time === 'Next week') {
+      timeIso = 'Next week';
+    } else if (buildDate) {
+      timeIso = buildTime ? new Date(`${buildDate}T${buildTime}`).toISOString() : new Date(buildDate).toISOString();
+    } else {
+      timeIso = undefined;
+    }
     const isIndividual = parsed.recipientType === 'individuals';
     const groupId = !isIndividual && parsed.groupId ? parsed.groupId : null;
     const group = dbGroups.find(g => g.id === groupId);
@@ -185,7 +233,7 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
 
       if (lobError) throw lobError;
 
-      await supabase.from('lob_time_options').insert({ lob_id: lobData.id, datetime: timeIso });
+      if (timeIso) await supabase.from('lob_time_options').insert({ lob_id: lobData.id, datetime: timeIso });
       await supabase.from('lob_responses').insert({ lob_id: lobData.id, user_id: user.id, response: 'in' });
 
       if (isIndividual && parsed.selectedUserIds.length > 0) {
@@ -205,14 +253,6 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
     }
   }, [parsed, user, sending, dbGroups, buildQuorum, buildDate, buildTime, onLobSent, onClose, navigate, queryClient]);
 
-  const selectedGroup = parsed.recipientType === 'group' ? dbGroups.find(g => g.id === parsed.groupId) : null;
-  const selectedPeople = parsed.selectedUserIds.map(uid => connections.find(c => c.user_id === uid)).filter(Boolean) as ConnectionInfo[];
-  const recipientLabel = parsed.recipientType === 'group'
-    ? selectedGroup?.name || 'a group'
-    : selectedPeople.length > 0
-      ? selectedPeople.map(p => p.name.split(' ')[0]).join(', ')
-      : 'friends';
-
   const toggleUser = (uid: string) => {
     setParsed(p => ({
       ...p,
@@ -221,6 +261,14 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
         : [...p.selectedUserIds, uid],
     }));
   };
+
+  // Auto-infer category from title
+  useEffect(() => {
+    if (parsed.title) {
+      const { category } = inferCategory(parsed.title);
+      if (category) setParsed(p => ({ ...p, category }));
+    }
+  }, [parsed.title]);
 
   const hasValidRecipient = parsed.recipientType === 'group' ? !!parsed.groupId : parsed.selectedUserIds.length > 0;
   const quickCardReady = !!quickText.trim() && hasValidRecipient;
@@ -236,19 +284,36 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
             drag='y'
-            dragConstraints={{ top: -800, bottom: 100 }}
-            dragElastic={0.15}
+            dragConstraints={{ bottom: 100 }}
+            dragMomentum={false}
             onDragEnd={(_: any, info: PanInfo) => {
               if (info.offset.y > 100) { onClose(); return; }
-              if ((info.offset.y < -80 || info.velocity.y < -400) && step === 'quick' && quickCardReady) { handleQuickLobIt(); }
+              if (step === 'quick' && quickCardReady && (info.offset.y < -80 || info.velocity.y < -400)) {
+                // Animate sheet flying off screen upward, then trigger lob
+                animate(sheetY, -800, {
+                  type: 'tween',
+                  duration: 0.25,
+                  ease: [0.2, 0, 0.8, 1]
+                }).then(() => {
+                  handleQuickLobIt();
+                });
+              } else if (info.offset.y < -80 && !(step === 'quick' && quickCardReady)) {
+                // Snap back if not ready
+                animate(sheetY, 0, { type: 'spring', stiffness: 400, damping: 30 });
+              }
             }}
-            style={{ y, opacity }}
+            style={{ y: sheetY }}
             className="fixed bottom-0 left-0 right-0 z-[70] max-w-lg mx-auto"
           >
             <div className="bg-card rounded-t-3xl border border-border/50 shadow-card overflow-hidden max-h-[90vh] flex flex-col">
               <div className="flex justify-center pt-3 pb-1">
                 {step === 'quick' && quickCardReady ? (
-                  <p className="text-[11px] font-semibold text-primary">↑ Swipe up to lob it</p>
+                  <motion.p
+                    style={{ opacity: isNearThreshold }}
+                    className="text-[11px] font-semibold text-primary animate-pulse"
+                  >
+                    ↑ Swipe up to lob it
+                  </motion.p>
                 ) : (
                   <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
                 )}
@@ -286,6 +351,21 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
                           className="w-full p-4 rounded-2xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground text-base font-medium focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
+
+                      {/* Quick suggestions */}
+                      {!quickText.trim() && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {SUGGESTIONS.map(s => (
+                            <button
+                              key={s}
+                              onClick={() => setQuickText(s)}
+                              className="px-3 py-1.5 rounded-full bg-secondary/80 border border-border/50 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all active:scale-95"
+                            >
+                              {s}
+                            </button>
+                          ))}
+                        </div>
+                      )}
 
                       {/* Send to */}
                       <div className="mb-5">
@@ -399,32 +479,42 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
                         />
                       </div>
 
-                      {/* Category — optional */}
-                      <div className="mb-4">
-                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Category <span className="font-normal">(optional)</span></label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {(Object.entries(CATEGORY_CONFIG) as [LobCategory, typeof CATEGORY_CONFIG[LobCategory]][]).map(([key, val]) => (
-                            <button
-                              key={key}
-                              onClick={() => setParsed(p => ({ ...p, category: p.category === key ? '' : key }))}
-                              className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${
-                                parsed.category === key ? 'border-primary bg-primary/10' : 'border-border bg-secondary/50 hover:border-primary/50'
-                              }`}
-                            >
-                              <span className="text-xl">{val.emoji}</span>
-                              <span className="font-medium text-sm text-foreground">{val.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
                       {/* When — optional */}
                       <div className="mb-4">
                         <label className="text-xs font-medium text-muted-foreground mb-1.5 block">When <span className="font-normal">(optional)</span></label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <input type="date" value={buildDate} onChange={e => setBuildDate(e.target.value)} className="w-full p-3 rounded-xl bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:dark]" />
-                          <input type="time" value={buildTime} onChange={e => setBuildTime(e.target.value)} className="w-full p-3 rounded-xl bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:dark]" />
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {['Today', 'Tomorrow', 'This week', 'Next week'].map(chip => {
+                            const isActive = parsed.time === chip;
+                            return (
+                              <button
+                                key={chip}
+                                onClick={() => {
+                                  setParsed(p => ({ ...p, time: isActive ? '' : chip }));
+                                  setBuildDate('');
+                                  setBuildTime('');
+                                }}
+                                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 ${
+                                  isActive
+                                    ? 'gradient-primary text-primary-foreground shadow-sm'
+                                    : 'bg-secondary/80 text-muted-foreground border border-border/50 hover:border-primary/30'
+                                }`}
+                              >
+                                {chip}
+                              </button>
+                            );
+                          })}
                         </div>
+                        <input
+                          type="text"
+                          placeholder="Or type a time, e.g. Saturday 7pm"
+                          value={parsed.time && !['Today', 'Tomorrow', 'This week', 'Next week'].includes(parsed.time) ? parsed.time : ''}
+                          onChange={e => {
+                            setParsed(p => ({ ...p, time: e.target.value }));
+                            setBuildDate('');
+                            setBuildTime('');
+                          }}
+                          className="w-full p-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
                       </div>
 
                       {/* Where — optional */}

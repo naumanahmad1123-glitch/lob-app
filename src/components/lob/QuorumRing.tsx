@@ -68,6 +68,7 @@ export function QuorumRing({ current, target, responses, groupMembers = [] }: Qu
   const inList = responses.filter(r => r.response === 'in');
   const maybeList = responses.filter(r => r.response === 'maybe');
   const outList = responses.filter(r => r.response === 'out');
+  const standbyList = responses.filter(r => r.response === 'standby');
 
   const respondedIds = new Set(responses.map(r => r.userId));
   const noResponseList = groupMembers.filter(m => !respondedIds.has(m.id));
@@ -77,6 +78,7 @@ export function QuorumRing({ current, target, responses, groupMembers = [] }: Qu
     { key: 'maybe', label: 'Maybe', sublabel: 'Interested, not committed', emoji: '🤔', list: maybeList.map(r => r.userId), colorClass: 'text-lob-maybe', bgClass: 'bg-lob-maybe/20' },
     { key: 'no-response', label: 'No response', sublabel: 'Haven\'t responded yet', emoji: '⏳', list: noResponseList.map(m => m.id), colorClass: 'text-muted-foreground', bgClass: 'bg-secondary' },
     { key: 'out', label: "Can't make it", sublabel: '', emoji: '❌', list: outList.map(r => r.userId), colorClass: 'text-lob-out', bgClass: 'bg-lob-out/20' },
+    { key: 'standby', label: 'Standby', sublabel: 'Waiting for a spot', emoji: '⏱️', list: standbyList.map(r => r.userId), colorClass: 'text-muted-foreground', bgClass: 'bg-secondary' },
   ];
 
   return (
@@ -142,6 +144,9 @@ export function QuorumRing({ current, target, responses, groupMembers = [] }: Qu
               )}
               {noResponseList.length > 0 && (
                 <span className="text-[11px] font-semibold text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{noResponseList.length} pending</span>
+              )}
+              {standbyList.length > 0 && (
+                <span className="text-[11px] font-semibold text-muted-foreground bg-secondary/80 border border-border/50 px-2 py-0.5 rounded-full">{standbyList.length} standby</span>
               )}
             </div>
             {inList.length > 0 ? (

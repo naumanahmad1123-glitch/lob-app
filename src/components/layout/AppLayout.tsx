@@ -1,4 +1,5 @@
-import { ReactNode, useState, useCallback } from 'react';
+import { ReactNode, useState, useCallback, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { BottomTabs } from './BottomTabs';
 import { LobComposer } from '@/components/lob/LobComposer';
 import { LobSentToast } from '@/components/lob/LobSentToast';
@@ -6,6 +7,7 @@ import { LobSentAnimation } from '@/components/lob/LobSentAnimation';
 import { ComposerContext, type ComposerOptions } from '@/hooks/useComposer';
 
 export function AppLayout({ children }: { children: ReactNode }) {
+  const location = useLocation();
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerOptions, setComposerOptions] = useState<ComposerOptions>({});
   const [showToast, setShowToast] = useState(false);
@@ -17,6 +19,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
     setTimeout(() => setShowAnimation(false), 1500);
     setTimeout(() => setShowToast(false), 2500);
   }, []);
+
+  useEffect(() => {
+    const main = document.querySelector('main');
+    if (main) main.scrollTop = 0;
+  }, [location.pathname]);
 
   const openComposer = useCallback((options?: ComposerOptions) => {
     setComposerOptions(options || {});

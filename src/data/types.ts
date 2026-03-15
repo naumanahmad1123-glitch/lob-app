@@ -1,5 +1,5 @@
 export type LobStatus = 'draft' | 'voting' | 'confirmed' | 'cancelled' | 'completed';
-export type ResponseType = 'in' | 'maybe' | 'out';
+export type ResponseType = 'in' | 'maybe' | 'out' | 'standby';
 export type LobCategory = 'sports' | 'dinner' | 'coffee' | 'gym' | 'chill' | 'travel' | 'padel' | 'group-trip' | 'other';
 export type CalendarPrivacy = 'free-busy' | 'details';
 export type RecurrenceType = 'weekly' | 'biweekly' | 'monthly';
@@ -37,6 +37,7 @@ export interface LobResponse {
   response: ResponseType;
   selectedTimeId?: string;
   comment?: string;
+  standbySince?: number; // timestamp ms — used to order standby queue
 }
 
 export interface LobComment {

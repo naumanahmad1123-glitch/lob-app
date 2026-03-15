@@ -10,6 +10,8 @@ import { useComposer } from '@/hooks/useComposer';
 import { useUnreadNotificationCount } from '@/hooks/useNotifications';
 import { seedDemoData } from '@/lib/seed-demo';
 import { Lob } from '@/data/types';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 type ViewMode = 'feed' | 'calendar';
 
@@ -29,6 +31,7 @@ const Home = () => {
   const { user } = useAuth();
   const { openComposer } = useComposer();
   const { data: allLobs = [], isLoading } = useSupabaseLobs();
+  const queryClient = useQueryClient();
   const unreadCount = useUnreadNotificationCount();
   const [view, setView] = useState<ViewMode>('feed');
   const [calMonth, setCalMonth] = useState(() => {
@@ -57,8 +60,26 @@ const Home = () => {
     l.createdBy === user?.id
   );
   const confirmedLobs = allLobs.filter(l => l.status === 'confirmed');
-  const closedLobs = allLobs.filter(l => l.status === 'cancelled' || l.status === 'expired');
+  const closedLobs = allLobs.filter(l => l.status === 'cancelled' || l.status === 'completed');
 
+  const needsConfirmation = allLobs.filter(l => {
+    const myResp = l.responses.find(r => r.userId === user?.id);
+    return myResp?.response === 'maybe' && myResp?.comment === 'standby-promoted';
+  });
+
+  const handleConfirmSpot = async (lobId: string) => {
+    if (!user) return;
+    await supabase.from('lob_responses').update({ response: 'in', comment: null }).eq('lob_id', lobId).eq('user_id', user.id);
+    queryClient.invalidateQueries({ queryKey: ['supabase-lobs'] });
+  };
+
+  const handlePassSpot = async (lobId: string) => {
+    if (!user) return;
+    await supabase.from('lob_responses').update({ response: 'out', comment: null }).eq('lob_id', lobId).eq('user_id', user.id);
+    queryClient.invalidateQueries({ queryKey: ['supabase-lobs'] });
+  };
+
+  const [confirmSpotOpen, setConfirmSpotOpen] = useState(true);
   const [needsVoteOpen, setNeedsVoteOpen] = useState(true);
   const [yourLobsOpen, setYourLobsOpen] = useState(true);
   const [confirmedOpen, setConfirmedOpen] = useState(false);
@@ -158,6 +179,57 @@ const Home = () => {
                   </div>
                 )}
 
+                {/* 0. Confirm Your Spot */}
+                {needsConfirmation.length > 0 && (
+                  <section className="mb-2">
+                    <button
+                      onClick={() => setConfirmSpotOpen(v => !v)}
+                      className="w-full flex items-center justify-between mb-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-base font-bold text-foreground">Confirm Your Spot</h2>
+                        <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">{needsConfirmation.length}</span>
+                      </div>
+                      <motion.div animate={{ rotate: confirmSpotOpen ? 0 : -180 }} transition={{ duration: 0.2 }}>
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                      </motion.div>
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {confirmSpotOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="space-y-2 pb-2">
+                            {needsConfirmation.map(lob => (
+                              <div key={lob.id} className="gradient-card rounded-2xl p-3 border border-orange-500/30 shadow-card">
+                                <p className="text-sm font-semibold text-foreground mb-1">{lob.title} — a spot opened up!</p>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleConfirmSpot(lob.id)}
+                                    className="flex-1 py-2 rounded-xl bg-orange-500 text-white text-sm font-semibold cursor-pointer active:scale-95 transition-transform"
+                                  >
+                                    I'm In
+                                  </button>
+                                  <button
+                                    onClick={() => handlePassSpot(lob.id)}
+                                    className="flex-1 py-2 rounded-xl bg-secondary text-foreground text-sm font-semibold cursor-pointer active:scale-95 transition-transform"
+                                  >
+                                    Pass
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </section>
+                )}
+
                 {/* 1. Needs Your Vote */}
                 {needsVote.length > 0 && (
                   <section className="mb-2">
@@ -166,7 +238,7 @@ const Home = () => {
                       className="w-full flex items-center justify-between mb-2"
                     >
                       <div className="flex items-center gap-2">
-                        <h2 className="text-sm font-bold text-foreground">Needs Your Vote</h2>
+                        <h2 className="text-base font-bold text-foreground">Needs Your Vote</h2>
                         <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">{needsVote.length}</span>
                       </div>
                       <motion.div animate={{ rotate: needsVoteOpen ? 0 : -180 }} transition={{ duration: 0.2 }}>
@@ -199,7 +271,7 @@ const Home = () => {
                       className="w-full flex items-center justify-between mb-2"
                     >
                       <div className="flex items-center gap-2">
-                        <h2 className="text-sm font-bold text-foreground">Your Lobs</h2>
+                        <h2 className="text-base font-bold text-foreground">Your Lobs</h2>
                         <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">{yourLobs.length}</span>
                       </div>
                       <motion.div animate={{ rotate: yourLobsOpen ? 0 : -180 }} transition={{ duration: 0.2 }}>
@@ -232,7 +304,7 @@ const Home = () => {
                       className="w-full flex items-center justify-between mb-2"
                     >
                       <div className="flex items-center gap-2">
-                        <h2 className="text-sm font-bold text-foreground">Confirmed</h2>
+                        <h2 className="text-base font-bold text-foreground">Confirmed</h2>
                         <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">{confirmedLobs.length}</span>
                       </div>
                       <motion.div animate={{ rotate: confirmedOpen ? 0 : -180 }} transition={{ duration: 0.2 }}>
@@ -265,7 +337,7 @@ const Home = () => {
                       className="w-full flex items-center justify-between mb-2"
                     >
                       <div className="flex items-center gap-2">
-                        <h2 className="text-sm font-bold text-foreground">Closed</h2>
+                        <h2 className="text-base font-bold text-foreground">Closed</h2>
                         <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">{closedLobs.length}</span>
                       </div>
                       <motion.div animate={{ rotate: closedOpen ? 0 : -180 }} transition={{ duration: 0.2 }}>

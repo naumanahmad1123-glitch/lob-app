@@ -4,6 +4,7 @@ import { ResponseType } from '@/data/types';
 interface ResponseButtonsProps {
   current?: ResponseType;
   onChange: (response: ResponseType) => void;
+  confirmedByOther?: boolean;
 }
 
 const options: { value: ResponseType; label: string; activeClass: string }[] = [
@@ -12,7 +13,27 @@ const options: { value: ResponseType; label: string; activeClass: string }[] = [
   { value: 'out', label: 'Out', activeClass: 'bg-red-900 text-white' },
 ];
 
-export function ResponseButtons({ current, onChange }: ResponseButtonsProps) {
+export function ResponseButtons({ current, onChange, confirmedByOther }: ResponseButtonsProps) {
+  if (confirmedByOther && current !== 'in') {
+    return (
+      <div className="space-y-2">
+        <div className="w-full py-3 rounded-xl bg-secondary/50 border border-border/50 text-center text-sm text-muted-foreground font-medium">
+          Spot filled
+        </div>
+        <button
+          onClick={() => onChange('standby')}
+          className={`w-full py-3 rounded-xl border text-sm font-semibold transition-all cursor-pointer ${
+            current === 'standby'
+              ? 'bg-primary/10 border-primary text-primary'
+              : 'bg-secondary border-border/50 text-foreground hover:border-primary/40'
+          }`}
+        >
+          {current === 'standby' ? '✓ You\'re on standby' : 'Join Standby'}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex gap-2">
       {options.map(({ value, label, activeClass }) => {

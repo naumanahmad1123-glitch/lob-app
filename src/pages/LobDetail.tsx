@@ -1,10 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { format } from 'date-fns';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, MapPin, Clock, Share2, MessageCircle, CheckCircle2, Check, Users,
-  Bell, MoreVertical, XCircle, Repeat, Send, Plus, CalendarIcon, UserPlus, Minus,
+  MoreVertical, XCircle, Repeat, Send,
   DoorOpen, Link2, Hand,
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -21,14 +20,9 @@ import { LocationMap } from '@/components/lob/LocationMap';
 import { DeadlineCountdown } from '@/components/lob/DeadlineCountdown';
 import { BailSheet } from '@/components/lob/BailSheet';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
-import { generateDayChips, generateTimeChips, isSameDay, parseTimeString } from '@/lib/lob-utils';
 import { useProfileMap, getProfileName, getProfileAvatar, getProfilePhotoUrl } from '@/hooks/useProfileMap';
-import { PollsSection } from '@/components/polls/PollsSection';
-import { UserAvatar } from '@/components/UserAvatar';
 
-const DAY_CHIPS = generateDayChips();
-const TIME_CHIPS = generateTimeChips();
+import { UserAvatar } from '@/components/UserAvatar';
 
 /** Fetch group member user IDs for a given group */
 function useGroupMemberIds(groupId: string | undefined) {
@@ -120,20 +114,39 @@ const LobDetail = () => {
   const respondedIds = new Set(lob.responses.map(r => r.userId));
   const nonResponders = groupMemberIds.filter(id => !respondedIds.has(id) && id !== lob.createdBy);
 
-  // Attendee names for "in" list
-  const inNames = inList.map(r => r.userId === user?.id ? 'You' : getProfileName(profileMap, r.userId).split(' ')[0]);
-
   // Non-responder names for quorum section
   const nonResponderNames = nonResponders.slice(0, 3).map(id => getProfileName(profileMap, id).split(' ')[0]);
 
   const handleResponse = async (response: ResponseType) => {
     if (!user) return;
     const existing = lob.responses.find(r => r.userId === user.id);
-    if (existing) {
-      await supabase.from('lob_responses').update({ response }).eq('lob_id', lob.id).eq('user_id', user.id);
-    } else {
-      await supabase.from('lob_responses').insert({ lob_id: lob.id, user_id: user.id, response });
+    const previousResponse = existing?.response;
+    const updatePayload: any = { response };
+    if (response === 'standby') {
+      updatePayload.standby_since = Date.now();
     }
+    if (existing) {
+      await supabase.from('lob_responses').update(updatePayload).eq('lob_id', lob.id).eq('user_id', user.id);
+    } else {
+      await supabase.from('lob_responses').insert({ lob_id: lob.id, user_id: user.id, ...updatePayload });
+    }
+
+    // Auto-bump: if confirmed person bails, promote first standby person
+    if (previousResponse === 'in' && response === 'out' && effectiveStatus === 'confirmed') {
+      const standbyList = lob.responses
+        .filter(r => r.response === 'standby')
+        .sort((a, b) => (a.standbySince || 0) - (b.standbySince || 0));
+
+      if (standbyList.length > 0) {
+        const nextUp = standbyList[0];
+        await supabase
+          .from('lob_responses')
+          .update({ response: 'maybe', comment: 'standby-promoted' })
+          .eq('lob_id', lob.id)
+          .eq('user_id', nextUp.userId);
+      }
+    }
+
     queryClient.invalidateQueries({ queryKey: ['supabase-lob', id] });
     queryClient.invalidateQueries({ queryKey: ['supabase-lobs'] });
   };
@@ -435,9 +448,9 @@ const LobDetail = () => {
         )}
 
         {/* Response Buttons (#2) */}
-        {effectiveStatus === 'voting' && (
+        {(effectiveStatus === 'voting' || effectiveStatus === 'confirmed') && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-2">
-            <ResponseButtons current={myResponse} onChange={handleResponse} />
+            <ResponseButtons current={myResponse} onChange={handleResponse} confirmedByOther={effectiveStatus === 'confirmed' && myResponse !== 'in'} />
           </motion.div>
         )}
 
@@ -563,10 +576,7 @@ const LobDetail = () => {
           </div>
         </motion.div>
 
-        {/* Polls */}
-        {user && (
-          <PollsSection lobId={lob.id} userId={user.id} />
-        )}
+
 
         <div className="h-8" />
       </div>
