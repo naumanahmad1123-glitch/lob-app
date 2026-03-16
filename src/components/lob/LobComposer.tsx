@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo, animate
 import { X, MapPin, Users, ChevronRight, User, Check, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CATEGORY_CONFIG, LobCategory } from '@/data/types';
+import { inferCategoryFromTitle } from '@/lib/lob-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseGroups } from '@/hooks/useSupabaseGroups';
