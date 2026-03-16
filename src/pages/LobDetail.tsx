@@ -338,7 +338,7 @@ const LobDetail = () => {
           <div className="flex items-center gap-3 mb-2">
             <span className="text-4xl">{config.emoji}</span>
             <div>
-              <h1 className="text-xl font-extrabold text-foreground leading-tight">{lob.title}</h1>
+              <h1 className="text-xl font-extrabold text-foreground leading-tight">{lob.title.replace(/\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu, '').trim()}</h1>
               <p className="text-sm text-muted-foreground">
                 {isIndividualLob
                   ? recipientIds.map(rid => getProfileName(profileMap, rid).split(' ')[0]).join(', ')
