@@ -36,50 +36,7 @@ const SUGGESTIONS = [
   'Game night',
 ];
 
-const inferCategory = (title: string): { category: LobCategory | ''; emoji: string } => {
-  const t = title.toLowerCase();
-  if (/padel/i.test(t))
-    return { category: 'padel', emoji: CATEGORY_CONFIG.padel.emoji };
-  if (/basketball/i.test(t)) return { category: 'sports', emoji: '🏀' };
-  if (/soccer|football/i.test(t)) return { category: 'sports', emoji: '⚽' };
-  if (/tennis/i.test(t)) return { category: 'sports', emoji: '🎾' };
-  if (/golf/i.test(t)) return { category: 'sports', emoji: '⛳' };
-  if (/surf/i.test(t)) return { category: 'sports', emoji: '🏄' };
-  if (/ski|snowboard/i.test(t)) return { category: 'sports', emoji: '⛷️' };
-  if (/climb/i.test(t)) return { category: 'sports', emoji: '🧗' };
-  if (/yoga/i.test(t)) return { category: 'sports', emoji: '🧘' };
-  if (/swim/i.test(t)) return { category: 'sports', emoji: '🏊' };
-  if (/volleyball/i.test(t)) return { category: 'sports', emoji: '🏐' };
-  if (/pickleball/i.test(t)) return { category: 'sports', emoji: '🏓' };
-  if (/run|jog/i.test(t)) return { category: 'sports', emoji: '🏃' };
-  if (/workout|exercise/i.test(t)) return { category: 'sports', emoji: '💪' };
-  if (/gym|lift|weights/i.test(t))
-    return { category: 'gym', emoji: CATEGORY_CONFIG.gym.emoji };
-  if (/drinks|bar|cocktail|happy hour|beer|wine/i.test(t)) return { category: 'dinner', emoji: '🍻' };
-  if (/lunch/i.test(t)) return { category: 'dinner', emoji: '🥗' };
-  if (/brunch/i.test(t)) return { category: 'dinner', emoji: '🥞' };
-  if (/breakfast/i.test(t)) return { category: 'dinner', emoji: '🍳' };
-  if (/pizza/i.test(t)) return { category: 'dinner', emoji: '🍕' };
-  if (/sushi/i.test(t)) return { category: 'dinner', emoji: '🍣' };
-  if (/taco/i.test(t)) return { category: 'dinner', emoji: '🌮' };
-  if (/bbq|barbecue|grill/i.test(t)) return { category: 'dinner', emoji: '🔥' };
-  if (/dinner|restaurant|eat|food/i.test(t)) return { category: 'dinner', emoji: '🍽️' };
-  if (/coffee|café|cafe/i.test(t))
-    return { category: 'coffee', emoji: CATEGORY_CONFIG.coffee.emoji };
-  if (/beach/i.test(t)) return { category: 'travel', emoji: '🏖️' };
-  if (/hike|hiking/i.test(t)) return { category: 'travel', emoji: '🥾' };
-  if (/camp/i.test(t)) return { category: 'travel', emoji: '⛺' };
-  if (/lake|park|outdoor/i.test(t)) return { category: 'travel', emoji: '🌲' };
-  if (/road trip|travel|explore|adventure|trip/i.test(t))
-    return { category: 'travel', emoji: CATEGORY_CONFIG.travel.emoji };
-  if (/movie|film/i.test(t)) return { category: 'chill', emoji: '🎬' };
-  if (/concert|music|show/i.test(t)) return { category: 'chill', emoji: '🎵' };
-  if (/game night|board game/i.test(t)) return { category: 'chill', emoji: '🎲' };
-  if (/karaoke/i.test(t)) return { category: 'chill', emoji: '🎤' };
-  if (/study|cowork/i.test(t)) return { category: 'chill', emoji: '📚' };
-  if (/chill|hang/i.test(t)) return { category: 'chill', emoji: '😎' };
-  return { category: '', emoji: '' };
-};
+const inferCategory = inferCategoryFromTitle;
 
 interface ConnectionInfo {
   user_id: string;
