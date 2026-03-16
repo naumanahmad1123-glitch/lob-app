@@ -100,6 +100,13 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
   }, [dbGroups, user]);
 
   const sheetY = useMotionValue(0);
+  const dragProgress = useTransform(sheetY, [0, -200], [0, 1]);
+  const cardRotate = useTransform(sheetY, [0, -200], [0, -8]);
+  const cardScale = useTransform(sheetY, [0, -100, -200], [1, 1.02, 0.95]);
+  const stampOpacity = useTransform(sheetY, [0, -80, -150], [0, 0, 1]);
+  const stampScale = useTransform(sheetY, [0, -80, -150], [0.5, 0.5, 1]);
+  const glowOpacity = useTransform(sheetY, [0, -80, -180], [0, 0, 0.6]);
+  const bgHue = useTransform(sheetY, [0, -200], [0, 120]); // shift toward green
   const isNearThreshold = useTransform(sheetY, [-300, -150, 0], [1, 1, 0]);
 
   useEffect(() => {
