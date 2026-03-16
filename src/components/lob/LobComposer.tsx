@@ -100,13 +100,7 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
   }, [dbGroups, user]);
 
   const sheetY = useMotionValue(0);
-  const dragProgress = useTransform(sheetY, [0, -200], [0, 1]);
-  const cardRotate = useTransform(sheetY, [0, -200], [0, -8]);
-  const cardScale = useTransform(sheetY, [0, -100, -200], [1, 1.02, 0.95]);
-  const stampOpacity = useTransform(sheetY, [0, -80, -150], [0, 0, 1]);
-  const stampScale = useTransform(sheetY, [0, -80, -150], [0.5, 0.5, 1]);
   const glowOpacity = useTransform(sheetY, [0, -80, -180], [0, 0, 0.6]);
-  const bgHue = useTransform(sheetY, [0, -200], [0, 120]); // shift toward green
   const isNearThreshold = useTransform(sheetY, [-300, -150, 0], [1, 1, 0]);
 
   useEffect(() => {
@@ -314,8 +308,6 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
             }}
             style={{
               y: sheetY,
-              rotate: quickCardReady ? cardRotate : 0,
-              scale: quickCardReady ? cardScale : 1,
             }}
             className="fixed bottom-0 left-0 right-0 z-[70] max-w-lg mx-auto"
           >
@@ -328,17 +320,6 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
             )}
 
             <div className="bg-card rounded-t-3xl border border-border/50 shadow-card overflow-hidden max-h-[90vh] flex flex-col relative">
-              {/* "LOBBED" stamp overlay */}
-              {step === 'quick' && quickCardReady && (
-                <motion.div
-                  style={{ opacity: stampOpacity, scale: stampScale }}
-                  className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none"
-                >
-                  <div className="border-4 border-primary rounded-2xl px-8 py-3 rotate-[-12deg]">
-                    <span className="text-3xl font-black text-primary tracking-widest">LOBBED 🏐</span>
-                  </div>
-                </motion.div>
-              )}
 
               <div className="flex justify-center pt-3 pb-1">
                 {step === 'quick' && quickCardReady ? (
