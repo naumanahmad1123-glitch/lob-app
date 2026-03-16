@@ -338,7 +338,7 @@ const TripDetail = () => {
                   >
                     <span className="text-xl shrink-0">{config?.emoji || '📅'}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate">{lob.title}</p>
+                      <p className="text-sm font-semibold text-foreground truncate">{lob.title.replace(/\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu, '').trim()}</p>
                       <p className="text-xs text-muted-foreground">{lob.inCount}/{lob.quorum} in</p>
                     </div>
                     <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${

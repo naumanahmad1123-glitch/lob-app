@@ -25,14 +25,14 @@ interface ParsedLob {
 }
 
 const SUGGESTIONS = [
-  'Pickup basketball 🏀',
-  'Grab dinner 🍽️',
-  'Coffee ☕',
-  'Watch the game 📺',
-  'Beach day 🏖️',
-  'Hike 🥾',
-  'Movie night 🎬',
-  'Game night 🎲',
+  'Pickup basketball',
+  'Grab dinner',
+  'Coffee',
+  'Watch the game',
+  'Beach day',
+  'Hike',
+  'Movie night',
+  'Game night',
 ];
 
 const inferCategory = (title: string): { category: LobCategory | ''; emoji: string } => {
