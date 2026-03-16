@@ -19,12 +19,14 @@ export function TripComments({ tripId, userId, comments }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const initialMount = useRef(true);
 
+  const prevCount = useRef(comments.length);
+
   useEffect(() => {
-    if (initialMount.current) {
-      initialMount.current = false;
-      return;
+    // Only auto-scroll when a NEW comment is added after mount, not on initial load
+    if (prevCount.current > 0 && comments.length > prevCount.current) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    prevCount.current = comments.length;
   }, [comments.length]);
 
   const handleSend = async () => {
