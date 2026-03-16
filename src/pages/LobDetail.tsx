@@ -337,7 +337,7 @@ const LobDetail = () => {
         {/* Title + Creator Attribution (#7) */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-3">
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-4xl">{config.emoji}</span>
+            <span className="text-4xl">{getEmojiForTitle(lob.title, lob.category)}</span>
             <div>
               <h1 className="text-xl font-extrabold text-foreground leading-tight">{lob.title.replace(/\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu, '').trim()}</h1>
               <p className="text-sm text-muted-foreground">
