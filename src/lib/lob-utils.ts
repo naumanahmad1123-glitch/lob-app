@@ -1,5 +1,5 @@
 import { addDays, format } from 'date-fns';
-import { LobCategory } from '@/data/types';
+import { LobCategory, CATEGORY_CONFIG } from '@/data/types';
 
 // ─── Category Keywords (single source of truth) ───
 
@@ -13,6 +13,56 @@ export const CATEGORY_KEYWORDS: Record<string, LobCategory> = {
   padel: 'padel', tennis: 'padel',
   'group trip': 'group-trip', 'group-trip': 'group-trip',
 };
+
+// ─── Infer category + specific emoji from title ───
+
+export function inferCategoryFromTitle(title: string): { category: LobCategory | ''; emoji: string } {
+  const t = title.toLowerCase();
+  if (/padel/i.test(t)) return { category: 'padel', emoji: '🎾' };
+  if (/basketball/i.test(t)) return { category: 'sports', emoji: '🏀' };
+  if (/soccer|football/i.test(t)) return { category: 'sports', emoji: '⚽' };
+  if (/tennis/i.test(t)) return { category: 'sports', emoji: '🎾' };
+  if (/golf/i.test(t)) return { category: 'sports', emoji: '⛳' };
+  if (/surf/i.test(t)) return { category: 'sports', emoji: '🏄' };
+  if (/ski|snowboard/i.test(t)) return { category: 'sports', emoji: '⛷️' };
+  if (/climb/i.test(t)) return { category: 'sports', emoji: '🧗' };
+  if (/yoga/i.test(t)) return { category: 'sports', emoji: '🧘' };
+  if (/swim/i.test(t)) return { category: 'sports', emoji: '🏊' };
+  if (/volleyball/i.test(t)) return { category: 'sports', emoji: '🏐' };
+  if (/pickleball/i.test(t)) return { category: 'sports', emoji: '🏓' };
+  if (/run|jog/i.test(t)) return { category: 'sports', emoji: '🏃' };
+  if (/workout|exercise/i.test(t)) return { category: 'sports', emoji: '💪' };
+  if (/gym|lift|weights/i.test(t)) return { category: 'gym', emoji: '💪' };
+  if (/drinks|bar|cocktail|happy hour|beer|wine/i.test(t)) return { category: 'dinner', emoji: '🍻' };
+  if (/lunch/i.test(t)) return { category: 'dinner', emoji: '🥗' };
+  if (/brunch/i.test(t)) return { category: 'dinner', emoji: '🥞' };
+  if (/breakfast/i.test(t)) return { category: 'dinner', emoji: '🍳' };
+  if (/pizza/i.test(t)) return { category: 'dinner', emoji: '🍕' };
+  if (/sushi/i.test(t)) return { category: 'dinner', emoji: '🍣' };
+  if (/taco/i.test(t)) return { category: 'dinner', emoji: '🌮' };
+  if (/bbq|barbecue|grill/i.test(t)) return { category: 'dinner', emoji: '🔥' };
+  if (/dinner|restaurant|eat|food/i.test(t)) return { category: 'dinner', emoji: '🍽️' };
+  if (/coffee|café|cafe/i.test(t)) return { category: 'coffee', emoji: '☕' };
+  if (/beach/i.test(t)) return { category: 'travel', emoji: '🏖️' };
+  if (/hike|hiking/i.test(t)) return { category: 'travel', emoji: '🥾' };
+  if (/camp/i.test(t)) return { category: 'travel', emoji: '⛺' };
+  if (/lake|park|outdoor/i.test(t)) return { category: 'travel', emoji: '🌲' };
+  if (/road trip|travel|explore|adventure|trip/i.test(t)) return { category: 'travel', emoji: '✈️' };
+  if (/movie|film/i.test(t)) return { category: 'chill', emoji: '🎬' };
+  if (/concert|music|show/i.test(t)) return { category: 'chill', emoji: '🎵' };
+  if (/game night|board game/i.test(t)) return { category: 'chill', emoji: '🎲' };
+  if (/karaoke/i.test(t)) return { category: 'chill', emoji: '🎤' };
+  if (/study|cowork/i.test(t)) return { category: 'chill', emoji: '📚' };
+  if (/chill|hang/i.test(t)) return { category: 'chill', emoji: '😎' };
+  return { category: '', emoji: '' };
+}
+
+/** Get the best emoji for a lob title, falling back to category default */
+export function getEmojiForTitle(title: string, category: LobCategory): string {
+  const { emoji } = inferCategoryFromTitle(title);
+  if (emoji) return emoji;
+  return CATEGORY_CONFIG[category]?.emoji || '📌';
+}
 
 // ─── Day chips ───
 
@@ -51,8 +101,6 @@ export function isSameDay(a: Date | undefined, b: Date): boolean {
 }
 
 // ─── Unified time parsing ───
-// Parses a human-readable time string ("8pm", "7:30 am") combined with a day reference
-// ("today", "tomorrow", "monday", etc.) into an ISO datetime string.
 
 export function parseTimeToISO(timeStr: string, dayStr: string = 'today'): string {
   const timeMatch = timeStr.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);

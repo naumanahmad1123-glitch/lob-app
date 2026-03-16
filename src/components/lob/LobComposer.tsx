@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo, animate
 import { X, MapPin, Users, ChevronRight, User, Check, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CATEGORY_CONFIG, LobCategory } from '@/data/types';
+import { inferCategoryFromTitle } from '@/lib/lob-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseGroups } from '@/hooks/useSupabaseGroups';
@@ -35,24 +36,7 @@ const SUGGESTIONS = [
   'Game night',
 ];
 
-const inferCategory = (title: string): { category: LobCategory | ''; emoji: string } => {
-  const t = title.toLowerCase();
-  if (/padel/i.test(t))
-    return { category: 'padel', emoji: CATEGORY_CONFIG.padel.emoji };
-  if (/basketball|soccer|football|tennis|golf|run|surf|ski|climb|yoga|swim|workout|pickleball|volleyball/i.test(t))
-    return { category: 'sports', emoji: CATEGORY_CONFIG.sports.emoji };
-  if (/gym|lift|weights/i.test(t))
-    return { category: 'gym', emoji: CATEGORY_CONFIG.gym.emoji };
-  if (/dinner|lunch|brunch|breakfast|drinks|bar|restaurant|eat|food|taco|pizza|sushi|bbq/i.test(t))
-    return { category: 'dinner', emoji: CATEGORY_CONFIG.dinner.emoji };
-  if (/coffee|café|cafe/i.test(t))
-    return { category: 'coffee', emoji: CATEGORY_CONFIG.coffee.emoji };
-  if (/beach|lake|park|camp|hike|road trip|travel|explore|adventure|outdoor|trip/i.test(t))
-    return { category: 'travel', emoji: CATEGORY_CONFIG.travel.emoji };
-  if (/chill|hang|movie|film|concert|game night|karaoke|study|cowork/i.test(t))
-    return { category: 'chill', emoji: CATEGORY_CONFIG.chill.emoji };
-  return { category: '', emoji: '' };
-};
+const inferCategory = inferCategoryFromTitle;
 
 interface ConnectionInfo {
   user_id: string;
