@@ -84,7 +84,7 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
             <div>
               <div className="flex items-center gap-1.5">
                 <h3 className="font-bold text-foreground text-[15px] leading-tight">
-                  {lob.destination || lob.title}
+                  {(lob.destination || lob.title).replace(/\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu, '').trim()}
                 </h3>
                 {isYours && (
                   <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full leading-none">
