@@ -48,12 +48,32 @@ export function inferCategoryFromTitle(title: string): { category: LobCategory |
   if (/camp/i.test(t)) return { category: 'travel', emoji: '⛺' };
   if (/lake|park|outdoor/i.test(t)) return { category: 'travel', emoji: '🌲' };
   if (/road trip|travel|explore|adventure|trip/i.test(t)) return { category: 'travel', emoji: '✈️' };
-  if (/movie|film/i.test(t)) return { category: 'chill', emoji: '🎬' };
-  if (/concert|music|show/i.test(t)) return { category: 'chill', emoji: '🎵' };
+  // Watch / TV / Sports viewing
+  if (/watch.*game|watch.*match|watch.*fight|the game/i.test(t)) return { category: 'chill', emoji: '📺' };
+  if (/watch.*movie|watch.*film|movie night|film/i.test(t)) return { category: 'chill', emoji: '🎬' };
+  if (/movie|cinema/i.test(t)) return { category: 'chill', emoji: '🎬' };
+  if (/tv|binge|netflix|stream|watch/i.test(t)) return { category: 'chill', emoji: '📺' };
+  // Events & shows
+  if (/festival/i.test(t)) return { category: 'chill', emoji: '🎪' };
+  if (/comedy|standup|stand-up/i.test(t)) return { category: 'chill', emoji: '🎭' };
+  if (/theater|theatre|play|musical/i.test(t)) return { category: 'chill', emoji: '🎭' };
+  if (/concert|live music/i.test(t)) return { category: 'chill', emoji: '🎵' };
+  if (/show|event|performance/i.test(t)) return { category: 'chill', emoji: '🎫' };
+  if (/music/i.test(t)) return { category: 'chill', emoji: '🎵' };
+  // Games & social
   if (/game night|board game/i.test(t)) return { category: 'chill', emoji: '🎲' };
   if (/karaoke/i.test(t)) return { category: 'chill', emoji: '🎤' };
+  if (/bowling/i.test(t)) return { category: 'chill', emoji: '🎳' };
+  if (/pool|billiards/i.test(t)) return { category: 'chill', emoji: '🎱' };
+  if (/party|pregame|pre-game/i.test(t)) return { category: 'chill', emoji: '🎉' };
+  if (/potluck|cookout/i.test(t)) return { category: 'dinner', emoji: '🍲' };
+  if (/spa|sauna|wellness/i.test(t)) return { category: 'chill', emoji: '🧖' };
+  if (/shopping|mall/i.test(t)) return { category: 'chill', emoji: '🛍️' };
+  // Study / work
   if (/study|cowork/i.test(t)) return { category: 'chill', emoji: '📚' };
-  if (/chill|hang/i.test(t)) return { category: 'chill', emoji: '😎' };
+  // General catch-alls
+  if (/chill|hang|hangout|kick it|link up|pull up|come through/i.test(t)) return { category: 'chill', emoji: '😎' };
+  if (/plan|meet|get together|meetup|meet up/i.test(t)) return { category: 'chill', emoji: '🤝' };
   return { category: '', emoji: '' };
 }
 
