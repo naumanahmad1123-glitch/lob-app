@@ -296,23 +296,50 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
             onDragEnd={(_: any, info: PanInfo) => {
               if (info.offset.y > 100) { onClose(); return; }
               if (step === 'quick' && quickCardReady && (info.offset.y < -80 || info.velocity.y < -400)) {
-                // Animate sheet flying off screen upward, then trigger lob
-                animate(sheetY, -800, {
-                  type: 'tween',
-                  duration: 0.25,
-                  ease: [0.2, 0, 0.8, 1]
-                }).then(() => {
+                // Tinder-style fly-off: rotate + scale + fly up
+                const flyRotation = info.velocity.x > 0 ? 15 : -15;
+                Promise.all([
+                  animate(sheetY, -1200, {
+                    type: 'spring',
+                    stiffness: 200,
+                    damping: 20,
+                    velocity: info.velocity.y,
+                  }),
+                ]).then(() => {
                   handleQuickLobIt();
                 });
               } else if (info.offset.y < -80 && !(step === 'quick' && quickCardReady)) {
-                // Snap back if not ready
                 animate(sheetY, 0, { type: 'spring', stiffness: 400, damping: 30 });
               }
             }}
-            style={{ y: sheetY }}
+            style={{
+              y: sheetY,
+              rotate: quickCardReady ? cardRotate : 0,
+              scale: quickCardReady ? cardScale : 1,
+            }}
             className="fixed bottom-0 left-0 right-0 z-[70] max-w-lg mx-auto"
           >
-            <div className="bg-card rounded-t-3xl border border-border/50 shadow-card overflow-hidden max-h-[90vh] flex flex-col">
+            {/* Glow effect behind the card */}
+            {step === 'quick' && quickCardReady && (
+              <motion.div
+                style={{ opacity: glowOpacity }}
+                className="absolute -inset-4 rounded-[2rem] bg-primary/30 blur-2xl pointer-events-none"
+              />
+            )}
+
+            <div className="bg-card rounded-t-3xl border border-border/50 shadow-card overflow-hidden max-h-[90vh] flex flex-col relative">
+              {/* "LOBBED" stamp overlay */}
+              {step === 'quick' && quickCardReady && (
+                <motion.div
+                  style={{ opacity: stampOpacity, scale: stampScale }}
+                  className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none"
+                >
+                  <div className="border-4 border-primary rounded-2xl px-8 py-3 rotate-[-12deg]">
+                    <span className="text-3xl font-black text-primary tracking-widest">LOBBED 🏐</span>
+                  </div>
+                </motion.div>
+              )}
+
               <div className="flex justify-center pt-3 pb-1">
                 {step === 'quick' && quickCardReady ? (
                   <motion.p
