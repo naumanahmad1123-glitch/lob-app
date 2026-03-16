@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { CATEGORY_CONFIG, ResponseType, LobComment, RECURRENCE_OPTIONS, TimeOption } from '@/data/types';
+import { getEmojiForTitle } from '@/lib/lob-utils';
 import { TripPlanningSection } from '@/components/trips/TripPlanningSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseLob, useLobRecipients } from '@/hooks/useSupabaseLobs';
