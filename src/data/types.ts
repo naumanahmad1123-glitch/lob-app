@@ -131,16 +131,16 @@ export interface CalendarShare {
   privacy: CalendarPrivacy;
 }
 
-export const CATEGORY_CONFIG: Record<LobCategory, { label: string; emoji: string; defaultQuorum: number }> = {
-  sports: { label: 'Sports', emoji: '🏀', defaultQuorum: 6 },
-  dinner: { label: 'Dinner', emoji: '🍽️', defaultQuorum: 3 },
-  coffee: { label: 'Coffee', emoji: '☕', defaultQuorum: 2 },
-  gym: { label: 'Gym', emoji: '💪', defaultQuorum: 2 },
-  chill: { label: 'Chill', emoji: '😎', defaultQuorum: 2 },
-  travel: { label: 'Travel', emoji: '✈️', defaultQuorum: 2 },
-  padel: { label: 'Padel', emoji: '🎾', defaultQuorum: 4 },
-  'group-trip': { label: 'Group Trip', emoji: '🌍', defaultQuorum: 4 },
-  other: { label: 'Other', emoji: '📌', defaultQuorum: 2 },
+export const CATEGORY_CONFIG: Record<LobCategory, { label: string; emoji: string }> = {
+  sports: { label: 'Sports', emoji: '🏀' },
+  dinner: { label: 'Dinner', emoji: '🍽️' },
+  coffee: { label: 'Coffee', emoji: '☕' },
+  gym: { label: 'Gym', emoji: '💪' },
+  chill: { label: 'Chill', emoji: '😎' },
+  travel: { label: 'Travel', emoji: '✈️' },
+  padel: { label: 'Padel', emoji: '🎾' },
+  'group-trip': { label: 'Group Trip', emoji: '🌍' },
+  other: { label: 'Other', emoji: '📌' },
 };
 
 export const RECURRENCE_OPTIONS: { key: RecurrenceType; label: string }[] = [

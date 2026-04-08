@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, List, CalendarDays, ChevronDown } from 'lucide-react';
+import { Bell, List, CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { LobCard } from '@/components/lob/LobCard';
@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 
 type ViewMode = 'feed' | 'calendar';
+type FeedTab = 'pending' | 'upcoming' | 'archived';
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -39,6 +40,7 @@ const Home = () => {
     return { year: now.getFullYear(), month: now.getMonth() };
   });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [feedTab, setFeedTab] = useState<FeedTab>('pending');
 
   // Seed demo data on first login if user has no lobs
   useEffect(() => {
@@ -47,25 +49,29 @@ const Home = () => {
     }
   }, [user?.id, isLoading, allLobs.length]);
 
-  const allUpcoming = allLobs.filter(l => l.status === 'voting' || l.status === 'confirmed');
+  const pendingLobs = allLobs.filter(l =>
+    (l.status === 'voting' || l.status === 'confirmed') &&
+    !l.responses.some(r => r.userId === user?.id && (r.response === 'in' || r.response === 'out' || r.response === 'maybe'))
+  );
 
-  // 4 feed sections
-  const needsVote = allLobs.filter(l =>
-    l.status === 'voting' &&
-    l.createdBy !== user?.id &&
-    !l.responses.some(r => r.userId === user?.id)
-  );
-  const yourLobs = allLobs.filter(l =>
-    l.status === 'voting' &&
-    l.createdBy === user?.id
-  );
-  const confirmedLobs = allLobs.filter(l => l.status === 'confirmed');
-  const closedLobs = allLobs.filter(l => l.status === 'cancelled' || l.status === 'completed');
+  const upcomingLobs = allLobs.filter(l => {
+    if (l.status === 'cancelled' || l.status === 'completed') return false;
+    const myResp = l.responses.find(r => r.userId === user?.id);
+    return myResp?.response === 'in' || myResp?.response === 'maybe';
+  });
+
+  const archivedLobs = allLobs.filter(l => {
+    if (l.status === 'cancelled' || l.status === 'completed') return true;
+    const myResp = l.responses.find(r => r.userId === user?.id);
+    return myResp?.response === 'out';
+  });
 
   const needsConfirmation = allLobs.filter(l => {
     const myResp = l.responses.find(r => r.userId === user?.id);
     return myResp?.response === 'maybe' && myResp?.comment === 'standby-promoted';
   });
+
+  const allUpcoming = upcomingLobs;
 
   const handleConfirmSpot = async (lobId: string) => {
     if (!user) return;
@@ -76,14 +82,26 @@ const Home = () => {
   const handlePassSpot = async (lobId: string) => {
     if (!user) return;
     await supabase.from('lob_responses').update({ response: 'out', comment: null }).eq('lob_id', lobId).eq('user_id', user.id);
+
+    // Fetch fresh standby list and promote next person
+    const { data: responses } = await supabase
+      .from('lob_responses')
+      .select('*')
+      .eq('lob_id', lobId)
+      .eq('response', 'standby')
+      .order('standby_since', { ascending: true })
+      .limit(1);
+
+    if (responses && responses.length > 0) {
+      await supabase
+        .from('lob_responses')
+        .update({ response: 'maybe', comment: 'standby-promoted' })
+        .eq('lob_id', lobId)
+        .eq('user_id', responses[0].user_id);
+    }
+
     queryClient.invalidateQueries({ queryKey: ['supabase-lobs'] });
   };
-
-  const [confirmSpotOpen, setConfirmSpotOpen] = useState(true);
-  const [needsVoteOpen, setNeedsVoteOpen] = useState(true);
-  const [yourLobsOpen, setYourLobsOpen] = useState(true);
-  const [confirmedOpen, setConfirmedOpen] = useState(false);
-  const [closedOpen, setClosedOpen] = useState(false);
 
   const lobsByDay = useMemo(() => {
     const map = new Map<number, Lob[]>();
@@ -117,7 +135,7 @@ const Home = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-lg mx-auto px-4">
+      <div className="w-full px-4">
         <div className="flex items-center justify-between pt-2 pb-2">
           <div>
             <h1 className="text-xl font-extrabold text-foreground tracking-tight">Lob</h1>
@@ -171,41 +189,59 @@ const Home = () => {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
               >
-                {allLobs.length === 0 && (
-                  <div className="gradient-card rounded-2xl border border-border/50 p-8 text-center">
-                    <span className="text-4xl mb-3 block">🏐</span>
-                    <p className="text-sm font-semibold text-foreground">No plans yet</p>
-                    <p className="text-xs text-muted-foreground mt-1">Lob something to get started!</p>
-                  </div>
-                )}
-
-                {/* 0. Confirm Your Spot */}
-                {needsConfirmation.length > 0 && (
-                  <section className="mb-2">
+                <div className="flex items-center gap-1 bg-secondary rounded-xl p-1 mb-3">
+                  {(['pending', 'upcoming', 'archived'] as FeedTab[]).map(tab => (
                     <button
-                      onClick={() => setConfirmSpotOpen(v => !v)}
-                      className="w-full flex items-center justify-between mb-2"
+                      key={tab}
+                      onClick={() => setFeedTab(tab)}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer capitalize ${
+                        feedTab === tab ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
+                      }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-base font-bold text-foreground">Confirm Your Spot</h2>
-                        <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">{needsConfirmation.length}</span>
-                      </div>
-                      <motion.div animate={{ rotate: confirmSpotOpen ? 0 : -180 }} transition={{ duration: 0.2 }}>
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                      </motion.div>
+                      {tab}
+                      {tab === 'pending' && pendingLobs.length > 0 && (
+                        <span className="px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-[10px] font-bold">{pendingLobs.length}</span>
+                      )}
                     </button>
-                    <AnimatePresence initial={false}>
-                      {confirmSpotOpen && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="space-y-2 pb-2">
-                            {needsConfirmation.map(lob => (
-                              <div key={lob.id} className="gradient-card rounded-2xl p-3 border border-orange-500/30 shadow-card">
+                  ))}
+                </div>
+
+                <AnimatePresence mode="wait">
+                  {feedTab === 'pending' && (
+                    <motion.div
+                      key="pending"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      {pendingLobs.length > 0 ? (
+                        <div className="space-y-2">
+                          {pendingLobs.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}
+                        </div>
+                      ) : (
+                        <div className="gradient-card rounded-2xl border border-border/50 p-8 text-center">
+                          <span className="text-4xl mb-3 block">✅</span>
+                          <p className="text-sm font-semibold text-foreground">You're all caught up</p>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+
+                  {feedTab === 'upcoming' && (
+                    <motion.div
+                      key="upcoming"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      {needsConfirmation.length + upcomingLobs.length > 0 ? (
+                        <div className="space-y-2">
+                          {needsConfirmation.map(lob => (
+                            <div key={lob.id} className="relative">
+                              <span className="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 text-[10px] font-bold">Confirm your spot</span>
+                              <div className="gradient-card rounded-2xl p-3 border border-orange-500/30 shadow-card">
                                 <p className="text-sm font-semibold text-foreground mb-1">{lob.title} — a spot opened up!</p>
                                 <div className="flex gap-2">
                                   <button
@@ -222,145 +258,46 @@ const Home = () => {
                                   </button>
                                 </div>
                               </div>
-                            ))}
-                          </div>
-                        </motion.div>
+                            </div>
+                          ))}
+                          {upcomingLobs.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}
+                        </div>
+                      ) : (
+                        <div className="gradient-card rounded-2xl border border-border/50 p-8 text-center">
+                          <span className="text-4xl mb-3 block">🏐</span>
+                          <p className="text-sm font-semibold text-foreground">Nothing lined up yet</p>
+                          <button
+                            onClick={() => openComposer()}
+                            className="mt-4 px-4 py-2 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold active:scale-95 transition-transform"
+                          >
+                            Lob Something
+                          </button>
+                        </div>
                       )}
-                    </AnimatePresence>
-                  </section>
-                )}
+                    </motion.div>
+                  )}
 
-                {/* 1. Needs Your Vote */}
-                {needsVote.length > 0 && (
-                  <section className="mb-2">
-                    <button
-                      onClick={() => setNeedsVoteOpen(v => !v)}
-                      className="w-full flex items-center justify-between mb-2"
+                  {feedTab === 'archived' && (
+                    <motion.div
+                      key="archived"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
                     >
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-base font-bold text-foreground">Needs Your Vote</h2>
-                        <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">{needsVote.length}</span>
-                      </div>
-                      <motion.div animate={{ rotate: needsVoteOpen ? 0 : -180 }} transition={{ duration: 0.2 }}>
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                      </motion.div>
-                    </button>
-                    <AnimatePresence initial={false}>
-                      {needsVoteOpen && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="space-y-2 pb-2">
-                            {needsVote.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}
-                          </div>
-                        </motion.div>
+                      {archivedLobs.length > 0 ? (
+                        <div className="space-y-2">
+                          {archivedLobs.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}
+                        </div>
+                      ) : (
+                        <div className="gradient-card rounded-2xl border border-border/50 p-8 text-center">
+                          <span className="text-4xl mb-3 block">📦</span>
+                          <p className="text-sm font-semibold text-foreground">Nothing archived yet</p>
+                        </div>
                       )}
-                    </AnimatePresence>
-                  </section>
-                )}
-
-                {/* 2. Your Lobs */}
-                {yourLobs.length > 0 && (
-                  <section className="mb-2">
-                    <button
-                      onClick={() => setYourLobsOpen(v => !v)}
-                      className="w-full flex items-center justify-between mb-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-base font-bold text-foreground">Your Lobs</h2>
-                        <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">{yourLobs.length}</span>
-                      </div>
-                      <motion.div animate={{ rotate: yourLobsOpen ? 0 : -180 }} transition={{ duration: 0.2 }}>
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                      </motion.div>
-                    </button>
-                    <AnimatePresence initial={false}>
-                      {yourLobsOpen && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="space-y-2 pb-2">
-                            {yourLobs.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </section>
-                )}
-
-                {/* 3. Confirmed */}
-                {confirmedLobs.length > 0 && (
-                  <section className="mb-2">
-                    <button
-                      onClick={() => setConfirmedOpen(v => !v)}
-                      className="w-full flex items-center justify-between mb-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-base font-bold text-foreground">Confirmed</h2>
-                        <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">{confirmedLobs.length}</span>
-                      </div>
-                      <motion.div animate={{ rotate: confirmedOpen ? 0 : -180 }} transition={{ duration: 0.2 }}>
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                      </motion.div>
-                    </button>
-                    <AnimatePresence initial={false}>
-                      {confirmedOpen && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="space-y-2 pb-2">
-                            {confirmedLobs.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </section>
-                )}
-
-                {/* 4. Closed */}
-                {closedLobs.length > 0 && (
-                  <section className="mb-2">
-                    <button
-                      onClick={() => setClosedOpen(v => !v)}
-                      className="w-full flex items-center justify-between mb-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-base font-bold text-foreground">Closed</h2>
-                        <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">{closedLobs.length}</span>
-                      </div>
-                      <motion.div animate={{ rotate: closedOpen ? 0 : -180 }} transition={{ duration: 0.2 }}>
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                      </motion.div>
-                    </button>
-                    <AnimatePresence initial={false}>
-                      {closedOpen && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="space-y-2 pb-2">
-                            {closedLobs.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </section>
-                )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             ) : (
               <motion.div

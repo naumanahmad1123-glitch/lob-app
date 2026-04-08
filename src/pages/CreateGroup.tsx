@@ -88,7 +88,7 @@ export default function CreateGroup() {
 
   return (
     <AppLayout>
-      <div className="max-w-lg mx-auto px-4 pb-8">
+      <div className="w-full px-4 pb-8">
         <div className="flex items-center gap-3 pt-3 pb-4">
           <button
             onClick={() => (step > 0 ? setStep(step - 1) : navigate('/connect'))}

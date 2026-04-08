@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, MapPin, Clock, Share2, MessageCircle, CheckCircle2, Check, Users,
   MoreVertical, XCircle, Repeat, Send,
-  DoorOpen, Link2, Hand,
+  DoorOpen, Link2, Hand, UserPlus,
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { CATEGORY_CONFIG, ResponseType, LobComment, RECURRENCE_OPTIONS, TimeOption } from '@/data/types';
@@ -24,6 +24,8 @@ import { toast } from 'sonner';
 import { useProfileMap, getProfileName, getProfileAvatar, getProfilePhotoUrl } from '@/hooks/useProfileMap';
 
 import { UserAvatar } from '@/components/UserAvatar';
+import { PlacesAutocomplete } from '@/components/ui/PlacesAutocomplete';
+import { PollSection } from '@/components/lob/PollSection';
 
 /** Fetch group member user IDs for a given group */
 function useGroupMemberIds(groupId: string | undefined) {
@@ -74,6 +76,10 @@ const LobDetail = () => {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showBailSheet, setShowBailSheet] = useState(false);
   const [nudging, setNudging] = useState(false);
+  const [locationInput, setLocationInput] = useState('');
+  const [showLocationInput, setShowLocationInput] = useState(false);
+  const [showInviteSheet, setShowInviteSheet] = useState(false);
+  const [inviteSearch, setInviteSearch] = useState('');
 
   useEffect(() => {
     if (lob?.comments) setLocalComments(lob.comments);
@@ -117,6 +123,8 @@ const LobDetail = () => {
 
   // Non-responder names for quorum section
   const nonResponderNames = nonResponders.slice(0, 3).map(id => getProfileName(profileMap, id).split(' ')[0]);
+  const respondedOrInvitedIds = new Set([...lob.responses.map(r => r.userId), ...recipientIds]);
+  const uninvitedConnections = groupMemberIds.filter(uid => !respondedOrInvitedIds.has(uid) && uid !== user?.id);
 
   const handleResponse = async (response: ResponseType) => {
     if (!user) return;
@@ -236,6 +244,37 @@ const LobDetail = () => {
     toast.success('Link copied!');
   };
 
+  const handleLocationSelect = async (result: { name: string; address: string; lat: number | null; lng: number | null }) => {
+    if (!result.name || !lob?.id) return;
+    setShowLocationInput(false);
+    setLocationInput('');
+    const { error } = await supabase.from('lobs').update({
+      location_name: result.name,
+      location_address: result.address,
+      location_lat: result.lat,
+      location_lng: result.lng,
+    }).eq('id', lob.id);
+    if (!error) {
+      queryClient.invalidateQueries({ queryKey: ['supabase-lobs'] });
+      queryClient.invalidateQueries({ queryKey: ['supabase-lob', id] });
+    }
+  };
+
+  const handleInvite = async (userId: string) => {
+    if (!lob) return;
+    await supabase.from('lob_recipients').insert({ lob_id: lob.id, user_id: userId });
+    queryClient.invalidateQueries({ queryKey: ['supabase-lob', id] });
+    toast.success('Invited!');
+  };
+
+  const handleUpdateQuorum = async (newQuorum: number) => {
+    if (!lob || !isCreator) return;
+    const clamped = Math.max(1, Math.min(20, newQuorum));
+    await supabase.from('lobs').update({ quorum: clamped }).eq('id', lob.id);
+    queryClient.invalidateQueries({ queryKey: ['supabase-lob', id] });
+    queryClient.invalidateQueries({ queryKey: ['supabase-lobs'] });
+  };
+
   const recurrenceLabel = lob.recurrence ? RECURRENCE_OPTIONS.find(r => r.key === lob.recurrence)?.label : null;
   const effectiveStatus = lob.status;
   const deadlinePassed = lob.deadline ? new Date(lob.deadline).getTime() < Date.now() : false;
@@ -268,7 +307,7 @@ const LobDetail = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-lg mx-auto px-4">
+      <div className="w-full px-4">
         {/* Header */}
         <div className="flex items-center gap-3 pt-2 pb-2">
           <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
@@ -276,6 +315,14 @@ const LobDetail = () => {
           </button>
           <div className="flex-1" />
           <StatusPill status={effectiveStatus} deadlinePassed={deadlinePassed} quorumReached={quorumReached} />
+          {(isCreator || myResponse === 'in') && (effectiveStatus === 'voting' || effectiveStatus === 'confirmed') && (
+            <button
+              onClick={() => setShowInviteSheet(true)}
+              className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+            >
+              <UserPlus className="w-5 h-5 text-foreground" />
+            </button>
+          )}
           <button
             onClick={() => {
               if (navigator.share) navigator.share({ title: lob.title, url: window.location.href });
@@ -380,17 +427,38 @@ const LobDetail = () => {
             <Clock className="w-4 h-4 text-primary" />
             <span>{formattedTime}</span>
           </div>
-          {(lob.locationName || lob.location) ? (
-            <div className="flex items-center gap-2 text-sm text-foreground">
-              <MapPin className="w-4 h-4 text-primary" />
-              <span>{lob.locationName || lob.location}</span>
+          {showLocationInput ? (
+            <PlacesAutocomplete
+              value={locationInput}
+              onChange={setLocationInput}
+              onSelect={handleLocationSelect}
+              placeholder="Search for a location"
+              showIcon={true}
+            />
+          ) : (lob.locationName || lob.location) ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-foreground">
+                <MapPin className="w-4 h-4 text-primary" />
+                <span>{lob.locationName || lob.location}</span>
+              </div>
+              {isCreator && (
+                <button
+                  onClick={() => setShowLocationInput(true)}
+                  className="text-xs text-primary active:opacity-70 ml-2"
+                >
+                  Edit
+                </button>
+              )}
             </div>
-          ) : isCreator && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          ) : isCreator ? (
+            <button
+              onClick={() => setShowLocationInput(true)}
+              className="flex items-center gap-2 text-sm text-primary active:opacity-70"
+            >
               <span>📍</span>
               <span>Add a location</span>
-            </div>
-          )}
+            </button>
+          ) : null}
         </motion.div>
 
         {(lob.locationName || lob.location) && (
@@ -479,6 +547,24 @@ const LobDetail = () => {
               <span className="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">＋1 allowed</span>
             )}
           </div>
+          {isCreator && effectiveStatus !== 'cancelled' && (
+            <div className="flex items-center justify-between mb-2 py-2 border-t border-border/30">
+              <p className="text-xs font-medium text-muted-foreground">Need to confirm</p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => handleUpdateQuorum(lob.quorum - 1)}
+                  disabled={lob.quorum <= 1}
+                  className="w-7 h-7 rounded-full bg-secondary border border-border flex items-center justify-center text-base font-bold text-foreground disabled:opacity-30 active:scale-95 transition-transform cursor-pointer"
+                >−</button>
+                <span className="text-sm font-bold text-foreground w-4 text-center">{lob.quorum}</span>
+                <button
+                  onClick={() => handleUpdateQuorum(lob.quorum + 1)}
+                  disabled={lob.quorum >= 20}
+                  className="w-7 h-7 rounded-full bg-secondary border border-border flex items-center justify-center text-base font-bold text-foreground disabled:opacity-30 active:scale-95 transition-transform cursor-pointer"
+                >+</button>
+              </div>
+            </div>
+          )}
           <QuorumRing current={inCount} target={lob.quorum} responses={lob.responses} groupMembers={[]} />
 
           {/* Share link for open invite (#5) */}
@@ -532,6 +618,15 @@ const LobDetail = () => {
           </div>
         )}
 
+        {/* Polls */}
+        <PollSection
+          lobId={lob.id}
+          canAddPoll={
+            effectiveStatus !== 'cancelled' &&
+            (isCreator || myResponse === 'in' || myResponse === 'maybe' || recipientIds.includes(user?.id ?? ''))
+          }
+        />
+
         {/* Comments */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="gradient-card rounded-2xl p-3 border border-border/50 shadow-card mb-2">
           <div className="flex items-center gap-2 mb-3">
@@ -578,6 +673,81 @@ const LobDetail = () => {
         </motion.div>
 
 
+
+        <AnimatePresence>
+          {showInviteSheet && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowInviteSheet(false)}
+                className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                className="fixed inset-x-0 bottom-0 z-50 bg-card rounded-t-3xl border-t border-border shadow-card max-h-[80vh] flex flex-col"
+              >
+                <div className="flex justify-center pt-3 pb-1">
+                  <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+                </div>
+                <div className="flex items-center justify-between px-5 pt-2 pb-3">
+                  <h3 className="font-bold text-foreground text-lg">Invite people</h3>
+                  <button
+                    onClick={() => setShowInviteSheet(false)}
+                    className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+                  >
+                    <XCircle className="w-5 h-5 text-muted-foreground" />
+                  </button>
+                </div>
+                <div className="px-5 pb-3">
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={inviteSearch}
+                    onChange={e => setInviteSearch(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div className="flex-1 overflow-y-auto px-5 pb-6">
+                  {uninvitedConnections.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">Everyone has already been invited</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {uninvitedConnections
+                        .filter(uid => {
+                          const name = getProfileName(profileMap, uid).toLowerCase();
+                          return name.includes(inviteSearch.toLowerCase());
+                        })
+                        .map(uid => {
+                          const name = getProfileName(profileMap, uid);
+                          const avatar = getProfileAvatar(profileMap, uid);
+                          const photoUrl = getProfilePhotoUrl(profileMap, uid);
+                          return (
+                            <div key={uid} className="flex items-center justify-between p-2 rounded-xl hover:bg-secondary/50 transition-colors">
+                              <div className="flex items-center gap-3">
+                                <UserAvatar photoUrl={photoUrl} emoji={avatar} size="sm" />
+                                <span className="text-sm font-medium text-foreground">{name}</span>
+                              </div>
+                              <button
+                                onClick={() => handleInvite(uid)}
+                                className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold cursor-pointer active:scale-95 transition-transform"
+                              >
+                                Invite
+                              </button>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         <div className="h-8" />
       </div>

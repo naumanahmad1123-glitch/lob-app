@@ -77,7 +77,7 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2">
             <div className="relative w-10 h-10 rounded-xl gradient-primary flex items-center justify-center text-lg">
-              {modeIcon}
+              <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>{modeIcon}</span>
               {isYours && (
                 <Crown className="absolute -top-1.5 -right-1.5 w-3 h-3 text-primary fill-primary" />
               )}
@@ -104,7 +104,7 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
 
         {/* Phase status */}
         <div className={`text-xs font-semibold ${phaseInfo.color} mb-2`}>
-          {phaseInfo.label}
+          <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>{phaseInfo.label}</span>
         </div>
 
         <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
@@ -116,7 +116,7 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
           )}
           {lob.tripVibes && lob.tripVibes.length > 0 && (
             <span className="flex items-center gap-1">
-              {lob.tripVibes.map(v => VIBE_EMOJIS[v] || '🏖️').join(' ')}
+              <span style={{ fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>{lob.tripVibes.map(v => VIBE_EMOJIS[v] || '🏖️').join(' ')}</span>
             </span>
           )}
           <span className="flex items-center gap-1">
@@ -169,8 +169,8 @@ export function LobCard({ lob, index = 0 }: LobCardProps) {
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="relative text-2xl">
-            {getEmojiForTitle(lob.title, lob.category)}
+          <span style={{ fontSize: '1.5rem', lineHeight: '1', fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif' }}>
+              {getEmojiForTitle(lob.title, lob.category)}
             {isYours && (
               <Crown className="absolute -top-1.5 -right-1.5 w-3 h-3 text-primary fill-primary" />
             )}

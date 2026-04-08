@@ -91,7 +91,7 @@ const Connect = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-lg mx-auto px-4">
+      <div className="w-full px-4">
         {/* Header */}
         <div className="flex items-center justify-between pt-2 pb-2">
           <div>

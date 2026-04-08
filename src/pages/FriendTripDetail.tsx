@@ -43,7 +43,7 @@ const FriendTripDetail = () => {
   if (isLoading && !trip) {
     return (
       <AppLayout>
-        <div className="max-w-lg mx-auto px-4">
+        <div className="w-full px-4">
           <div className="flex items-center pt-3 pb-4">
             <button onClick={() => navigate('/trips')} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
               <ArrowLeft className="w-5 h-5 text-foreground" />
@@ -59,7 +59,7 @@ const FriendTripDetail = () => {
   if (!trip) {
     return (
       <AppLayout>
-        <div className="max-w-lg mx-auto px-4">
+        <div className="w-full px-4">
           <div className="pt-3 pb-4">
             <button onClick={() => navigate('/trips')} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
               <ArrowLeft className="w-5 h-5 text-foreground" />
@@ -75,7 +75,7 @@ const FriendTripDetail = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-lg mx-auto px-4">
+      <div className="w-full px-4">
         {/* Header */}
         <div className="flex items-center pt-3 pb-4">
           <button onClick={() => navigate('/trips')} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">

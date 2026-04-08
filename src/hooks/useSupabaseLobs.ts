@@ -35,6 +35,7 @@ function mapDbLob(row: any): Lob {
       userId: r.user_id,
       response: r.response,
       comment: r.comment || undefined,
+      standbySince: r.standby_since ?? undefined,
     })) as LobResponse[],
     comments: (row.lob_comments || []).map((c: any) => ({
       id: c.id,

@@ -19,7 +19,7 @@ export function QuorumBar({ current, target }: QuorumBarProps) {
         />
       </div>
       <span className={`text-xs font-semibold ${reached ? 'text-lob-confirmed' : 'text-muted-foreground'}`}>
-        {reached ? "It's on! 🎉" : `${remaining} to make it happen`}
+        {reached ? "It's on! 🎉" : `Waiting on ${remaining} ${remaining === 1 ? 'person' : 'people'}`}
       </span>
     </div>
   );

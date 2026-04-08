@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Globe, Users, CalendarRange, MapPin, Minus, Plus, Compass, DollarSign } from 'lucide-react';
-import { users, currentUser } from '@/data/seed';
-import { Lob, TripPlanningMode, TripVibe } from '@/data/types';
-import { lobStore } from '@/stores/lobStore';
+import { TripPlanningMode, TripVibe } from '@/data/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { PlacesAutocomplete } from '@/components/ui/PlacesAutocomplete';
 
 interface GroupTripComposerProps {
   open: boolean;
@@ -30,6 +32,8 @@ const VIBE_OPTIONS: { key: TripVibe; emoji: string; label: string }[] = [
 ];
 
 export function GroupTripComposer({ open, onClose, onCreated }: GroupTripComposerProps) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState<Step>('mode');
   const [mode, setMode] = useState<TripPlanningMode>('defined');
   const [destination, setDestination] = useState('');
@@ -40,14 +44,7 @@ export function GroupTripComposer({ open, onClose, onCreated }: GroupTripCompose
   const [vibes, setVibes] = useState<TripVibe[]>([]);
   const [headcount, setHeadcount] = useState(4);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-
-  const otherUsers = users.filter(u => u.id !== currentUser.id);
-
-  const toggleUser = (uid: string) => {
-    setSelectedUserIds(prev =>
-      prev.includes(uid) ? prev.filter(id => id !== uid) : [...prev, uid]
-    );
-  };
+  const [sending, setSending] = useState(false);
 
   const toggleVibe = (v: TripVibe) => {
     setVibes(prev => prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]);
@@ -66,7 +63,8 @@ export function GroupTripComposer({ open, onClose, onCreated }: GroupTripCompose
     setSelectedUserIds([]);
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
+    if (!user || sending) return;
     if (mode === 'defined') {
       if (!destination.trim()) { toast.error('Where are you going?'); return; }
       if (!startDate || !endDate) { toast.error('Pick your dates'); return; }
@@ -78,49 +76,62 @@ export function GroupTripComposer({ open, onClose, onCreated }: GroupTripCompose
     }
 
     const titleMap: Record<TripPlanningMode, string> = {
-      'defined': `${destination.trim()}`,
-      'dates-open': `${destination.trim()}`,
+      'defined': destination.trim(),
+      'dates-open': destination.trim(),
       'fully-open': vibes.length > 0
         ? `${vibes.map(v => VIBE_OPTIONS.find(o => o.key === v)?.label).join(' & ')} Trip`
         : 'Group Trip',
     };
 
-    const newLob: Lob = {
-      id: `gt-${Date.now()}`,
-      title: titleMap[mode],
-      category: 'group-trip',
-      groupId: '',
-      groupName: selectedUserIds.length > 0
-        ? `${selectedUserIds.length + 1} travellers`
-        : 'Open trip',
-      createdBy: currentUser.id,
-      location: mode !== 'fully-open' ? destination.trim() : undefined,
-      destination: mode !== 'fully-open' ? destination.trim() : undefined,
-      tripPlanningMode: mode,
-      tripPlanningPhase: mode === 'defined' ? 'confirmed' : mode === 'dates-open' ? 'voting-dates' : 'voting-destination',
-      tripStartDate: mode === 'defined' ? startDate : undefined,
-      tripEndDate: mode === 'defined' ? endDate : undefined,
-      tripTimeframe: mode !== 'defined' ? timeframe : undefined,
-      tripBudget: mode === 'fully-open' ? budget || undefined : undefined,
-      tripVibes: mode === 'fully-open' && vibes.length > 0 ? vibes : undefined,
-      destinationOptions: mode === 'fully-open' ? [] : undefined,
-      dateRangeOptions: mode === 'dates-open' ? [] : undefined,
-      timeOptions: mode === 'defined'
-        ? [{ id: `to-${Date.now()}`, datetime: `${startDate}T12:00`, votes: [] }]
-        : [],
-      whenMode: mode === 'defined' ? 'specific' : 'tbd',
-      quorum: headcount,
-      status: 'voting',
-      responses: [{ userId: currentUser.id, response: 'in' }],
-      createdAt: new Date().toISOString(),
-    };
+    setSending(true);
+    try {
+      const { data: tripData, error: tripError } = await supabase
+        .from('groups_trips')
+        .insert({
+          created_by: user.id,
+          title: titleMap[mode],
+          planning_mode: mode,
+          destination: mode !== 'fully-open' ? destination.trim() : null,
+          start_date: mode === 'defined' ? startDate : null,
+          end_date: mode === 'defined' ? endDate : null,
+          timeframe: mode !== 'defined' ? timeframe : null,
+          vibes: vibes.length > 0 ? vibes.join(',') : null,
+          budget: budget || null,
+          headcount,
+          status: 'voting',
+          emoji: '🌍',
+        })
+        .select('id')
+        .single();
 
-    lobStore.addLob(newLob);
-    const label = mode === 'fully-open' ? 'Group trip' : destination.trim();
-    toast.success(`${label} lobbed! 🌍`);
-    reset();
-    onClose();
-    onCreated?.();
+      if (tripError) throw tripError;
+
+      // Add creator as member
+      await supabase.from('trip_members').insert({
+        trip_id: tripData.id,
+        user_id: user.id,
+        status: 'in',
+      });
+
+      // Add any selected user IDs as invited members
+      if (selectedUserIds.length > 0) {
+        await supabase.from('trip_members').insert(
+          selectedUserIds.map(uid => ({ trip_id: tripData.id, user_id: uid, status: 'invited' }))
+        );
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['supabase-group-trips'] });
+      const label = mode === 'fully-open' ? 'Group trip' : destination.trim();
+      toast.success(`${label} lobbed! 🌍`);
+      reset();
+      onClose();
+      onCreated?.();
+    } catch (err: any) {
+      console.error('Failed to create group trip:', err);
+      toast.error('Failed to create trip');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -212,13 +223,11 @@ export function GroupTripComposer({ open, onClose, onCreated }: GroupTripCompose
                           <MapPin className="w-3.5 h-3.5" />
                           Where to?
                         </label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Lisbon, Bali, Lake Como"
+                        <PlacesAutocomplete
                           value={destination}
-                          onChange={e => setDestination(e.target.value)}
-                          className="w-full p-3 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                          autoFocus
+                          onChange={setDestination}
+                          onSelect={result => setDestination(result.name)}
+                          placeholder="Where are you going?"
                         />
                       </div>
                     )}
@@ -343,25 +352,12 @@ export function GroupTripComposer({ open, onClose, onCreated }: GroupTripCompose
                         <Globe className="w-3.5 h-3.5" />
                         Who's invited?
                       </label>
-                      <div className="flex flex-wrap gap-2">
-                        {otherUsers.map(u => {
-                          const selected = selectedUserIds.includes(u.id);
-                          return (
-                            <button
-                              key={u.id}
-                              onClick={() => toggleUser(u.id)}
-                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 ${
-                                selected
-                                  ? 'bg-primary/15 text-primary border border-primary/30'
-                                  : 'bg-secondary text-muted-foreground border border-border'
-                              }`}
-                            >
-                              <span className="text-sm">{u.avatar}</span>
-                              {u.name}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <input
+                        type="text"
+                        placeholder="Invite by user ID (optional)"
+                        onChange={e => setSelectedUserIds(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                        className="w-full p-3 rounded-xl bg-input border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
                     </div>
                   </motion.div>
                 )}
@@ -373,9 +369,10 @@ export function GroupTripComposer({ open, onClose, onCreated }: GroupTripCompose
                 <div className="shrink-0 px-5 pt-3 border-t border-border/50 bg-card" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
                   <button
                     onClick={handleCreate}
-                    className="w-full py-3.5 rounded-xl gradient-primary text-primary-foreground font-bold text-sm active:scale-[0.98] transition-transform"
+                    disabled={sending}
+                    className="w-full py-3.5 rounded-xl gradient-primary text-primary-foreground font-bold text-sm active:scale-[0.98] transition-transform disabled:opacity-50"
                   >
-                    🌍 Lob the Trip
+                    {sending ? 'Lobbing...' : '🌍 Lob the Trip'}
                   </button>
                 </div>
               )}

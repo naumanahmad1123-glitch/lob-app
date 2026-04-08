@@ -48,6 +48,8 @@ const Profile = () => {
 
   const totalPlans = allLobs.filter(l => l.createdBy === user?.id).length;
   const totalGroups = allGroups.length;
+  const createdLobs = allLobs.filter(l => l.createdBy === user?.id);
+  const showedLobs = createdLobs.filter(l => l.status === 'confirmed');
 
   const openEditSheet = () => {
     if (!profile) return;
@@ -118,7 +120,7 @@ const Profile = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-lg mx-auto px-4">
+      <div className="w-full px-4">
         <div className="flex items-center justify-between pt-2 pb-3">
           <h1 className="text-xl font-extrabold text-foreground tracking-tight">Profile</h1>
           <button onClick={() => { setShowComingSoon('Settings'); setTimeout(() => setShowComingSoon(null), 2000); }} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
@@ -228,7 +230,20 @@ const Profile = () => {
             <UserAvatar photoUrl={profile.avatar_photo_url} emoji={profile.avatar} size="xl" className="mx-auto" />
           </div>
           <h2 className="text-xl font-bold text-foreground">{profile.name}</h2>
-          <p className="text-sm text-muted-foreground mt-1">Making plans since 2026</p>
+          <p className="text-sm text-muted-foreground mt-1">Making plans since {new Date(profile.created_at).getFullYear()}</p>
+          {profile.interests && profile.interests.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-1.5 mt-2">
+              {profile.interests.map(key => {
+                const opt = INTEREST_OPTIONS.find(o => o.key === key);
+                if (!opt) return null;
+                return (
+                  <span key={key} className="px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                    {opt.label}
+                  </span>
+                );
+              })}
+            </div>
+          )}
 
           <div className="flex justify-center gap-8 mt-5">
             <div>
@@ -240,7 +255,7 @@ const Profile = () => {
               <p className="text-[11px] text-muted-foreground">Groups</p>
             </div>
             <div className="relative">
-              <ShowRateBadge total={12} showed={11} />
+              <ShowRateBadge total={createdLobs.length} showed={showedLobs.length} />
               <button onClick={() => setShowRateTooltip(!showRateTooltip)} className="flex items-center gap-0.5 text-[11px] text-muted-foreground mx-auto mt-0.5 cursor-pointer">
                 <HelpCircle className="w-3 h-3" />
               </button>

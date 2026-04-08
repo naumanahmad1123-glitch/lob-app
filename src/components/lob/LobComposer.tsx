@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseGroups } from '@/hooks/useSupabaseGroups';
 import { useQueryClient } from '@tanstack/react-query';
+import { PlacesAutocomplete } from '@/components/ui/PlacesAutocomplete';
 
 type ComposerStep = 'quick' | 'build';
 type RecipientType = 'group' | 'individuals';
@@ -63,6 +64,7 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
   const [parsed, setParsed] = useState<ParsedLob>({ title: '', category: '', time: '', location: '', locationAddress: '', locationLat: null, locationLng: null, groupId: '', recipientType: 'group', selectedUserIds: [] });
   const [sending, setSending] = useState(false);
   const [buildQuorum, setBuildQuorum] = useState(2);
+  const [buildDeadline, setBuildDeadline] = useState('');
   const [buildDate, setBuildDate] = useState('');
   const [buildTime, setBuildTime] = useState('');
 
@@ -212,6 +214,7 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
           quorum: buildQuorum,
           status: 'voting',
           when_mode: 'specific',
+          deadline: buildDeadline ? (() => { if (buildDeadline.includes('T') || buildDeadline.includes('-')) return new Date(buildDeadline).toISOString(); const d = new Date(); const map: Record<string,number> = { '2h': 2/24, 'Tonight': (22 - d.getHours())/24, '24h': 1, '48h': 2 }; const offset = map[buildDeadline]; return offset !== undefined ? new Date(Date.now() + offset * 86400000).toISOString() : null; })() : null,
         })
         .select('id')
         .single();
@@ -236,7 +239,7 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
     } finally {
       setSending(false);
     }
-  }, [parsed, user, sending, dbGroups, buildQuorum, buildDate, buildTime, onLobSent, onClose, navigate, queryClient]);
+  }, [parsed, user, sending, dbGroups, buildQuorum, buildDate, buildTime, buildDeadline, onLobSent, onClose, navigate, queryClient]);
 
   const toggleUser = (uid: string) => {
     setParsed(p => ({
@@ -479,56 +482,65 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
                       </div>
 
                       {/* When — optional */}
-                      <div className="mb-4">
-                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">When <span className="font-normal">(optional)</span></label>
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          {['Today', 'Tomorrow', 'This week', 'Next week'].map(chip => {
-                            const isActive = parsed.time === chip;
-                            return (
-                              <button
-                                key={chip}
-                                onClick={() => {
-                                  setParsed(p => ({ ...p, time: isActive ? '' : chip }));
-                                  setBuildDate('');
-                                  setBuildTime('');
-                                }}
-                                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 ${
-                                  isActive
-                                    ? 'gradient-primary text-primary-foreground shadow-sm'
-                                    : 'bg-secondary/80 text-muted-foreground border border-border/50 hover:border-primary/30'
-                                }`}
-                              >
-                                {chip}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <input
-                          type="text"
-                          placeholder="Or type a time, e.g. Saturday 7pm"
-                          value={parsed.time && !['Today', 'Tomorrow', 'This week', 'Next week'].includes(parsed.time) ? parsed.time : ''}
-                          onChange={e => {
-                            setParsed(p => ({ ...p, time: e.target.value }));
-                            setBuildDate('');
-                            setBuildTime('');
-                          }}
-                          className="w-full p-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
-                      </div>
+      <div className="mb-4">
+        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">When <span className="font-normal">(optional)</span></label>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {['Today', 'Tomorrow', 'This week', 'Next week'].map(chip => {
+            const isActive = parsed.time === chip;
+            return (
+              <button
+                key={chip}
+                onClick={() => {
+                  setParsed(p => ({ ...p, time: isActive ? '' : chip }));
+                  setBuildDate('');
+                  setBuildTime('');
+                }}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 ${
+                  isActive
+                    ? 'gradient-primary text-primary-foreground shadow-sm'
+                    : 'bg-secondary/80 text-muted-foreground border border-border/50 hover:border-primary/30'
+                }`}
+              >
+                {chip}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="date"
+            value={buildDate}
+            onChange={e => {
+              setBuildDate(e.target.value);
+              setParsed(p => ({ ...p, time: '' }));
+            }}
+            className="flex-1 p-3 rounded-xl bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          <input
+            type="time"
+            value={buildTime}
+            onChange={e => setBuildTime(e.target.value)}
+            disabled={!buildDate}
+            className="w-32 p-3 rounded-xl bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+          />
+        </div>
+      </div>
 
                       {/* Where — optional */}
                       <div className="mb-4">
                         <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Where <span className="font-normal">(optional)</span></label>
-                        <div className="relative">
-                          <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-muted-foreground" />
-                          <input
-                            type="text"
-                            placeholder="Add a location"
-                            value={parsed.location}
-                            onChange={e => setParsed(p => ({ ...p, location: e.target.value }))}
-                            className="w-full p-3 pl-9 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                          />
-                        </div>
+                        <PlacesAutocomplete
+                          value={parsed.location}
+                          onChange={val => setParsed(p => ({ ...p, location: val }))}
+                          onSelect={result => setParsed(p => ({
+                            ...p,
+                            location: result.name,
+                            locationAddress: result.address,
+                            locationLat: result.lat,
+                            locationLng: result.lng,
+                          }))}
+                          placeholder="Add a location"
+                        />
                       </div>
 
                       {/* Quorum stepper */}
@@ -546,6 +558,35 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
                           >+</button>
                         </div>
                       </div>
+
+              {/* Deadline */}
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Response deadline <span className="font-normal">(optional)</span></label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {(['2h', 'Tonight', '24h', '48h'] as const).map(opt => (
+                    <button
+                      key={opt}
+                      onClick={() => setBuildDeadline(buildDeadline === opt ? '' : opt)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 ${buildDeadline === opt ? 'gradient-primary text-primary-foreground' : 'bg-secondary text-muted-foreground border border-border/50'}`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setBuildDeadline(buildDeadline === 'custom' ? '' : 'custom')}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 ${buildDeadline === 'custom' ? 'gradient-primary text-primary-foreground' : 'bg-secondary text-muted-foreground border border-border/50'}`}
+                  >
+                    Custom
+                  </button>
+                </div>
+                {buildDeadline === 'custom' && (
+                  <input
+                    type="datetime-local"
+                    onChange={e => setBuildDeadline(e.target.value)}
+                    className="w-full p-3 rounded-xl bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary [color-scheme:dark]"
+                  />
+                )}
+              </div>
 
                       {/* Send to */}
                       <div className="mb-6">

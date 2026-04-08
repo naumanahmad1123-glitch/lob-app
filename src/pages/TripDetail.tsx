@@ -165,7 +165,7 @@ const TripDetail = () => {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="max-w-lg mx-auto px-4 flex items-center justify-center min-h-[60vh]">
+        <div className="w-full px-4 flex items-center justify-center min-h-[60vh]">
           <p className="text-muted-foreground text-sm">Loading trip...</p>
         </div>
       </AppLayout>
@@ -175,7 +175,7 @@ const TripDetail = () => {
   if (!trip) {
     return (
       <AppLayout>
-        <div className="max-w-lg mx-auto px-4">
+        <div className="w-full px-4">
           <div className="pt-2 pb-3">
             <button onClick={() => navigate('/trips')} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center cursor-pointer active:scale-95 transition-transform">
               <ArrowLeft className="w-5 h-5 text-foreground" />
@@ -194,7 +194,7 @@ const TripDetail = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-lg mx-auto px-4 pb-24">
+      <div className="w-full px-4 pb-24">
         {/* Header */}
         <div className="flex items-center justify-between pt-2 pb-3">
           <button
