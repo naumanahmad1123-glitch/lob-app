@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, List, CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +15,20 @@ import { useQueryClient } from '@tanstack/react-query';
 
 type ViewMode = 'feed' | 'calendar';
 type FeedTab = 'pending' | 'upcoming' | 'archived';
+type ArchiveWindow = '7d' | '30d' | '90d' | 'all';
+
+const ARCHIVE_WINDOWS: { value: ArchiveWindow; label: string }[] = [
+  { value: '7d', label: '7d' },
+  { value: '30d', label: '30d' },
+  { value: '90d', label: '90d' },
+  { value: 'all', label: 'All' },
+];
+
+const WINDOW_MS: Record<Exclude<ArchiveWindow, 'all'>, number> = {
+  '7d': 7 * 24 * 60 * 60 * 1000,
+  '30d': 30 * 24 * 60 * 60 * 1000,
+  '90d': 90 * 24 * 60 * 60 * 1000,
+};
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -32,6 +46,8 @@ const Home = () => {
   const { user } = useAuth();
   const { openComposer } = useComposer();
   const { data: allLobs = [], isLoading } = useSupabaseLobs();
+  const hasShownContent = useRef(false);
+  useEffect(() => { if (!isLoading) hasShownContent.current = true; }, [isLoading]);
   const queryClient = useQueryClient();
   const unreadCount = useUnreadNotificationCount();
   const [view, setView] = useState<ViewMode>('feed');
@@ -41,6 +57,7 @@ const Home = () => {
   });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [feedTab, setFeedTab] = useState<FeedTab>('pending');
+  const [archiveWindow, setArchiveWindow] = useState<ArchiveWindow>('7d');
 
   // Seed demo data on first login if user has no lobs
   useEffect(() => {
@@ -54,17 +71,51 @@ const Home = () => {
     !l.responses.some(r => r.userId === user?.id && (r.response === 'in' || r.response === 'out' || r.response === 'maybe'))
   );
 
-  const upcomingLobs = allLobs.filter(l => {
-    if (l.status === 'cancelled' || l.status === 'completed') return false;
-    const myResp = l.responses.find(r => r.userId === user?.id);
-    return myResp?.response === 'in' || myResp?.response === 'maybe';
-  });
+  const upcomingLobs = useMemo(() => {
+    const filtered = allLobs.filter(l => {
+      if (l.status === 'cancelled' || l.status === 'completed') return false;
+      const myResp = l.responses.find(r => r.userId === user?.id);
+      return myResp?.response === 'in' || myResp?.response === 'maybe';
+    });
 
-  const archivedLobs = allLobs.filter(l => {
-    if (l.status === 'cancelled' || l.status === 'completed') return true;
-    const myResp = l.responses.find(r => r.userId === user?.id);
-    return myResp?.response === 'out';
-  });
+    // Sort: confirmed first, then needs more votes (voting + user is "in"), then maybe
+    return filtered.sort((a, b) => {
+      const myRespA = a.responses.find(r => r.userId === user?.id)?.response;
+      const myRespB = b.responses.find(r => r.userId === user?.id)?.response;
+
+      const rank = (lob: typeof a, resp: string | undefined) => {
+        if (lob.status === 'confirmed') return 0;           // Confirmed
+        if (lob.status === 'voting' && resp === 'in') return 1; // Needs more votes
+        if (resp === 'maybe') return 2;                      // You answered Maybe
+        return 3;
+      };
+
+      return rank(a, myRespA) - rank(b, myRespB);
+    });
+  }, [allLobs, user?.id]);
+
+  const archivedLobs = useMemo(() => {
+    const now = Date.now();
+    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+
+    return allLobs.filter(l => {
+      const isArchived = l.status === 'cancelled' || l.status === 'completed' ||
+        l.responses.find(r => r.userId === user?.id)?.response === 'out';
+      if (!isArchived) return false;
+
+      const lobDate = new Date(l.selectedTime || l.createdAt).getTime();
+
+      // Always hide cancelled lobs older than 7 days
+      if (l.status === 'cancelled' && now - lobDate > sevenDaysMs) return false;
+
+      // Apply window filter for non-cancelled archived lobs
+      if (archiveWindow !== 'all') {
+        if (now - lobDate > WINDOW_MS[archiveWindow]) return false;
+      }
+
+      return true;
+    });
+  }, [allLobs, user?.id, archiveWindow]);
 
   const needsConfirmation = allLobs.filter(l => {
     const myResp = l.responses.find(r => r.userId === user?.id);
@@ -184,33 +235,55 @@ const Home = () => {
             {view === 'feed' ? (
               <motion.div
                 key="feed"
-                initial={{ opacity: 0, x: -20 }}
+                initial={hasShownContent.current ? { opacity: 0, x: -20 } : false}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
               >
                 <div className="flex items-center gap-1 bg-secondary rounded-xl p-1 mb-3">
-                  {(['pending', 'upcoming', 'archived'] as FeedTab[]).map(tab => (
+                  {([
+                    { key: 'pending' as FeedTab, label: 'Needs Vote' },
+                    { key: 'upcoming' as FeedTab, label: 'Upcoming' },
+                    { key: 'archived' as FeedTab, label: 'Archived' },
+                  ]).map(tab => (
                     <button
-                      key={tab}
-                      onClick={() => setFeedTab(tab)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer capitalize ${
-                        feedTab === tab ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
+                      key={tab.key}
+                      onClick={() => setFeedTab(tab.key)}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        feedTab === tab.key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
                       }`}
                     >
-                      {tab}
-                      {tab === 'pending' && pendingLobs.length > 0 && (
+                      {tab.label}
+                      {tab.key === 'pending' && pendingLobs.length > 0 && (
                         <span className="px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 text-[10px] font-bold">{pendingLobs.length}</span>
                       )}
                     </button>
                   ))}
                 </div>
 
+                {feedTab === 'archived' && (
+                  <div className="flex items-center gap-1.5 mb-3">
+                    {ARCHIVE_WINDOWS.map(w => (
+                      <button
+                        key={w.value}
+                        onClick={() => setArchiveWindow(w.value)}
+                        className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                          archiveWindow === w.value
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-secondary text-muted-foreground'
+                        }`}
+                      >
+                        {w.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <AnimatePresence mode="wait">
                   {feedTab === 'pending' && (
                     <motion.div
                       key="pending"
-                      initial={{ opacity: 0 }}
+                      initial={hasShownContent.current ? { opacity: 0 } : false}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.15 }}
@@ -231,7 +304,7 @@ const Home = () => {
                   {feedTab === 'upcoming' && (
                     <motion.div
                       key="upcoming"
-                      initial={{ opacity: 0 }}
+                      initial={hasShownContent.current ? { opacity: 0 } : false}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.15 }}
@@ -260,7 +333,33 @@ const Home = () => {
                               </div>
                             </div>
                           ))}
-                          {upcomingLobs.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}
+                          {(() => {
+                            const confirmed = upcomingLobs.filter(l => l.status === 'confirmed');
+                            const needsVotes = upcomingLobs.filter(l => l.status === 'voting' && l.responses.find(r => r.userId === user?.id)?.response === 'in');
+                            const maybeLobs = upcomingLobs.filter(l => l.responses.find(r => r.userId === user?.id)?.response === 'maybe');
+                            return (
+                              <>
+                                {confirmed.length > 0 && (
+                                  <>
+                                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider pt-1">Confirmed</p>
+                                    {confirmed.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}
+                                  </>
+                                )}
+                                {needsVotes.length > 0 && (
+                                  <>
+                                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider pt-1">Needs more votes</p>
+                                    {needsVotes.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}
+                                  </>
+                                )}
+                                {maybeLobs.length > 0 && (
+                                  <>
+                                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider pt-1">You answered maybe</p>
+                                    {maybeLobs.map((lob, i) => <LobCard key={lob.id} lob={lob} index={i} />)}
+                                  </>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       ) : (
                         <div className="gradient-card rounded-2xl border border-border/50 p-8 text-center">
@@ -280,7 +379,7 @@ const Home = () => {
                   {feedTab === 'archived' && (
                     <motion.div
                       key="archived"
-                      initial={{ opacity: 0 }}
+                      initial={hasShownContent.current ? { opacity: 0 } : false}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.15 }}
@@ -302,7 +401,7 @@ const Home = () => {
             ) : (
               <motion.div
                 key="calendar"
-                initial={{ opacity: 0, x: 20 }}
+                initial={hasShownContent.current ? { opacity: 0, x: 20 } : false}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.2 }}

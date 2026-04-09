@@ -298,6 +298,28 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
             }}
             className="fixed bottom-0 left-0 right-0 z-[70] max-w-lg mx-auto"
           >
+            {/* Launch celebration overlay */}
+            {launched && (
+              <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center pointer-events-none">
+                <motion.div
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1.2, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                  className="text-7xl mb-4"
+                >
+                  🎯
+                </motion.div>
+                <motion.p
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.15 }}
+                  className="text-2xl font-bold text-foreground"
+                >
+                  Lobbed!
+                </motion.p>
+              </div>
+            )}
+
             {/* Glow effect behind the card */}
             {step === 'quick' && quickCardReady && (
               <motion.div
@@ -311,8 +333,9 @@ export function LobComposer({ open, onClose, onLobSent, prefillText, prefillUser
               <div className="flex justify-center pt-3 pb-1">
                 {step === 'quick' && quickCardReady ? (
                   <motion.p
-                    style={{ opacity: isNearThreshold }}
-                    className="text-[11px] font-semibold text-primary animate-pulse"
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                    className="text-[11px] font-semibold text-primary"
                   >
                     ↑ Swipe up to lob it
                   </motion.p>
